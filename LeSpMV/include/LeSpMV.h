@@ -20,5 +20,6 @@
 #include"spmv_coo.h"
 #include"spmv_ell.h"
 #include"spmv_dia.h"
+#include"spmv_s_ell.h"
 
 #endif /* LESPMV_H */

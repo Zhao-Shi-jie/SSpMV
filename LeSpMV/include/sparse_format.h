@@ -166,8 +166,9 @@ struct S_ELL_Matrix : public Matrix_Features<IndexType>
     // 好像只需要记录每一个chunk 的行width就足够了，因为sell里面每个chunk内部都是一样宽的
     std::vector<IndexType> row_width;       // length = chunk_num, 每个 width必须是 alignment 的整数倍
 
-    std::vector<std::vector<IndexType>> col_index; // col_index[chunk_num][c * max_row_width[chunk_id]]
-    std::vector<std::vector<ValueType>> values; // values[chunk_num][c * max_row_width[chunk_id]]
+    // 默认按照行优先存储
+    std::vector<std::vector<IndexType>> col_index; // col_index[chunk_num][c * row_width[chunk_id]]
+    std::vector<std::vector<ValueType>> values; // values[chunk_num][c * row_width[chunk_id]]
 };
 
 ////////////////////////////////////////////////////////////////////////////////

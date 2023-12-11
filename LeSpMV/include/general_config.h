@@ -17,6 +17,7 @@
 
 // hyperpramaters for SpMV algorithms
 #define CHUNK_SIZE 8
+#define ALIGNMENT_NUM 16
 #define NTRATIO (0.6)
 
 // Kernel Flag : 0 = serial simple implementation

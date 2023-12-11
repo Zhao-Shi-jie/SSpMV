@@ -74,6 +74,17 @@ ELL_Matrix<IndexType, ValueType> read_ell_matrix(const char * mm_filename, Leadi
 template <class IndexType, class ValueType>
 DIA_Matrix<IndexType, ValueType> read_dia_matrix(const char * mm_filename, const IndexType max_diags, const IndexType alignment = 16);
 
+/**
+ * @brief Read sparse matrix in Sliced_ELL format from ".mtx" format file.
+ *        Convert from CSR format.
+ * 
+ * @tparam IndexType 
+ * @tparam ValueType 
+ * @param mm_filename 
+ * @param chunkwidth 
+ * @param alignment 
+ * @return S_ELL_Matrix<IndexType, ValueType> 
+ */
 template <class IndexType, class ValueType>
 S_ELL_Matrix<IndexType, ValueType> read_sell_matrix(const char * mm_filename, const int chunkwidth, const IndexType alignment);
 

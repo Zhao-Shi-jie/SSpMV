@@ -259,9 +259,9 @@ S_ELL_Matrix<IndexType, ValueType> csr_to_sell(const CSR_Matrix<IndexType, Value
 
     sell.col_index.resize(sell.chunk_num);
     sell.values.resize(sell.chunk_num);
-    // 初始化col_index 和 values
+    // 初始化col_index (-1) 和 values (0)
     for (IndexType chunk = 0; chunk < sell.chunk_num; ++chunk) {
-        sell.col_index[chunk].resize(sell.row_width[chunk] * sell.sliceWidth, -1);
+        sell.col_index[chunk].resize(sell.row_width[chunk] * sell.sliceWidth, IndexType(-1));
         sell.values[chunk].resize(sell.row_width[chunk] * sell.sliceWidth, ValueType(0));
     }
 
