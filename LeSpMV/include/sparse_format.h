@@ -169,6 +169,7 @@ struct S_ELL_Matrix : public Matrix_Features<IndexType>
     // 默认按照行优先存储
     std::vector<std::vector<IndexType>> col_index; // col_index[chunk_num][c * row_width[chunk_id]]
     std::vector<std::vector<ValueType>> values; // values[chunk_num][c * row_width[chunk_id]]
+    // TODO: 将两个数组 col_index 和 values 改成 二维指针进行内存对齐
 };
 
 ////////////////////////////////////////////////////////////////////////////////

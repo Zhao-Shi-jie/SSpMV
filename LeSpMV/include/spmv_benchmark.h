@@ -54,11 +54,24 @@ template <typename IndexType, typename ValueType>
 size_t bytes_per_spmv(const ELL_Matrix<IndexType,ValueType>& mtx)
 {
     size_t bytes = 0;
-    // bytes += 1*sizeof(IndexType) * mtx.num_nonzeros; // column index JIAJIALI
     bytes += 1*sizeof(IndexType) * mtx.num_rows * mtx.max_row_width; // column index
     bytes += 1*sizeof(ValueType) * mtx.num_rows * mtx.max_row_width; // A[i,j] and padding
     bytes += 1*sizeof(ValueType) * mtx.num_nnzs; // x[j]
     bytes += 2*sizeof(ValueType) * mtx.num_rows;     // y[i] = y[i] + ...
+    return bytes;
+}
+
+template <typename IndexType, typename ValueType>
+size_t bytes_per_spmv(const S_ELL_Matrix<IndexType,ValueType>& mtx)
+{
+    size_t bytes = 0;
+    for (IndexType chunk = 0; chunk < mtx.chunk_num; ++chunk) {
+        bytes += 1*sizeof(IndexType) * mtx.row_width[chunk] * mtx.sliceWidth; // column index for a chunk
+        bytes += 1*sizeof(IndexType) * mtx.row_width[chunk] * mtx.sliceWidth; // values for a chunk
+    }
+
+    bytes += 1*sizeof(ValueType) * mtx.num_nnzs;    // x[j]
+    bytes += 2*sizeof(ValueType) * mtx.num_rows;    // y[i] = y[i] + ...
     return bytes;
 }
 

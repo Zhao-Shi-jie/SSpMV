@@ -68,11 +68,11 @@ ELL_Matrix<IndexType, ValueType> read_ell_matrix(const char * mm_filename, Leadi
  * @tparam ValueType 
  * @param mm_filename   The sparse matrix file, must in mtx format.
  * @param max_diags     The maximum number of diags, suppose 2048 is enough for sp matrix
- * @param alignment     aligment for DIA, generally use 16
+ * @param alignment     aligment for DIA, generally use ALIGNMENT_NUM
  * @return DIA_Matrix<IndexType, ValueType> 
  */
 template <class IndexType, class ValueType>
-DIA_Matrix<IndexType, ValueType> read_dia_matrix(const char * mm_filename, const IndexType max_diags, const IndexType alignment = 16);
+DIA_Matrix<IndexType, ValueType> read_dia_matrix(const char * mm_filename, const IndexType max_diags, const IndexType alignment = ALIGNMENT_NUM);
 
 /**
  * @brief Read sparse matrix in Sliced_ELL format from ".mtx" format file.

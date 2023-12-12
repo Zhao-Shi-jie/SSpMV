@@ -231,7 +231,7 @@ ELL_Matrix<IndexType, ValueType> csr_to_ell(const CSR_Matrix<IndexType, ValueTyp
  * @tparam ValueType 
  */
 template <class IndexType, class ValueType>
-S_ELL_Matrix<IndexType, ValueType> csr_to_sell(const CSR_Matrix<IndexType, ValueType> &csr, FILE *fp_feature, const int chunkwidth = CHUNK_SIZE,  const IndexType alignment = 16)
+S_ELL_Matrix<IndexType, ValueType> csr_to_sell(const CSR_Matrix<IndexType, ValueType> &csr, FILE *fp_feature, const int chunkwidth = CHUNK_SIZE,  const IndexType alignment = ALIGNMENT_NUM)
 {
     S_ELL_Matrix<IndexType, ValueType> sell;
 
@@ -288,7 +288,7 @@ S_ELL_Matrix<IndexType, ValueType> csr_to_sell(const CSR_Matrix<IndexType, Value
 }
 
 template <class IndexType, class ValueType>
-DIA_Matrix<IndexType, ValueType> csr_to_dia(const CSR_Matrix<IndexType, ValueType> &csr, const IndexType max_diags, FILE *fp_feature, const IndexType alignment = 16)
+DIA_Matrix<IndexType, ValueType> csr_to_dia(const CSR_Matrix<IndexType, ValueType> &csr, const IndexType max_diags, FILE *fp_feature, const IndexType alignment = ALIGNMENT_NUM)
 {
     DIA_Matrix<IndexType, ValueType> dia;
 

@@ -33,7 +33,7 @@ void test_martixfile(int argc, char** argv)
 
     S_ELL_Matrix <int, float> s_ell_matrix;
     // IndexType max_diags = MAX_DIAG_NUM;
-    IndexType alignment = 16;
+    IndexType alignment = ALIGNMENT_NUM;
     IndexType chunk_width = CHUNK_SIZE;
     
     s_ell_matrix = read_sell_matrix<int, float>(mm_filename, chunk_width, alignment);

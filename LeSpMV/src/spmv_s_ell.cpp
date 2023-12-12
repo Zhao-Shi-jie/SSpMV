@@ -43,7 +43,7 @@ void __spmv_sell_serial_simple( const IndexType num_rows,
                 IndexType col_index_pos = row * chunk_width + i;
                 IndexType col = col_index[chunk][col_index_pos];
 
-                if (col != -1) { // 检查是否为填充的空位
+                if (col >= 0) { // 检查是否为填充的空位
                     sum += values[chunk][col_index_pos] * x[col];
                 }
             }
@@ -88,7 +88,8 @@ void __spmv_sell_omp_simple(const IndexType num_rows,
     // const int values_align_bytes   = ALIGNMENT_NUM * sizeof(ValueType);
 
     //  Only spmv for row major SELL
-    #pragma omp parallel for num_threads(thread_num) schedule(static,chunk_size)
+    // #pragma omp parallel for num_threads(thread_num) schedule(static,chunk_size)
+    #pragma omp parallel for num_threads(thread_num) schedule(SCHEDULE_STRATEGY)
     for (IndexType chunk = 0; chunk < total_chunk_num; ++chunk)
     {
         IndexType chunk_width = max_row_width[chunk];
@@ -100,14 +101,13 @@ void __spmv_sell_omp_simple(const IndexType num_rows,
             IndexType global_row = chunk_start_row + row;
             if (global_row >= num_rows) break; // 越界检查
 
-            // #pragma omp simd aligned(values[chunk]:values_align_bytes, col_index[chunk]:colindex_align_bytes) reduction(+:sum)
             #pragma omp simd reduction(+:sum)
             for (IndexType i = 0; i < chunk_width; ++i) 
             {
                 IndexType col_index_pos = row * chunk_width + i;
                 IndexType col = col_index[chunk][col_index_pos];
 
-                if (col != -1) { // 检查是否为填充的空位
+                if (col >= 0) { // 检查是否为填充的空位
                     sum += values[chunk][col_index_pos] * x[col];
                 }
             }
