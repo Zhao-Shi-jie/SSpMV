@@ -1,5 +1,6 @@
 
 #include"../include/thread.h"
+#include<stdio.h>
 
 int _thread_num;
 
@@ -35,5 +36,27 @@ int Le_get_thread_id()
     return omp_get_thread_num();
 #else
     return 0;
+#endif
+}
+
+void set_omp_schedule(int sche_mode, int chunk_size) {
+#ifdef _OPENMP
+    switch (sche_mode) {
+        case 0:
+            omp_set_schedule(omp_sched_static, 0); // 使用默认的chunk size
+            printf("-- OMP Static schedule strategy --\n");
+            break;
+        case 1:
+            omp_set_schedule(omp_sched_static, chunk_size);
+            printf("-- OMP StaticConst schedule strategy --\n");
+            break;
+        case 2:
+            omp_set_schedule(omp_sched_dynamic, chunk_size);
+            printf("-- OMP Dynamic schedule strategy --\n");
+            break;
+        default:
+            // 报告错误或使用默认调度策略
+            break;
+    }
 #endif
 }

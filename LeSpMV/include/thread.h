@@ -18,4 +18,6 @@ int Le_get_thread_num();
 // get thread own ID index
 int Le_get_thread_id();
 
+void set_omp_schedule(int sche_mode, int chunk_size);
+
 #endif /* THREAD_H */

@@ -12,7 +12,7 @@
 #include<iostream>
 
 template <typename IndexType, typename ValueType>
-int test_s_ell_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag)
+int test_s_ell_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag, int schedule_mod)
 {
     std::cout << "=====  Testing S_ELL Kernels  =====" << std::endl;
 
@@ -28,6 +28,11 @@ int test_s_ell_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, in
 
     // 测试这个routine 要我们测的 kernel_tag
     sell.kernel_flag = kernel_tag;
+
+    // 设置 omp 调度策略
+    const IndexType thread_num = Le_get_thread_num();
+    const IndexType chunk_size = std::max(1, sell.chunk_num/ thread_num);
+    set_omp_schedule(schedule_mod, chunk_size);
 
     if(0 == sell.kernel_flag){
         std::cout << "\n===  Compared S_ELL serial with csr default  ===" << std::endl;
@@ -69,6 +74,6 @@ int test_s_ell_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, in
     return 0;
 }
 
-template int test_s_ell_matrix_kernels<int,float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag);
+template int test_s_ell_matrix_kernels<int,float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag, int sche);
 
-template int test_s_ell_matrix_kernels<int,double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag);
+template int test_s_ell_matrix_kernels<int,double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag, int sche);

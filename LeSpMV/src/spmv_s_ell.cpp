@@ -82,14 +82,14 @@ void __spmv_sell_omp_simple(const IndexType num_rows,
                             ValueType * y)
 {
     const IndexType thread_num = Le_get_thread_num();
-    const IndexType chunk_size = std::max(1, total_chunk_num/ thread_num);
+    // const IndexType chunk_size = std::max(1, total_chunk_num/ thread_num);
 
     // const int colindex_align_bytes = ALIGNMENT_NUM * sizeof(IndexType);
     // const int values_align_bytes   = ALIGNMENT_NUM * sizeof(ValueType);
 
     //  Only spmv for row major SELL
-    // #pragma omp parallel for num_threads(thread_num) schedule(static,chunk_size)
-    #pragma omp parallel for num_threads(thread_num) schedule(SCHEDULE_STRATEGY)
+    // #pragma omp parallel for num_threads(thread_num) schedule(SCHEDULE_STRATEGY)
+    #pragma omp parallel for num_threads(thread_num)
     for (IndexType chunk = 0; chunk < total_chunk_num; ++chunk)
     {
         IndexType chunk_width = max_row_width[chunk];
