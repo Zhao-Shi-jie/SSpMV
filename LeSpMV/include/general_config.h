@@ -7,12 +7,12 @@
 // experimental setting
 #define MAT_GRID_SIZE 512  //not use
 #define MAX_DIAG_NUM 10240
-#define MAX_ITER 800
+#define MAX_ITER 1000
 #define MIN_ITER 500 
 #define MAX_R 8
 #define MAX_C 8
 
-#define TIME_LIMIT 10.0  
+#define TIME_LIMIT 20.0  
 #define NUM_FORMATS 7
 
 // hyperpramaters for SpMV algorithms

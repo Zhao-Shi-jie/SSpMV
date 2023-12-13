@@ -12,7 +12,7 @@
 #include<iostream>
 
 template <typename IndexType, typename ValueType>
-int test_csr_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag)
+int test_csr_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag, int schedule_mod)
 {
     std::cout << "=====  Testing CSR Kernels  =====" << std::endl;
 
@@ -44,6 +44,14 @@ int test_csr_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
     else if(1 == kernel_tag){
         std::cout << "\n===  Compared csr omp with csr default  ===" << std::endl;
 
+        // 设置 omp 调度策略
+        const IndexType thread_num = Le_get_thread_num();
+        
+        IndexType chunk_size = OMP_ROWS_SIZE;
+        chunk_size = std::max(chunk_size, csr_test.num_rows/thread_num);
+
+        set_omp_schedule(schedule_mod, chunk_size);
+
         // test correctness
         test_spmv_kernel(csr_ref, LeSpMV_csr<IndexType, ValueType>,
                          csr_test, LeSpMV_csr<IndexType, ValueType>,
@@ -74,6 +82,6 @@ int test_csr_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
     return 0;
 }
 
-template int test_csr_matrix_kernels<int,float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag);
+template int test_csr_matrix_kernels<int,float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag, int schedule_mod);
 
-template int test_csr_matrix_kernels<int,double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag);
+template int test_csr_matrix_kernels<int,double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag, int schedule_mod);

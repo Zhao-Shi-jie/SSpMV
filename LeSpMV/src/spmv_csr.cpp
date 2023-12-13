@@ -91,7 +91,8 @@ void __spmv_csr_omp_simple (const IndexType num_rows,
 {
     const IndexType thread_num = Le_get_thread_num();
     // 并行处理每一行
-    #pragma omp parallel for num_threads(thread_num) schedule(SCHEDULE_STRATEGY)
+    // #pragma omp parallel for num_threads(thread_num) schedule(SCHEDULE_STRATEGY)
+    #pragma omp parallel for num_threads(thread_num)
     for (IndexType row = 0; row < num_rows; ++row) 
     {
         ValueType sum = 0;

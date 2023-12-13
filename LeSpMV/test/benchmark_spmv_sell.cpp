@@ -21,7 +21,7 @@ void usage(int argc, char** argv)
     std::cout << "\t" << " --precision = 32(or 64)\n";
     std::cout << "\t" << " --ld        = is only supported Row-major format\n";
     std::cout << "\t" << " --sche      = chosing the schedule strategy\n";
-    std::cout << "\t" << "               0: static | 1: static, CHUNK_SIZE | 2: dynamic\n";
+    std::cout << "\t" << "               0: static | 1: static, CHUNK_SIZE | 2: dynamic | 3: guided\n";
     std::cout << "\t" << " --threads   = define the num of omp threads\n";
     std::cout << "Note: my_matrix.mtx must be real-valued sparse matrix in the MatrixMarket file format.\n"; 
 }
@@ -50,15 +50,15 @@ void run_s_ell_kernels(int argc, char **argv)
 
     fflush(stdout);
 
-    int sche_mode = 0;
+    int sche_mode = 1;
     // 此时 0 == 1 都是 StCont 方式，因为按照本身的chunk划分
     char * schedule_str = get_argval(argc, argv, "sche");
     if(schedule_str != NULL)
     {
         sche_mode = atoi(schedule_str);
-        if (sche_mode!=0 && sche_mode!=1 && sche_mode!=2)
+        if ( sche_mode!=1 && sche_mode!=2 && sche_mode!=3)
         {
-            std::cout << "sche must be [0,1,2]. '--help see more details'" << std::endl;
+            std::cout << "sche must be [1,2,3]. '--help see more details'" << std::endl;
             return ;
         }
     }

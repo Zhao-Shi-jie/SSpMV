@@ -65,7 +65,7 @@ int test_ell_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
 
         std::cout << "\n===  Performance of ELL omp simple  ===" << std::endl;
         // count performance of Gflops and Gbytes
-        benchmark_spmv_on_host(ell,LeSpMV_ell<IndexType, ValueType>,"ell_omp_simple");     
+        benchmark_spmv_on_host(ell, LeSpMV_ell<IndexType, ValueType>,"ell_omp_simple");     
     }
     else if (2 == ell.kernel_flag)
     {
