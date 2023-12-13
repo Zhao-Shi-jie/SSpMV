@@ -22,7 +22,7 @@
  * @return int 
  */
 template <typename IndexType, typename ValueType>
-int test_ell_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag, LeadingDimension ld)
+int test_ell_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag, LeadingDimension ld, int schedule_mod)
 {
     std::cout << "=====  Testing ELL Kernels  =====" << std::endl;
 
@@ -46,6 +46,18 @@ int test_ell_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
     else if (1 == ell.kernel_flag)
     {
         std::cout << "\n===  Compared ell omp with csr default  ===" << std::endl;
+        
+        // 设置 omp 调度策略
+        const IndexType thread_num = Le_get_thread_num();
+        
+        IndexType chunk_size = OMP_ROWS_SIZE;
+        if (ld == RowMajor)
+            chunk_size = std::max(1, ell.num_rows/thread_num);
+        else
+            chunk_size = std::max(1, ell.num_cols/thread_num);
+
+        set_omp_schedule(schedule_mod, chunk_size);
+
         // test correctness
         test_spmv_kernel(csr_ref, LeSpMV_csr<IndexType, ValueType>,
                          ell, LeSpMV_ell<IndexType, ValueType>,
@@ -58,6 +70,18 @@ int test_ell_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
     else if (2 == ell.kernel_flag)
     {
         std::cout << "\n===  Compared ell Load-Balance with csr default  ===" << std::endl;
+
+        // 设置 omp 调度策略, load-balance 内部有平衡方式
+        // const IndexType thread_num = Le_get_thread_num();
+        
+        // IndexType chunk_size = OMP_ROWS_SIZE;
+        // if (ld == RowMajor)
+        //     chunk_size = std::max(1, ell.num_rows/thread_num);
+        // else
+        //     chunk_size = std::max(1, ell.num_cols/thread_num);
+
+        // set_omp_schedule(schedule_mod, chunk_size);
+
         // test correctness
         test_spmv_kernel(csr_ref, LeSpMV_csr<IndexType, ValueType>,
                          ell, LeSpMV_ell<IndexType, ValueType>,
@@ -72,6 +96,6 @@ int test_ell_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
     return 0;
 }
 
-template int test_ell_matrix_kernels<int,float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag, LeadingDimension ld);
+template int test_ell_matrix_kernels<int,float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag, LeadingDimension ld, int schedule_mod);
 
-template int test_ell_matrix_kernels<int,double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag, LeadingDimension ld);
+template int test_ell_matrix_kernels<int,double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag, LeadingDimension ld, int schedule_mod);

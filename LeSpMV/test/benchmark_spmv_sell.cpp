@@ -51,6 +51,7 @@ void run_s_ell_kernels(int argc, char **argv)
     fflush(stdout);
 
     int sche_mode = 0;
+    // 此时 0 == 1 都是 StCont 方式，因为按照本身的chunk划分
     char * schedule_str = get_argval(argc, argv, "sche");
     if(schedule_str != NULL)
     {

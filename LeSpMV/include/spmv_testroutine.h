@@ -20,7 +20,7 @@ int test_csr_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
  * @return int 
  */
 template <typename IndexType, typename ValueType>
-int test_ell_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag, LeadingDimension ld);
+int test_ell_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag, LeadingDimension ld, int schedule_mod);
 
 template <typename IndexType, typename ValueType>
 int test_dia_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag);

@@ -43,14 +43,18 @@ void set_omp_schedule(int sche_mode, int chunk_size) {
 #ifdef _OPENMP
     switch (sche_mode) {
         case 0:
+        // OpenMP will divides iterations into chunks that are approximately equal in size and it distributes chunks to threads 
+        // in order(Notice that is why static method different from others).
             omp_set_schedule(omp_sched_static, 0); // 使用默认的chunk size
             printf("-- OMP Static schedule strategy --\n");
             break;
         case 1:
+        // If you specify chunk-size variable, the iterations will be divide into iter_size / chunk_size chunks.
             omp_set_schedule(omp_sched_static, chunk_size);
             printf("-- OMP StaticConst schedule strategy --\n");
             break;
         case 2:
+        // OpenMP will still split task into iter_size/chunk_size chunks, but distribute trunks to threads dynamically without any specific order.
             omp_set_schedule(omp_sched_dynamic, chunk_size);
             printf("-- OMP Dynamic schedule strategy --\n");
             break;

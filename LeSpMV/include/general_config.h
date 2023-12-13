@@ -20,6 +20,9 @@
 #define ALIGNMENT_NUM 16
 #define NTRATIO (0.6)
 
+// OMP paramaters
+#define OMP_ROWS_SIZE 64
+
 // Kernel Flag : 0 = serial simple implementation
 //               1 = *default* simple omp implementations
 //               2 = load balanced omp implementation

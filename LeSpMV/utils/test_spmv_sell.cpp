@@ -29,11 +29,6 @@ int test_s_ell_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, in
     // 测试这个routine 要我们测的 kernel_tag
     sell.kernel_flag = kernel_tag;
 
-    // 设置 omp 调度策略
-    const IndexType thread_num = Le_get_thread_num();
-    const IndexType chunk_size = std::max(1, sell.chunk_num/ thread_num);
-    set_omp_schedule(schedule_mod, chunk_size);
-
     if(0 == sell.kernel_flag){
         std::cout << "\n===  Compared S_ELL serial with csr default  ===" << std::endl;
         // test correctness
@@ -48,6 +43,11 @@ int test_s_ell_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, in
     else if (1 == sell.kernel_flag)
     {
         std::cout << "\n===  Compared S_ELL omp with csr default  ===" << std::endl;
+        // 设置 omp 调度策略
+        const IndexType thread_num = Le_get_thread_num();
+        const IndexType chunk_size = std::max(1, sell.chunk_num/ thread_num);
+        set_omp_schedule(schedule_mod, chunk_size);
+        
         // test correctness
         test_spmv_kernel(csr_ref, LeSpMV_csr<IndexType, ValueType>,
                          sell, LeSpMV_sell<IndexType, ValueType>,
