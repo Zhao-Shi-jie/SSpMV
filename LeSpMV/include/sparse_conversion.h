@@ -243,27 +243,50 @@ S_ELL_Matrix<IndexType, ValueType> csr_to_sell(const CSR_Matrix<IndexType, Value
 
     sell.sliceWidth = chunkwidth;
     sell.alignment  = alignment;
+
     // 确定需要多少个slice/chunk
     sell.chunk_num = (csr.num_rows + sell.sliceWidth - 1) / sell.sliceWidth; // 分块数向上取整
 
-    sell.row_width.resize (sell.chunk_num, 0);
+    // sell.row_width.resize (sell.chunk_num, 0);
+    sell.row_width = new_array<IndexType>(sell.chunk_num);
+    memset(sell.row_width, 0 , sell.chunk_num * sizeof(IndexType));
+
     for (IndexType row = 0; row < csr.num_rows; ++row) {
         IndexType chunk_id = row / sell.sliceWidth;
         IndexType row_nnz = csr.row_offset[row + 1] - csr.row_offset[row];
         sell.row_width[chunk_id] = std::max(sell.row_width[chunk_id], row_nnz);
     }
     // 对每个chunk的最大行宽度进行对齐
-    for (IndexType& width : sell.row_width) {
-        width = ((width + sell.alignment - 1) / sell.alignment) * sell.alignment;
+    // for (IndexType& width : sell.row_width) {
+    //     width = ((width + sell.alignment - 1) / sell.alignment) * sell.alignment;
+    // }
+    for (IndexType i = 0; i < sell.chunk_num; i++)
+    {
+        sell.row_width[i] = ((sell.row_width[i] + sell.alignment - 1) / sell.alignment) * sell.alignment;
+    }
+    
+    // sell.col_index.resize(sell.chunk_num);
+    // sell.values.resize(sell.chunk_num);
+    // // 初始化col_index (-1) 和 values (0)
+    // for (IndexType chunk = 0; chunk < sell.chunk_num; ++chunk) {
+    //     sell.col_index[chunk].resize(sell.row_width[chunk] * sell.sliceWidth, IndexType(-1));
+    //     sell.values[chunk].resize(sell.row_width[chunk] * sell.sliceWidth, ValueType(0));
+    // }
+    // 为每个chunk的行指针数组分配内存
+    sell.col_index = new IndexType*[sell.chunk_num];
+    sell.values = new ValueType*[sell.chunk_num];
+    for (IndexType chunk = 0; chunk < sell.chunk_num; ++chunk) {
+        size_t elem_nums = sell.row_width[chunk] * sell.sliceWidth;
+
+        sell.col_index[chunk] = new_array<IndexType> (elem_nums);
+        // 初始化col_index中的每个元素为-1
+        std::fill_n(sell.col_index[chunk], elem_nums, static_cast<IndexType>(-1));
+
+        sell.values[chunk] = new_array<ValueType> (elem_nums);
+        // 初始化values中的每个元素为0
+        std::fill_n(sell.values[chunk], elem_nums, ValueType(0));
     }
 
-    sell.col_index.resize(sell.chunk_num);
-    sell.values.resize(sell.chunk_num);
-    // 初始化col_index (-1) 和 values (0)
-    for (IndexType chunk = 0; chunk < sell.chunk_num; ++chunk) {
-        sell.col_index[chunk].resize(sell.row_width[chunk] * sell.sliceWidth, IndexType(-1));
-        sell.values[chunk].resize(sell.row_width[chunk] * sell.sliceWidth, ValueType(0));
-    }
 
     //转换 CSR 到 S-ELL
     for (IndexType row = 0; row < csr.num_rows; ++row)

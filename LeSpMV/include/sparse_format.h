@@ -164,12 +164,15 @@ struct S_ELL_Matrix : public Matrix_Features<IndexType>
     // std::vector<IndexType> max_row_width; // length = chunk_num, 每个 width必须是 alignment 的整数倍
     // std::vector<IndexType> min_row_width; // length = chunk_num, 每个 width必须是 alignment 的整数倍
     // 好像只需要记录每一个chunk 的行width就足够了，因为sell里面每个chunk内部都是一样宽的
-    std::vector<IndexType> row_width;       // length = chunk_num, 每个 width必须是 alignment 的整数倍
+    // std::vector<IndexType> row_width;       // length = chunk_num, 每个 width必须是 alignment 的整数倍
+    IndexType * row_width;
 
     // 默认按照行优先存储
-    std::vector<std::vector<IndexType>> col_index; // col_index[chunk_num][c * row_width[chunk_id]]
-    std::vector<std::vector<ValueType>> values; // values[chunk_num][c * row_width[chunk_id]]
+    // std::vector<std::vector<IndexType>> col_index; // col_index[chunk_num][c * row_width[chunk_id]]
+    // std::vector<std::vector<ValueType>> values; // values[chunk_num][c * row_width[chunk_id]]
     // TODO: 将两个数组 col_index 和 values 改成 二维指针进行内存对齐
+    IndexType ** col_index;
+    ValueType ** values;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -220,11 +223,19 @@ void delete_s_ell_matrix(S_ELL_Matrix<IndexType,ValueType>& s_ell){
     s_ell.alignment = 0;
     s_ell.chunk_num = 0;
 
-    // s_ell.max_row_width.clear();
-    // s_ell.min_row_width.clear();
-    s_ell.row_width.clear();
-    s_ell.col_index.clear();
-    s_ell.values.clear(); 
+    // s_ell.row_width.clear();
+    // s_ell.col_index.clear();
+    // s_ell.values.clear(); 
+
+    // for new struct
+    delete_array(s_ell.row_width);
+    for (IndexType chunk = 0; chunk < s_ell.chunk_num; chunk++)
+    {
+        delete_array(s_ell.col_index[chunk]);
+        delete_array(s_ell.values[chunk]);
+    }
+    delete[] s_ell.col_index;
+    delete[] s_ell.values;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
