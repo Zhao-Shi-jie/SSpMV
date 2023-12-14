@@ -60,6 +60,29 @@ cpu_l1i_cache_bytes=$(convert_to_bytes $cpu_l1i_cache_raw $cpu_l1i_cache_unit)
 total_mem=$(grep MemTotal /proc/meminfo | awk '{print $2}') # KB
 total_mem_GB=$(($total_mem / 1024 / 1024))
 
+# Extract SIMD unit length
+cpu_flags=$(lscpu | grep -oP 'Flags:\s+\K.*')
+if echo "$cpu_flags" | grep -q 'avx512'; then
+    simd_width=512
+elif echo "$cpu_flags" | grep -q 'avx2'; then
+    simd_width=256
+elif echo "$cpu_flags" | grep -q 'avx'; then
+    simd_width=256
+elif echo "$cpu_flags" | grep -q 'sse'; then
+    simd_width=128
+# for ARM arch
+elif echo "$cpu_flags" | grep -qw 'asimd'; then
+    # Set the SIMD width for NEON/ASIMD
+    simd_width=128
+elif echo "$cpu_flags" | grep -qw 'sve'; then
+    # For SVE, the width can be dynamic and should be determined at runtime
+    # or set to a default value based on the specific processor documentation
+    # For example, SVE can support up to 2048-bit vectors
+    simd_width=128  # default for 128
+else
+    simd_width=128
+fi
+
 # Prepare the header file content
 echo "#ifndef CONFIG_H" > $plat_headfile
 echo "#define CONFIG_H" >> $plat_headfile
@@ -79,6 +102,10 @@ echo "#define CPU_L1IACHE_SIZE $cpu_l1i_cache_bytes" >> $plat_headfile
 echo "" >> $plat_headfile
 echo "// Main Memory size in Giga Bytes" >> $plat_headfile
 echo "#define MAIN_MEM_SIZE $total_mem_GB" >> $plat_headfile
+
+echo "" >> $plat_headfile
+echo "// SIMD width for platform" >> $plat_headfile
+echo "#define SIMD_WIDTH $simd_width" >> $plat_headfile
 
 echo "" >> $plat_headfile
 echo "#endif // CONFIG_H" >> $plat_headfile

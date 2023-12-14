@@ -1,7 +1,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#define CPU_FREQUENCY 1000.048e6
+#define CPU_FREQUENCY 1983.470e6
 #define CPU_MAX_FREQUENCY 3200.0000e6
 #define CPU_SOCKET 2
 #define CPU_CORES_PER_SOC 14
@@ -16,5 +16,8 @@
 
 // Main Memory size in Giga Bytes
 #define MAIN_MEM_SIZE 251
+
+// SIMD width for platform
+#define SIMD_WIDTH 512
 
 #endif // CONFIG_H
