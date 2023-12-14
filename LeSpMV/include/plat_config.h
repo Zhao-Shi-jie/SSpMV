@@ -1,7 +1,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#define CPU_FREQUENCY 1983.470e6
+#define CPU_FREQUENCY 1000.010e6
 #define CPU_MAX_FREQUENCY 3200.0000e6
 #define CPU_SOCKET 2
 #define CPU_CORES_PER_SOC 14
@@ -19,5 +19,10 @@
 
 // SIMD width for platform
 #define SIMD_WIDTH 512
+#define S_CSR5_OMEGA 16
+#define D_CSR5_OMEGA 8
+
+#define S_ALIGNMENT 16
+#define D_ALIGNMENT 8
 
 #endif // CONFIG_H

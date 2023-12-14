@@ -20,7 +20,7 @@ int test_dia_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
     DIA_Matrix<IndexType,ValueType> dia;
 
     IndexType max_diags = MAX_DIAG_NUM;
-    IndexType alignment = ALIGNMENT_NUM;
+    IndexType alignment = (SIMD_WIDTH/sizeof(ValueType));
     FILE* save_features = fopen(MAT_FEATURES,"w");
 
     dia = csr_to_dia(csr_ref, max_diags, save_features, alignment);

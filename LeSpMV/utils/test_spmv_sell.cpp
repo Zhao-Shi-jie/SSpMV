@@ -19,7 +19,7 @@ int test_s_ell_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, in
     S_ELL_Matrix<IndexType,ValueType> sell;
 
     FILE* save_features = fopen(MAT_FEATURES,"w");
-    IndexType alignment = ALIGNMENT_NUM;
+    IndexType alignment = (SIMD_WIDTH/sizeof(ValueType));
     IndexType chunk_width = CHUNK_SIZE;
 
     sell = csr_to_sell(csr_ref, save_features, chunk_width, alignment);

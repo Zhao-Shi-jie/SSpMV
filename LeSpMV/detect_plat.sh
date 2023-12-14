@@ -82,6 +82,8 @@ elif echo "$cpu_flags" | grep -qw 'sve'; then
 else
     simd_width=128
 fi
+omega_single=$(($simd_width/32))
+omega_double=$(($simd_width/64))
 
 # Prepare the header file content
 echo "#ifndef CONFIG_H" > $plat_headfile
@@ -106,6 +108,11 @@ echo "#define MAIN_MEM_SIZE $total_mem_GB" >> $plat_headfile
 echo "" >> $plat_headfile
 echo "// SIMD width for platform" >> $plat_headfile
 echo "#define SIMD_WIDTH $simd_width" >> $plat_headfile
+echo "#define S_CSR5_OMEGA $omega_single" >> $plat_headfile
+echo "#define D_CSR5_OMEGA $omega_double" >> $plat_headfile
+echo "" >> $plat_headfile
+echo "#define S_ALIGNMENT $omega_single" >> $plat_headfile
+echo "#define D_ALIGNMENT $omega_double" >> $plat_headfile
 
 echo "" >> $plat_headfile
 echo "#endif // CONFIG_H" >> $plat_headfile
