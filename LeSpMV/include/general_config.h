@@ -18,6 +18,9 @@
 // hyperpramaters for SpMV algorithms
 #define CHUNK_SIZE 8
 #define NTRATIO (0.6)
+//  general setting in Liu weifeng's library
+#define CSR5_SIGMA   12
+#define X86_CACHELINE   64
 
 // OMP paramaters
 #define OMP_ROWS_SIZE 64

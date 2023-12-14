@@ -55,6 +55,7 @@ cpu_l1d_cache_bytes=$(convert_to_bytes $cpu_l1d_cache_raw $cpu_l1d_cache_unit)
 cpu_l1i_cache_raw=$(lscpu | grep "L1i cache:" | awk '{print $3}' | sed 's/[^0-9]*//g')
 cpu_l1i_cache_unit=$(lscpu | grep "L1i cache:" | awk '{print $4}')
 cpu_l1i_cache_bytes=$(convert_to_bytes $cpu_l1i_cache_raw $cpu_l1i_cache_unit)
+cpu_cacheline_size=$(cat /sys/devices/system/cpu/cpu0/cache/index0/coherency_line_size)
 
 # Extract Main Memory size
 total_mem=$(grep MemTotal /proc/meminfo | awk '{print $2}') # KB
@@ -101,6 +102,7 @@ echo "#define CPU_L3CACHE_SIZE $cpu_l3cache_bytes" >> $plat_headfile
 echo "#define CPU_L2CACHE_SIZE $cpu_l2cache_bytes" >> $plat_headfile
 echo "#define CPU_L1DCACHE_SIZE $cpu_l1d_cache_bytes" >> $plat_headfile
 echo "#define CPU_L1IACHE_SIZE $cpu_l1i_cache_bytes" >> $plat_headfile
+echo "#define CACHE_LINE $cpu_cacheline_size" >> $plat_headfile
 echo "" >> $plat_headfile
 echo "// Main Memory size in Giga Bytes" >> $plat_headfile
 echo "#define MAIN_MEM_SIZE $total_mem_GB" >> $plat_headfile
