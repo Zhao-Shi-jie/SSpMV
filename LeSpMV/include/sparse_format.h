@@ -104,6 +104,40 @@ struct CSR_Matrix : public Matrix_Features<IndexType>
 };
 
 /**
+ * @brief CSR5 Matrix Format from Weifeng Liu
+ *  < Liu, Weifeng, and Brian Vinter. "CSR5: An efficient storage format for cross-platform sparse matrix-vector 
+ *  multiplication." Proceedings of the 29th ACM on International Conference on Supercomputing. 2015. >
+ * 
+ * @tparam IndexType 
+ * @tparam ValueType 
+ */
+template <typename IndexType, typename UIndexType, typename ValueType>
+struct CSR5_Matrix : public CSR_Matrix<IndexType, ValueType>
+{
+    // column major for col_index tile and values tile.
+    //  TILE size: SIGMA x OMEGA 
+
+    IndexType sigma;  // Typically, sigma = SIMD_WIDTH / sizeof(ValueType)
+    IndexType omega;  // Tunable parameter, number of rows within a "sigma" segment
+
+    IndexType bit_y_offset;         //  y_offset 要多少bits   max: log(omega)
+    IndexType bit_scansum_offset;   //  seg_offset 要多少bits max: log(omega)
+    IndexType num_packets;          // tile中的一列元素需要多少个单位 tile_desc 的bit来存
+    IndexType num_offsets;
+    IndexType _p;                   // 依据 nnz 划分的 tiles 数目
+    IndexType tail_partition_start;
+
+    // 指示每个tile的第一个元素在 row_offset 中所在的行索引， 
+    // 如果 tile_ptr 中的 tile_id 为负数，说明这个tile中包含了空行
+    UIndexType *tile_ptr;                // length = tile_num + 1
+    UIndexType *tile_desc;               // opt: CSR5 tile descriptor CPU case
+
+    IndexType *tile_desc_offset_ptr;    // opt: CSR5 tile descriptor offset pointer CPU case
+    IndexType *tile_desc_offset;        // opt: CSR5 tile descriptor offset CPU case
+    ValueType *calibrator;              // opt: CSR5 calibrator CPU case
+};
+
+/**
  * @brief DIA format struct of sparse matrix
  * 
  * @tparam IndexType 
@@ -194,6 +228,18 @@ void delete_csr_matrix(CSR_Matrix<IndexType,ValueType>& csr){
     delete_array(csr.values);
 }
 
+template <typename IndexType, typename UIndexType, typename ValueType>
+void delete_csr5_matrix(CSR5_Matrix<IndexType,UIndexType,ValueType>& csr5){
+    delete_array(csr5.row_offset);
+    delete_array(csr5.col_index);
+    delete_array(csr5.values);
+    delete_array(csr5.tile_ptr);
+    delete_array(csr5.tile_desc);
+    delete_array(csr5.tile_desc_offset_ptr);
+    delete_array(csr5.tile_desc_offset);
+    delete_array(csr5.calibrator);
+}
+
 template <typename IndexType, typename ValueType>
 void delete_dia_matrix(DIA_Matrix<IndexType,ValueType>& dia){
     delete_array(dia.diag_offsets);
@@ -247,6 +293,9 @@ void delete_host_matrix(COO_Matrix<IndexType,ValueType>& coo){ delete_coo_matrix
 
 template <typename IndexType, typename ValueType>
 void delete_host_matrix(CSR_Matrix<IndexType,ValueType>& csr){ delete_csr_matrix(csr); }
+
+template <typename IndexType, typename UIndexType, typename ValueType>
+void delete_host_matrix(CSR5_Matrix<IndexType,UIndexType,ValueType>& csr5){ delete_csr5_matrix(csr5); }
 
 template <typename IndexType, typename ValueType>
 void delete_host_matrix(DIA_Matrix<IndexType,ValueType>& dia){ delete_dia_matrix(dia); }

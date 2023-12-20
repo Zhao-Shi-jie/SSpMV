@@ -19,7 +19,10 @@
 #define CHUNK_SIZE 8
 #define NTRATIO (0.6)
 //  general setting in Liu weifeng's library
-#define CSR5_SIGMA   12
+//  TILE size: CSR5_SIGMA x CSR5_OMEGA  column major
+//                      y_offset                    seg_offset      bit_flag
+// Foa a column: [log(CSR5_SIGMA x CSR5_OMEGA) + log(CSR5_OMEGA) + CSR5_SIGMA] (bits)
+#define CSR5_SIGMA   16     // can change to 12 or 16
 #define X86_CACHELINE   64
 
 // OMP paramaters

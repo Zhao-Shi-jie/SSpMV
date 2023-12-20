@@ -457,4 +457,108 @@ DIA_Matrix<IndexType, ValueType> csr_to_dia(const CSR_Matrix<IndexType, ValueTyp
     return dia;
 
 }
+
+template <class IndexType, typename UIndexType, class ValueType>
+CSR5_Matrix<IndexType, UIndexType, ValueType> csr_to_csr5(const CSR_Matrix<IndexType, ValueType> &csr, FILE *fp_feature)
+{
+    CSR5_Matrix<IndexType, UIndexType, ValueType> csr5;
+
+    csr5.num_rows = csr.num_rows;
+    csr5.num_cols = csr.num_cols;
+    csr5.num_nnzs = csr.num_nnzs;
+
+    // original CSR format array
+    csr5.row_offset = copy_array(csr.row_offset, csr.num_rows + 1);
+    csr5.col_index  = copy_array(csr.col_index , csr.num_nnzs);
+    csr5.values     = copy_array(csr.values    , csr.num_nnzs);
+
+    csr5.tile_ptr  = NULL;
+    csr5.tile_desc = NULL;
+    csr5.tile_desc_offset_ptr = NULL;
+    csr5.tile_desc_offset     = NULL;
+    csr5.calibrator           = NULL;
+
+    // store sigma and omega (tiles row and column number)
+    csr5.omega = SIMD_WIDTH / 8 / sizeof(ValueType);
+    csr5.sigma = CSR5_SIGMA;  // fixed in paper   12 or 16
+/*
+    //  heuristic in ALSPARSE
+    int r = 4;
+    int s = 32;
+    int t = 256;
+    int u = 6;
+    IndexType csr_nnz_per_row = csr5.num_nnzs / csr5.num_rows;
+    if (csr_nnz_per_row <= r)
+        csr5.sigma = r;
+    else if (csr_nnz_per_row > r && csr_nnz_per_row <= s)
+        csr5.sigma = csr_nnz_per_row;
+    else if (csr_nnz_per_row <= t && csr_nnz_per_row > s)
+        csr5.sigma = s;
+    else // csr_nnz_per_row > t
+        csr5.sigma = u;
+*/
+    // compute how many bits required for `y_offset' and `seg_offset'
+    IndexType base = 2;
+    csr5.bit_y_offset = 1;
+    while (base < csr5.sigma * csr5.omega) {
+        base *= 2; ++csr5.bit_y_offset;
+    }
+
+    base = 2;
+    csr5.bit_scansum_offset = 1;
+    while (base < csr5.omega){
+        base *= 2; ++csr5.bit_scansum_offset;
+    }
+    
+    if( csr5.bit_y_offset + csr5.bit_scansum_offset > sizeof(UIndexType) * 8 - 1) //the 1st bit of bit-flag should be in the first packet
+    {
+        printf("error: UNSUPPORTED CSR5 OMEGA for bit saving\n");
+        return -1;
+    }
+
+    int bit_all = csr5.bit_y_offset + csr5.bit_scansum_offset + csr5.sigma;
+    csr5.num_packets = ceil((double)bit_all / (double)(sizeof(UIndexType) * 8));
+    
+    // calculate the number of partitions
+    csr5._p = ceil( (double) csr5.num_nnzs/ (double) (csr5.omega * csr5.sigma));
+
+    // malloc the newly added arrays for CSR5
+    csr5.tile_ptr = memalign(X86_CACHELINE, (uint64_t) (csr5._p + 1) * sizeof(UIndexType));
+    if (csr5.tile_ptr == NULL){
+        printf("error: UNABLE TO ASIGN MEMORY IN CSR5 tile_ptr \n");
+        return -2;
+    }
+    for(IndexType i = 0; i < csr5._p + 1; i++) {
+        csr5.tile_ptr[i] = 0;
+    }
+
+    csr5.tile_desc = memalign(X86_CACHELINE, (uint64_t)( csr5._p * csr5.omega * csr5.num_packets) * sizeof(UIndexType));
+    if (csr5.tile_desc == NULL){
+        printf("error: UNABLE TO ASIGN MEMORY IN CSR5 tile_desc \n");
+        return -2;
+    }
+    memset(csr5.tile_desc, 0, csr5._p * csr5.omega * csr5.num_packets * sizeof(UIndexType));
+
+    int num_thread = Le_get_thread_num();
+    csr5.calibrator = memalign(X86_CACHELINE, (uint64_t)(num_thread * X86_CACHELINE));
+    if (csr5.tile_desc == NULL){
+        printf("error: UNABLE TO ASIGN MEMORY IN CSR5 calibrator \n");
+        return -2;
+    }
+    memset(csr5.calibrator, 0, num_thread * X86_CACHELINE);
+
+    csr.tile_desc_offset_ptr = memalign(X86_CACHELINE, (uint64_t) (csr5._p + 1) * sizeof(IndexType));
+    if (csr.tile_desc_offset_ptr == NULL){
+        printf("error: UNABLE TO ASIGN MEMORY IN CSR5 tile_desc_offset_ptr \n");
+        return -2;
+    }
+    memset(csr.tile_desc_offset_ptr, 0, (csr5._p + 1) * sizeof(IndexType));
+
+    // convert csr data to csr5 data (3 steps)
+    // step 1. generate partition pointer
+    // ... need test above routine
+
+    return csr5;
+}
+
 #endif /* SPARSE_CONVERSION_H */
