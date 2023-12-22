@@ -122,10 +122,10 @@ struct CSR5_Matrix : public CSR_Matrix<IndexType, ValueType>
 
     IndexType bit_y_offset;         //  y_offset 要多少bits   max: log(omega)
     IndexType bit_scansum_offset;   //  seg_offset 要多少bits max: log(omega)
-    IndexType num_packets;          // tile中的一列元素需要多少个单位 tile_desc 的bit来存
+    IndexType num_packets;          // tile中的一列元素需要多少个单位 tile_desc 的bit来存, 通常32bit 的一个 tile_desc 足够存放 y_offset + seg_offset + big_flag
     IndexType num_offsets;
     IndexType _p;                   // 依据 nnz 划分的 tiles 数目
-    IndexType tail_partition_start;
+    IndexType tail_partition_start; // tiles 外余下的 nnz 起始
 
     // 指示每个tile的第一个元素在 row_offset 中所在的行索引， 
     // 如果 tile_ptr 中的 tile_id 为负数，说明这个tile中包含了空行

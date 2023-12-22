@@ -500,22 +500,23 @@ CSR5_Matrix<IndexType, UIndexType, ValueType> csr_to_csr5(const CSR_Matrix<Index
     // compute how many bits required for `y_offset' and `seg_offset'
     IndexType base = 2;
     csr5.bit_y_offset = 1;
-    while (base < csr5.sigma * csr5.omega) {
+    while (base < csr5.sigma * csr5.omega) { // log (sigma * omega)
         base *= 2; ++csr5.bit_y_offset;
     }
 
     base = 2;
     csr5.bit_scansum_offset = 1;
-    while (base < csr5.omega){
+    while (base < csr5.omega){               // log (omega)
         base *= 2; ++csr5.bit_scansum_offset;
     }
     
     if( csr5.bit_y_offset + csr5.bit_scansum_offset > sizeof(UIndexType) * 8 - 1) //the 1st bit of bit-flag should be in the first packet
     {
         printf("error: UNSUPPORTED CSR5 OMEGA for bit saving\n");
-        return -1;
+        exit(-1);
     }
 
+    // y_offset + seg_offset + sigma (for a column)
     int bit_all = csr5.bit_y_offset + csr5.bit_scansum_offset + csr5.sigma;
     csr5.num_packets = ceil((double)bit_all / (double)(sizeof(UIndexType) * 8));
     
@@ -523,36 +524,36 @@ CSR5_Matrix<IndexType, UIndexType, ValueType> csr_to_csr5(const CSR_Matrix<Index
     csr5._p = ceil( (double) csr5.num_nnzs/ (double) (csr5.omega * csr5.sigma));
 
     // malloc the newly added arrays for CSR5
-    csr5.tile_ptr = memalign(X86_CACHELINE, (uint64_t) (csr5._p + 1) * sizeof(UIndexType));
+    csr5.tile_ptr = (UIndexType *) memalign(X86_CACHELINE, (uint64_t) (csr5._p + 1) * sizeof(UIndexType));
     if (csr5.tile_ptr == NULL){
         printf("error: UNABLE TO ASIGN MEMORY IN CSR5 tile_ptr \n");
-        return -2;
+        exit(-2);
     }
     for(IndexType i = 0; i < csr5._p + 1; i++) {
         csr5.tile_ptr[i] = 0;
     }
 
-    csr5.tile_desc = memalign(X86_CACHELINE, (uint64_t)( csr5._p * csr5.omega * csr5.num_packets) * sizeof(UIndexType));
+    csr5.tile_desc = (UIndexType *) memalign(X86_CACHELINE, (uint64_t)( csr5._p * csr5.omega * csr5.num_packets) * sizeof(UIndexType));
     if (csr5.tile_desc == NULL){
         printf("error: UNABLE TO ASIGN MEMORY IN CSR5 tile_desc \n");
-        return -2;
+        exit(-2);
     }
     memset(csr5.tile_desc, 0, csr5._p * csr5.omega * csr5.num_packets * sizeof(UIndexType));
 
     int num_thread = Le_get_thread_num();
-    csr5.calibrator = memalign(X86_CACHELINE, (uint64_t)(num_thread * X86_CACHELINE));
+    csr5.calibrator = (ValueType *) memalign(X86_CACHELINE, (uint64_t)(num_thread * X86_CACHELINE));
     if (csr5.tile_desc == NULL){
         printf("error: UNABLE TO ASIGN MEMORY IN CSR5 calibrator \n");
-        return -2;
+        exit(-2);
     }
     memset(csr5.calibrator, 0, num_thread * X86_CACHELINE);
 
-    csr.tile_desc_offset_ptr = memalign(X86_CACHELINE, (uint64_t) (csr5._p + 1) * sizeof(IndexType));
-    if (csr.tile_desc_offset_ptr == NULL){
+    csr5.tile_desc_offset_ptr = (IndexType *) memalign(X86_CACHELINE, (uint64_t) (csr5._p + 1) * sizeof(IndexType));
+    if (csr5.tile_desc_offset_ptr == NULL){
         printf("error: UNABLE TO ASIGN MEMORY IN CSR5 tile_desc_offset_ptr \n");
-        return -2;
+        exit(-2);
     }
-    memset(csr.tile_desc_offset_ptr, 0, (csr5._p + 1) * sizeof(IndexType));
+    memset(csr5.tile_desc_offset_ptr, 0, (csr5._p + 1) * sizeof(IndexType));
 
     // convert csr data to csr5 data (3 steps)
     // step 1. generate partition pointer

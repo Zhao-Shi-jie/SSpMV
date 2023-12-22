@@ -50,6 +50,17 @@ template <class IndexType, class ValueType>
 CSR_Matrix<IndexType, ValueType> read_csr_matrix(const char * mm_filename, bool compact = false);
 
 /**
+ * @brief Read sparse matrix in CSR5 format from ".mtx" format file.
+ * 
+ * @tparam IndexType 
+ * @tparam ValueType 
+ * @param mm_filename 
+ * @return CSR_Matrix<IndexType, ValueType> 
+ */
+template <class IndexType, class UIndexType, class ValueType>
+CSR5_Matrix<IndexType, UIndexType, ValueType> read_csr5_matrix(const char * mm_filename);
+
+/**
  * @brief Read sparse matrix in ELL format from ".mtx" format file.
  *        Convert from COO format.
  * @tparam IndexType 

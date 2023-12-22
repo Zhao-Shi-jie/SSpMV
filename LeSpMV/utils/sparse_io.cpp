@@ -194,6 +194,36 @@ template CSR_Matrix<int, float> read_csr_matrix<int, float>(const char * mm_file
 template CSR_Matrix<int, double> read_csr_matrix<int, double>(const char * mm_filename, bool);
 
 /**
+ * @brief Read a sparse matrix in CSR5 format. Transform from CSR format.
+ * 
+ * @tparam IndexType 
+ * @tparam UIndexType 
+ * @tparam ValueType 
+ * @param mm_filename 
+ * @return CSR5_Matrix<IndexType, UIndexType, ValueType> 
+ */
+template <class IndexType, class UIndexType, class ValueType>
+CSR5_Matrix<IndexType, UIndexType, ValueType> read_csr5_matrix(const char * mm_filename)
+{
+    CSR_Matrix<IndexType, ValueType> csr;
+    csr = read_csr_matrix<IndexType, ValueType>(mm_filename);
+
+    CSR5_Matrix<IndexType, UIndexType, ValueType> csr5;
+
+    FILE* save_features = fopen(MAT_FEATURES,"w");
+
+    csr5 = csr_to_csr5<IndexType, UIndexType, ValueType>(csr, save_features);
+
+    fclose(save_features);
+    delete_csr_matrix(csr);
+
+    return csr5;
+}
+template CSR5_Matrix<int, uint32_t, float> read_csr5_matrix<int, uint32_t, float> (const char *);
+template CSR5_Matrix<int, uint32_t, double> read_csr5_matrix<int, uint32_t, double> (const char *);
+
+
+/**
  * @brief Read sparse matrix in ELL format from ".mtx" format file.
  *        Convert from COO format.
  * @tparam IndexType 
