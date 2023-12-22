@@ -6,6 +6,7 @@
 #include"memopt.h"
 #include"mmio.h"
 #include"thread.h"
+#include"csr5_utils.h"
 
 #include"sparse_io.h"
 #include"sparse_format.h"

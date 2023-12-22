@@ -7,6 +7,8 @@
 #include"plat_config.h"
 #include"thread.h"
 #include"memopt.h"
+#include"timer.h"
+#include"csr5_utils.h"
 #include <vector>
 #include <algorithm>
 #include <stdexcept>
@@ -461,6 +463,10 @@ DIA_Matrix<IndexType, ValueType> csr_to_dia(const CSR_Matrix<IndexType, ValueTyp
 template <class IndexType, typename UIndexType, class ValueType>
 CSR5_Matrix<IndexType, UIndexType, ValueType> csr_to_csr5(const CSR_Matrix<IndexType, ValueType> &csr, FILE *fp_feature)
 {
+    int err = 0;
+    double malloc_time = 0, tile_ptr_time = 0, tile_desc_time = 0, transpose_time = 0;
+    anonymouslib_timer malloc_timer, tile_ptr_timer, tile_desc_timer, transpose_timer;
+
     CSR5_Matrix<IndexType, UIndexType, ValueType> csr5;
 
     csr5.num_rows = csr.num_rows;
@@ -523,6 +529,7 @@ CSR5_Matrix<IndexType, UIndexType, ValueType> csr_to_csr5(const CSR_Matrix<Index
     // calculate the number of partitions
     csr5._p = ceil( (double) csr5.num_nnzs/ (double) (csr5.omega * csr5.sigma));
 
+    malloc_timer.start();
     // malloc the newly added arrays for CSR5
     csr5.tile_ptr = (UIndexType *) memalign(X86_CACHELINE, (uint64_t) (csr5._p + 1) * sizeof(UIndexType));
     if (csr5.tile_ptr == NULL){
@@ -540,13 +547,13 @@ CSR5_Matrix<IndexType, UIndexType, ValueType> csr_to_csr5(const CSR_Matrix<Index
     }
     memset(csr5.tile_desc, 0, csr5._p * csr5.omega * csr5.num_packets * sizeof(UIndexType));
 
-    int num_thread = Le_get_thread_num();
-    csr5.calibrator = (ValueType *) memalign(X86_CACHELINE, (uint64_t)(num_thread * X86_CACHELINE));
+    int thread_num = Le_get_thread_num();
+    csr5.calibrator = (ValueType *) memalign(X86_CACHELINE, (uint64_t)(thread_num * X86_CACHELINE));
     if (csr5.tile_desc == NULL){
         printf("error: UNABLE TO ASIGN MEMORY IN CSR5 calibrator \n");
         exit(-2);
     }
-    memset(csr5.calibrator, 0, num_thread * X86_CACHELINE);
+    memset(csr5.calibrator, 0, thread_num * X86_CACHELINE);
 
     csr5.tile_desc_offset_ptr = (IndexType *) memalign(X86_CACHELINE, (uint64_t) (csr5._p + 1) * sizeof(IndexType));
     if (csr5.tile_desc_offset_ptr == NULL){
@@ -554,10 +561,344 @@ CSR5_Matrix<IndexType, UIndexType, ValueType> csr_to_csr5(const CSR_Matrix<Index
         exit(-2);
     }
     memset(csr5.tile_desc_offset_ptr, 0, (csr5._p + 1) * sizeof(IndexType));
+    malloc_time += malloc_timer.stop();
 
     // convert csr data to csr5 data (3 steps)
     // step 1. generate partition pointer
-    // ... need test above routine
+    tile_ptr_timer.start();
+    // step 1.1 binary search row pointer
+    #pragma omp parallel for num_threads(thread_num)
+    for (IndexType global_id = 0; global_id < csr5._p; global_id++)
+    {
+        // compute tile boundaries by tile of size sigma * omega
+        IndexType boundary = global_id * csr5.sigma * csr5.omega;
+
+        // clamp tile boundaries to [0, nnz]
+        boundary = boundary > csr5.num_nnzs ? csr5.num_nnzs : boundary;
+
+        // binary search
+        IndexType start = 0, stop = csr5.num_rows, median;
+        IndexType key_median;
+        while (stop >= start){
+            median = (stop + start)/2;
+            key_median = csr5.row_offset[median];
+            if (boundary >= key_median)
+                start = median + 1;
+            else
+                stop  = median - 1;
+        }
+        csr5.tile_ptr[global_id] = start - 1;
+    }
+
+    // step 1.2 check empty rows
+    #pragma omp parallel for num_threads(thread_num)
+    for (IndexType group_id = 0; group_id < csr5._p; group_id++)
+    {
+        int dirty = 0;
+
+        UIndexType start = csr5.tile_ptr[group_id];
+        UIndexType stop  = csr5.tile_ptr[group_id+1];
+        // 把符号位刷掉 成0
+        start = (start << 1) >> 1;
+        stop  = (stop << 1) >> 1;
+
+        if (start == stop)
+            continue;
+        
+        // 找空行 dirty 置1
+        for (UIndexType row_idx = start; row_idx <= stop; row_idx++) {
+            if (csr5.row_offset[row_idx] == csr5.row_offset[row_idx+1]) {
+                dirty = 1;
+                break;
+            }
+        }
+
+        if (dirty) {
+            start |= sizeof(UIndexType) == 4
+                                ? 0x80000000 : 0x8000000000000000;
+            csr5.tile_ptr[group_id] = start;
+        }
+    }
+
+    tile_ptr_time += tile_ptr_timer.stop();
+
+    csr5.tail_partition_start = (csr5.tile_ptr[csr5._p-1] << 1) >> 1;
+
+    tile_desc_timer.start();
+    // step 2. generate partition descriptor
+    csr5.num_offsets = 0;
+    IndexType bit_all_offset = csr5.bit_y_offset + csr5.bit_scansum_offset;
+
+    // step 2.1 generate_tile_descriptor_s1_kernel
+    #pragma omp parallel for num_threads(thread_num)
+    for (IndexType par_id = 0; par_id < csr5._p-1; par_id++)
+    {
+        // 去符号
+        const IndexType row_start = csr5.tile_ptr[par_id]   & 0x7FFFFFFF;
+
+        const IndexType row_stop  = csr5.tile_ptr[par_id+1] & 0x7FFFFFFF;
+
+        for (IndexType rid = row_start; rid <= row_stop; rid++)
+        {
+            IndexType ptr = csr5.row_offset[rid];
+            IndexType pid = ptr / (csr5.omega * csr5.sigma);
+
+            // 从pid开始分析这一个tile的信息
+            if (pid == par_id)
+            {
+                int lx = (ptr/ csr5.sigma) % csr5.omega; //行号
+
+                const int glid = ptr % csr5.sigma + bit_all_offset;
+                const int ly   = glid / 32; // 列号
+                const int llid = glid % 32;
+
+                const UIndexType val = 0x1 << (31 - llid);
+
+                const int location = pid * csr5.omega
+                    * csr5.num_packets
+                    + ly * csr5.omega + lx;
+                csr5.tile_desc[location] |= val;
+            }
+        }
+    }
+
+    // step 2.2 generate_tile_descriptor_s2_kernel
+    int *s_segn_scan_all = (int *) memalign(X86_CACHELINE, (uint64_t) (2 * csr5.omega * thread_num) * sizeof(int));
+
+    int *s_present_all   = (int *) memalign(X86_CACHELINE, (uint64_t) (2 * csr5.omega * thread_num) * sizeof(int));
+
+    for (int i = 0; i < thread_num; i++)
+        s_present_all[i*2*csr5.omega + csr5.omega]=1;
+    
+    #pragma omp parallel for num_threads(thread_num)
+    for(int par_id = 0; par_id < csr5._p-1 ; par_id++)
+    {
+        int tid = Le_get_thread_id();
+        int *s_segn_scan = &s_segn_scan_all[tid * 2 * csr5.omega];
+        int *s_present   = &s_present_all[tid * 2 * csr5.omega];
+
+        memset(s_segn_scan, 0, (csr5.omega + 1) * sizeof(int));
+        memset(s_present, 0, csr5.omega * sizeof(int));
+
+        bool with_empty_rows = (csr5.tile_ptr[par_id] >> 31) & 0x1;
+        IndexType row_start       = csr5.tile_ptr[par_id]     & 0x7FFFFFFF;
+        const IndexType row_stop  = csr5.tile_ptr[par_id + 1] & 0x7FFFFFFF;
+
+        if (row_start == row_stop)
+            continue;
+        
+        #pragma omp simd
+        for (int lane_id = 0; lane_id < csr5.omega; lane_id++)
+        {
+            int start = 0, stop = 0, segn = 0;
+            bool present = 0;
+            UIndexType bitflag = 0;
+
+            present |= !lane_id;
+
+            // extract the first bit-flag packet
+            int ly = 0;
+            UIndexType first_packet = csr5.tile_desc[par_id * csr5.omega * csr5.num_packets + lane_id];
+            bitflag = (first_packet << bit_all_offset) | ( (UIndexType) present << 31);
+
+            start = !((bitflag >> 31) & 0x1);
+            present |= (bitflag >> 31) & 0x1;
+
+            for (int i = 1; i < csr5.sigma; i++)
+            {
+                if ((!ly && i == 32 - bit_all_offset) || (ly && (i - (32 - bit_all_offset)) % 32 == 0))
+                {
+                    ly++;
+                    bitflag = csr5.tile_desc[par_id * csr5.omega * csr5.num_packets + ly * csr5.omega + lane_id];
+                }
+                const int norm_i = !ly ? i : i - (32 - bit_all_offset);
+                stop += (bitflag >> (31 - norm_i % 32) ) & 0x1;
+                present |= (bitflag >> (31 - norm_i % 32)) & 0x1;
+            }
+
+            // compute y_offset for all partitions
+            segn = stop - start + present;
+            segn = segn > 0 ? segn : 0;
+
+            s_segn_scan[lane_id] = segn;
+
+            // compute scansum_offset
+            s_present[lane_id] = present;
+        }
+
+        // scan_single<int>(s_segn_scan, ALPHA_CSR5_OMEGA + 1);
+        int old_val, new_val;
+        old_val = s_segn_scan[0];
+        s_segn_scan[0] = 0;
+        for (int i = 1; i < csr5.omega + 1; i++)
+        {
+            new_val = s_segn_scan[i];
+            s_segn_scan[i] = old_val + s_segn_scan[i-1];
+            old_val = new_val;
+        }
+
+        if (with_empty_rows) {
+            csr5.tile_desc_offset_ptr[par_id]   = s_segn_scan[csr5.omega];
+            csr5.tile_desc_offset_ptr[csr5._p] += s_segn_scan[csr5.omega];
+        }
+
+        #pragma omp simd
+        for (int lane_id= 0; lane_id< csr5.omega; lane_id++)
+        {
+            int y_offset = s_segn_scan[lane_id];
+            int scansum_offset = 0;
+            int next1 = lane_id + 1;
+            if (s_present[lane_id])
+            {
+                while (!s_present[next1] && next1 < csr5.omega)
+                {
+                    scansum_offset++;
+                    next1++;
+                }
+            }
+
+            UIndexType first_packet = csr5.tile_desc[par_id * csr5.omega * csr5.num_packets + lane_id];
+
+            y_offset = lane_id ? y_offset - 1: 0;
+
+            first_packet |= y_offset << (32-csr5.bit_y_offset);
+            first_packet |= scansum_offset << (32-bit_all_offset);
+
+            csr5.tile_desc[par_id * csr5.omega
+                * csr5.num_packets + lane_id] = first_packet;
+        }
+    }
+    free(s_segn_scan_all);
+    free(s_present_all);
+
+    if (csr5.tile_desc_offset_ptr[csr5._p])
+    {
+        // scan_single<int>(csr5.tile_desc_offset_ptr, csr5._p+1);
+        int old_val, new_val;
+        old_val = csr5.tile_desc_offset_ptr[0];
+        csr5.tile_desc_offset_ptr[0] = 0;
+        for (int i = 1; i < csr5._p + 1; i++)
+        {
+            new_val = csr5.tile_desc_offset_ptr[i];
+            csr5.tile_desc_offset_ptr[i] = old_val + csr5.tile_desc_offset_ptr[i-1];
+            old_val = new_val;
+        }
+    }
+
+    csr5.num_offsets = csr5.tile_desc_offset_ptr[csr5._p];
+    tile_desc_time += tile_desc_timer.stop();
+
+    if (csr5.num_offsets) {
+        csr5.tile_desc_offset = (IndexType *) memalign(X86_CACHELINE, (uint64_t)(csr5.num_offsets) * sizeof(IndexType));
+
+        // generate_tile_descriptor_offset
+        const int bit_bitflag = 32 - bit_all_offset;
+
+        #pragma omp parallel for num_threads(thread_num)
+        for (int par_id = 0; par_id < csr5._p-1; par_id++)
+        {
+            // 检查空行，非空则不需要offset
+            bool with_empty_rows = (csr5.tile_ptr[par_id] >> 31)&0x1;
+            if (!with_empty_rows)
+                continue;
+            
+            IndexType row_start        = csr5.tile_ptr[par_id]   & 0x7FFFFFFF;
+            const IndexType row_stop   = csr5.tile_ptr[par_id+1] & 0x7FFFFFFF;
+
+            int offset_pointer = csr5.tile_desc_offset_ptr[par_id];
+
+            #pragma omp simd
+            for (int lane_id = 0; lane_id < csr5.omega; lane_id++)
+            {
+                bool local_bit;
+
+                // extract the first bit-flag packet
+                int ly = 0;
+                UIndexType descriptor = csr5.tile_desc[par_id * csr5.omega * csr5.num_packets + lane_id];
+                int y_offset = descriptor >> (32 - csr5.bit_y_offset);
+
+                descriptor = descriptor << bit_all_offset;
+                descriptor = lane_id ? descriptor : descriptor | 0x80000000;
+
+                local_bit = (descriptor >> 31) & 0x1;
+
+                if (local_bit && lane_id)
+                {
+                    const IndexType idx = par_id * csr5.omega * csr5.sigma + lane_id * csr5.sigma;
+                    // const IndexType y_index = binary_search_right_boundary_kernel<IndexType>(&d_row_pointer[row_start+1], idx, row_stop - row_start) - 1;
+                    IndexType start = 0;
+                    IndexType stop = row_stop - row_start - 1;
+                    IndexType median, key_median;
+                    while (stop >= start)
+                    {
+                        median = (stop + start) / 2;
+                        key_median = csr5.row_offset[row_start+1+median];
+                        if (idx >= key_median)
+                            start = median + 1;
+                        else
+                            stop  = median - 1;
+                    }
+
+                    const IndexType y_index = start - 1;
+                    csr5.tile_desc_offset[offset_pointer + y_offset] = y_index;
+
+                    y_offset++;
+                }
+
+                for (int i = 1; i < csr5.sigma; i++)
+                {
+                    if ((!ly && i == bit_bitflag) || (ly && !(31 & (i - bit_bitflag))))
+                    {
+                        ly++;
+                        descriptor = csr5.tile_desc[par_id
+                            * csr5.omega
+                            * csr5.num_packets
+                            + ly * csr5.omega + lane_id];
+                    }
+                    const int norm_i = 31 & (!ly
+                                            ? i : i - bit_bitflag);
+
+                    local_bit = (descriptor >> (31 - norm_i))&0x1;
+
+                    if (local_bit)
+                    {
+                        const IndexType idx = par_id * csr5.omega * csr5.sigma + lane_id * csr5.sigma + i;
+                        // const IndexType y_index = binary_search_right_boundary_kernel<iT>(&d_row_pointer[row_start+1], idx, row_stop - row_start) - 1;
+                        IndexType start = 0;
+                        IndexType stop = row_stop-row_start-1;
+                        IndexType median, key_median;
+                        while (stop >= start) {
+                            median = (stop + start) / 2;
+                            key_median=csr5.row_offset[row_start+1+median];
+                            if (idx >= key_median)
+                                start = median + 1;
+                            else
+                                stop = median - 1;
+                        }
+                        const IndexType y_index = start-1;
+                        csr5.tile_desc_offset[offset_pointer + y_offset] = y_index;
+                        
+                        y_offset++;
+                    }
+                }
+            }
+        }
+    }
+
+    // step 3. transpose column_index and value arrays
+    transpose_timer.start();
+    err = aosoa_transpose(csr5.sigma, csr5.omega, csr5.num_nnzs, csr5.tile_ptr, csr5.col_index, csr5.values, true);
+    if (err != 0)
+    {
+        printf("Error: aosoa_transpose error %d \n", err);
+        exit(err);
+    }
+    transpose_time += transpose_timer.stop();
+
+    printf("CSR->CSR5 malloc time = %f ms\n", malloc_time);
+    printf("CSR->CSR5 tile_ptr time = %f ms\n", tile_ptr_time);
+    printf("CSR->CSR5 tile_desc time = %f ms\n", tile_desc_time);
+    printf("CSR->CSR5 transpose time = %f ms\n", transpose_time);
 
     return csr5;
 }

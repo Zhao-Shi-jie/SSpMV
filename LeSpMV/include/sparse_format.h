@@ -129,7 +129,7 @@ struct CSR5_Matrix : public CSR_Matrix<IndexType, ValueType>
 
     // 指示每个tile的第一个元素在 row_offset 中所在的行索引， 
     // 如果 tile_ptr 中的 tile_id 为负数，说明这个tile中包含了空行
-    UIndexType *tile_ptr;                // length = tile_num + 1
+    UIndexType *tile_ptr;                // length = _p + 1
     UIndexType *tile_desc;               // opt: CSR5 tile descriptor CPU case
 
     IndexType *tile_desc_offset_ptr;    // opt: CSR5 tile descriptor offset pointer CPU case
