@@ -91,10 +91,9 @@ void partition_fast_track(const vT           *d_value_partition,
     }
 
     vT sum = _mm512_reduce_add_pd(sum512d);
-    sum = sum * alpha; // * alpha 补上alpha
 
     if (row_start == start_row_start && !direct)
-        d_calibrator[tid * stride_vT] += sum;  //
+        d_calibrator[tid * stride_vT] += sum * alpha;  // * alpha 补上alpha
     else
     {
         // if(direct)
@@ -102,9 +101,9 @@ void partition_fast_track(const vT           *d_value_partition,
         // else
         //     d_y[row_start] += sum;
         if(direct)
-            d_y[row_start] = beta * d_y[row_start] + sum;
+            d_y[row_start] = beta * d_y[row_start] + sum * alpha;
         else
-            d_y[row_start] += sum;
+            d_y[row_start] += sum * alpha;
     }
 }
 
@@ -401,7 +400,10 @@ void spmv_csr5_tail_partition_kernel(const iT           *d_row_pointer,
 
         vT sum = 0;
         for (iT idx = idx_start; idx < idx_stop; idx++)
-            sum += d_value[idx] * d_x[d_column_index[idx]] * alpha; // * alpha;
+        {
+            // sum += d_value[idx] * d_x[d_column_index[idx]];// * alpha;
+            sum += d_value[idx] * d_x[d_column_index[idx]] * alpha;
+        }
 
         if(row_id == tail_partition_start && d_row_pointer[row_id] != index_first_element_tail)
         {
@@ -415,6 +417,18 @@ void spmv_csr5_tail_partition_kernel(const iT           *d_row_pointer,
     }
 }                            
 
+/**
+ * @brief CSR spmv from Liu wei feng's code. Need to test correctness 12.24.2023.
+ * 
+ * @tparam IndexType 
+ * @tparam UIndexType 
+ * @tparam ValueType 
+ * @param alpha 
+ * @param csr5 
+ * @param x 
+ * @param beta 
+ * @param y 
+ */
 template <typename IndexType, typename UIndexType, typename ValueType>
 void LeSpMV_csr5(const ValueType alpha, const CSR5_Matrix<IndexType, UIndexType, ValueType>& csr5, const ValueType * x, const ValueType beta, ValueType * y)
 {
