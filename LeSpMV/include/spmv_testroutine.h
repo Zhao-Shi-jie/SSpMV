@@ -10,6 +10,9 @@ int test_coo_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
 template <typename IndexType, typename ValueType>
 int test_csr_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag, int schedule_mod);
 
+template <typename IndexType, typename UIndexType, typename ValueType>
+int test_csr5_matrix_kernels(const CSR_Matrix<IndexType, ValueType> &csr_ref, int kernel_tag, int schedule_mod);
+
 /**
  * @brief Input CSR format for reference. Inside we make an ELL matrix
  * 

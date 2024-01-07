@@ -21,13 +21,13 @@ int test_csr5_matrix_kernels(const CSR_Matrix<IndexType, ValueType> &csr_ref, in
     CSR5_Matrix<IndexType, UIndexType, ValueType> csr5;
     
     FILE* save_features = fopen(MAT_FEATURES,"w");
-
+    // printf("11111111\n");
     csr5 = csr_to_csr5<IndexType, UIndexType, ValueType>(csr_ref, save_features);
-
+    // printf("22222222\n");
     fclose(save_features);
 
     // 只有一种kernel 不需要分类啦
-    csr5.kernel_flag = kernel_tag;
+    // csr5.kernel_flag = kernel_tag;
 
     {
         std::cout << "\n===  Compared csr5 with csr default  ===" << std::endl;

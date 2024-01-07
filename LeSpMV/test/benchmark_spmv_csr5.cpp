@@ -44,7 +44,8 @@ void run_csr5_kernels(int argc, char **argv)
     // reference CSR kernel for csr5 test
     CSR_Matrix<IndexType, ValueType> csr;
     csr = read_csr_matrix<IndexType, ValueType> (mm_filename);
-    printf("Using %d-by-%d matrix with %d nonzero values", csr.num_rows, csr.num_cols, csr.num_nnzs); 
+
+    printf("Using %d-by-%d matrix with %d nonzero values\n", csr.num_rows, csr.num_cols, csr.num_nnzs); 
 
     fflush(stdout);
     
@@ -70,7 +71,7 @@ int main(int argc, char** argv)
         precision = atoi(precision_str);
 
     // 不用超线程，只计算真实CORE
-    Le_set_thread_num(CPU_SOCKET * CPU_CORES_PER_SOC);
+    Le_set_thread_num(CPU_SOCKET * CPU_CORES_PER_SOC * CPU_HYPER_THREAD);
 
     char * threads_str = get_argval(argc, argv, "threads");
     if(threads_str != NULL)
@@ -84,7 +85,7 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
     else if(precision == 64){
-        // run_all_kernels<int, double>(argc,argv);
+        
         run_csr5_kernels<int, uint32_t, double>(argc,argv);
     }
     else{

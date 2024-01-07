@@ -77,15 +77,15 @@ void partition_fast_track(const vT           *d_value_partition,
     __m512i column_index512i;
     
     #pragma unroll(CSR5_SIGMA)
-    for (int i = 0; i < sigma; i++)
+    for (int i = 0; i < CSR5_SIGMA; i++)
     {
-        value512d = _mm512_load_pd(&d_value_partition[i * omega]);
+        value512d = _mm512_load_pd(&d_value_partition[i * D_CSR5_OMEGA]);
         // column_index512i = (i % 2) ?
         //             _mm512_permute4f128_epi32(column_index512i, _MM_PERM_BADC) :
         //             _mm512_load_epi32(&d_column_index_partition[i * omega]);
         column_index512i = (i % 2) ?
                     _mm512_shuffle_i32x4(column_index512i, column_index512i, _MM_PERM_BADC) :
-                    _mm512_load_epi32(&d_column_index_partition[i * omega]);
+                    _mm512_load_epi32(&d_column_index_partition[i * D_CSR5_OMEGA]);
         x512d = _mm512_i32logather_pd(column_index512i, d_x, 8);
         sum512d = _mm512_fmadd_pd(value512d, x512d, sum512d); // csr5.value * x = sum
     }
@@ -164,8 +164,8 @@ void spmv_csr5_compute_kernel(const iT           *d_column_index,
         #pragma omp for schedule(static, chunk)
         for (int par_id = 0; par_id < p - 1; par_id++)
         {
-            const vT *d_value_partition = &d_value[par_id * c_omega * c_sigma];
-            const int *d_column_index_partition = &d_column_index[par_id * c_omega * c_sigma];
+            const vT *d_value_partition = &d_value[par_id * D_CSR5_OMEGA * c_sigma];
+            const int *d_column_index_partition = &d_column_index[par_id * D_CSR5_OMEGA * c_sigma];
 
             uiT row_start     = d_partition_pointer[par_id];
             const iT row_stop = d_partition_pointer[par_id + 1] & 0x7FFFFFFF;
@@ -174,12 +174,12 @@ void spmv_csr5_compute_kernel(const iT           *d_column_index,
             {
                 // check whether the the partition contains the first element of row "row_start"
                 // => we are the first writing data to d_y[row_start]
-                bool fast_direct = (d_partition_descriptor[par_id * c_omega * num_packet] >>
+                bool fast_direct = (d_partition_descriptor[par_id * D_CSR5_OMEGA * num_packet] >>
                                                     (31 - (bit_y_offset + bit_scansum_offset)) & 0x1);
                 partition_fast_track<iT, vT>
                         (d_value_partition, d_x, d_column_index_partition,
                          d_calibrator, d_y, row_start, par_id,
-                         tid, start_row_start, alpha, beta, c_sigma, c_omega, stride_vT, fast_direct);
+                         tid, start_row_start, alpha, beta, c_sigma, D_CSR5_OMEGA, stride_vT, fast_direct);
             }
             else // normal track for all the other partitions
             {
@@ -194,19 +194,19 @@ void spmv_csr5_compute_kernel(const iT           *d_column_index,
                 first_sum512d = c_zero512d;
                 stop512i = _mm512_castpd_si512(first_sum512d);
 #if CSR5_SIGMA > 20
-                const uiT *d_partition_descriptor_partition = &d_partition_descriptor[par_id * c_omega * num_packet];
+                const uiT *d_partition_descriptor_partition = &d_partition_descriptor[par_id * D_CSR5_OMEGA * num_packet];
                 descriptor512i = _mm512_mask_i32gather_epi32(stop512i, 0xFF, _mm512_set_epi32(15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0), 
                                                              d_partition_descriptor_partition, 4);
 
 #else
                 if(par_id % 2)
                 {
-                    descriptor512i = _mm512_load_epi32(&d_partition_descriptor[(par_id-1) * c_omega * num_packet]);
+                    descriptor512i = _mm512_load_epi32(&d_partition_descriptor[(par_id-1) * D_CSR5_OMEGA * num_packet]);
                     // descriptor512i = _mm512_permute4f128_epi32(descriptor512i, _MM_PERM_BADC);
                     descriptor512i = _mm512_shuffle_i32x4(descriptor512i, descriptor512i, _MM_PERM_BADC);
                 }
                 else
-                    descriptor512i = _mm512_load_epi32(&d_partition_descriptor[par_id * c_omega * num_packet]);
+                    descriptor512i = _mm512_load_epi32(&d_partition_descriptor[par_id * D_CSR5_OMEGA * num_packet]);
 #endif
 
                 y_offset512i = _mm512_srli_epi32(descriptor512i, 32 - bit_y_offset);
@@ -251,7 +251,7 @@ void spmv_csr5_compute_kernel(const iT           *d_column_index,
                     //             _mm512_load_epi32(&d_column_index_partition[i * c_omega]);
                     column_index512i = (i % 2) ?
                                 _mm512_shuffle_i32x4(column_index512i, column_index512i, _MM_PERM_BADC) :
-                                _mm512_load_epi32(&d_column_index_partition[i * c_omega]);
+                                _mm512_load_epi32(&d_column_index_partition[i * D_CSR5_OMEGA]);
 
 #if CSR5_SIGMA > 20
                     int norm_i = i - (32 - bit_y_offset - bit_scansum_offset);
@@ -260,7 +260,7 @@ void spmv_csr5_compute_kernel(const iT           *d_column_index,
                     {
                         ly++;
                         descriptor512i = _mm512_mask_i32gather_epi32(stop512i, 0xFF, _mm512_set_epi32(15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0), 
-                                                                     &d_partition_descriptor_partition[ly * c_omega], 4);
+                                                                     &d_partition_descriptor_partition[ly * D_CSR5_OMEGA], 4);
                     }
                     norm_i = !ly ? i : norm_i;
                     norm_i = 31 - norm_i % 32;
@@ -294,7 +294,7 @@ void spmv_csr5_compute_kernel(const iT           *d_column_index,
                         stop512i = _mm512_mask_add_epi32(stop512i, direct16, stop512i, c_one512i);
                     }
 
-                    value512d = _mm512_load_pd(&d_value_partition[i * c_omega]);
+                    value512d = _mm512_load_pd(&d_value_partition[i * D_CSR5_OMEGA]);
                     x512d = _mm512_i32logather_pd(column_index512i, d_x, 8);
                     sum512d = _mm512_fmadd_pd(value512d, x512d, sum512d);
 
@@ -391,11 +391,11 @@ void spmv_csr5_tail_partition_kernel(const iT           *d_row_pointer,
                                      const vT            alpha,
                                      const vT            beta)
 {
-    const iT index_first_element_tail = (p - 1) * omega * sigma;
+    const iT index_first_element_tail = (p - 1) * D_CSR5_OMEGA * sigma;
     
     for (iT row_id = tail_partition_start; row_id < m; row_id++)
     {
-        const iT idx_start = row_id == tail_partition_start ? (p - 1) * omega * sigma : d_row_pointer[row_id];
+        const iT idx_start = row_id == tail_partition_start ? (p - 1) * D_CSR5_OMEGA * sigma : d_row_pointer[row_id];
         const iT idx_stop  = d_row_pointer[row_id + 1];
 
         vT sum = 0;

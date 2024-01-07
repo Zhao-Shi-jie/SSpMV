@@ -31,11 +31,22 @@ void test_martixfile(int argc, char** argv)
         return;
     }
 
-    CSR5_Matrix <IndexType, UIndexType, ValueType> csr5;
+    // CSR5_Matrix <IndexType, UIndexType, ValueType> csr5;
     
-    csr5 = read_csr5_matrix<IndexType, UIndexType, ValueType>(mm_filename);
+    // csr5 = read_csr5_matrix<IndexType, UIndexType, ValueType>(mm_filename);
 
-    printf("Using %d-by-%d matrix with %d nonzero values\n", csr5.num_rows, csr5.num_cols, csr5.num_nnzs);
+    // printf("Using %d-by-%d matrix with %d nonzero values\n", csr5.num_rows, csr5.num_cols, csr5.num_nnzs);
+
+    // reference CSR kernel for csr5 test
+    CSR_Matrix<IndexType, ValueType> csr;
+    csr = read_csr_matrix<IndexType, ValueType> (mm_filename);
+
+    CSR5_Matrix <IndexType, UIndexType, ValueType> csr5;
+    FILE* save_features = fopen(MAT_FEATURES,"w");
+    
+    csr5 = csr_to_csr5<IndexType, UIndexType, ValueType>(csr, save_features);
+    
+    fclose(save_features);
 
     // printf("chunk_num   = %d\n", s_ell_matrix.chunk_num);
     // printf("chunk_width = %d\n", s_ell_matrix.sliceWidth);
@@ -54,7 +65,7 @@ void test_martixfile(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-    test_martixfile<int, uint32_t, float>(argc, argv);
+    test_martixfile<int, uint32_t, double>(argc, argv);
     // test_martixfile<int, uint64_t, float>(argc, argv);
 
     return 0;

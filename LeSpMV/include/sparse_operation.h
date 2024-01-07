@@ -132,7 +132,8 @@ void compare_spmv_kernels(const SparseMatrix1 & sm1_host, SpMV1 spmv1,
         x_host[i] = rand() / (RAND_MAX + 1.0); 
 
     for(IndexType i = 0; i < num_rows; i++)
-        y_host[i] = rand() / (RAND_MAX + 1.0);
+        y_host[i] = 0.0;
+        // y_host[i] = rand() / (RAND_MAX + 1.0);
 
 
     // create vectors in appropriate locations
