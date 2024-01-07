@@ -46,6 +46,7 @@ int test_csr5_matrix_kernels(const CSR_Matrix<IndexType, ValueType> &csr_ref, in
     return 0;
 }
 
-template int test_csr5_matrix_kernels<int, uint32_t, float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag, int schedule_mod);
+// template int test_csr5_matrix_kernels<int, uint32_t, float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag, int schedule_mod);
 
+// AVX512 只 制作了 double 精度的计算
 template int test_csr5_matrix_kernels<int, uint32_t, double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag, int schedule_mod);
