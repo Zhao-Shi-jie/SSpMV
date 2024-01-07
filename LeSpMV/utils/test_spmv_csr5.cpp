@@ -29,7 +29,6 @@ int test_csr5_matrix_kernels(const CSR_Matrix<IndexType, ValueType> &csr_ref, in
     // 只有一种kernel 不需要分类啦
     csr5.kernel_flag = kernel_tag;
 
-
     {
         std::cout << "\n===  Compared csr5 with csr default  ===" << std::endl;
         // test correctness
