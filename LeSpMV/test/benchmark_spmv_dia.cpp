@@ -68,8 +68,8 @@ int main(int argc, char** argv)
     if(precision_str != NULL)
         precision = atoi(precision_str);
 
-    // 不用超线程，只计算真实CORE
-    Le_set_thread_num(CPU_SOCKET * CPU_CORES_PER_SOC);
+    // 包括超线程
+    Le_set_thread_num(CPU_SOCKET * CPU_CORES_PER_SOC * CPU_HYPER_THREAD);
 
     char * threads_str = get_argval(argc, argv, "threads");
     if(threads_str != NULL)
