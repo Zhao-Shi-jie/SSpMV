@@ -86,6 +86,7 @@ T maximum_relative_error(const T * A, const T * B, const size_t N)
         const T error = std::abs(a - b);
         if (error != 0){
             max_error = std::max(max_error, error/(std::abs(a) + std::abs(b) + eps) );
+            // max_error = std::max(max_error, error);
         }
     }
  
@@ -118,7 +119,9 @@ void compare_spmv_kernels(const SparseMatrix1 & sm1_host, SpMV1 spmv1,
     typedef typename SparseMatrix1::index_type IndexType;
     typedef typename SparseMatrix2::value_type ValueType;
 
-    ValueType alpha = 1.0;
+    // 测试一般情况
+    // ValueType alpha = 1.0;
+    ValueType alpha = 0.8;
     ValueType beta  = 0.7;
 
     const IndexType num_rows = sm1_host.num_rows;

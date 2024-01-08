@@ -91,9 +91,10 @@ void partition_fast_track(const vT           *d_value_partition,
     }
 
     vT sum = _mm512_reduce_add_pd(sum512d);
+    sum = sum * alpha;
 
     if (row_start == start_row_start && !direct)
-        d_calibrator[tid * stride_vT] += sum * alpha;  // * alpha 补上alpha
+        d_calibrator[tid * stride_vT] += sum;
     else
     {
         // if(direct)
@@ -101,9 +102,9 @@ void partition_fast_track(const vT           *d_value_partition,
         // else
         //     d_y[row_start] += sum;
         if(direct)
-            d_y[row_start] = beta * d_y[row_start] + sum * alpha;
+            d_y[row_start] = beta * d_y[row_start] + sum;
         else
-            d_y[row_start] += sum * alpha;
+            d_y[row_start] += sum;
     }
 }
 
@@ -145,6 +146,7 @@ void spmv_csr5_compute_kernel(const iT           *d_column_index,
         __m512d value512d;
         __m512d x512d;
         __m512i column_index512i;
+        __m512d alpha512_d = _mm512_set1_pd(alpha);
 
         __m512d sum512d = c_zero512d;
         __m512d tmp_sum512d = c_zero512d;
@@ -236,8 +238,10 @@ void spmv_csr5_compute_kernel(const iT           *d_column_index,
 
                 column_index512i = _mm512_load_epi32(d_column_index_partition);
                 x512d = _mm512_i32logather_pd(column_index512i, d_x, 8);
+                x512d = _mm512_mul_pd(x512d, alpha512_d);   // x = alpha * x
 
                 sum512d = _mm512_mul_pd(value512d, x512d);
+                // sum512d = _mm512_mul_pd(sum512d, alpha512_d);  // * alpha
 
                 // step 1. thread-level seg sum
 #if CSR5_SIGMA > 20
@@ -280,6 +284,7 @@ void spmv_csr5_compute_kernel(const iT           *d_column_index,
                             y_idx512i = empty_rows ? 
                                     _mm512_mask_i32gather_epi32(y_offset512i, storemask8, y_offset512i, &d_partition_descriptor_offset[offset_pointer], 4) : 
                                     y_offset512i;
+                            //  应该是这里需要改成 beta * y + sum, 暂时没改
                             _mm512_mask_i32loscatter_pd(d_y_local, storemask8, y_idx512i, sum512d, 8);
                             y_offset512i = _mm512_mask_add_epi32(y_offset512i, storemask8, y_offset512i, c_one512i);
                         }
@@ -296,6 +301,7 @@ void spmv_csr5_compute_kernel(const iT           *d_column_index,
 
                     value512d = _mm512_load_pd(&d_value_partition[i * D_CSR5_OMEGA]);
                     x512d = _mm512_i32logather_pd(column_index512i, d_x, 8);
+                    x512d = _mm512_mul_pd(x512d, alpha512_d);   // x = alpha * x
                     sum512d = _mm512_fmadd_pd(value512d, x512d, sum512d);
 
                 }
@@ -340,7 +346,7 @@ void spmv_csr5_compute_kernel(const iT           *d_column_index,
                 vT sum = _mm512_mask_reduce_add_pd(0x1, sum512d);
 
                 if (row_start == start_row_start && !first_all_direct)
-                    d_calibrator[tid * stride_vT] += sum * alpha;   // * alpha
+                    d_calibrator[tid * stride_vT] += sum;
                 else
                 {
                     // if(first_direct)
@@ -348,9 +354,9 @@ void spmv_csr5_compute_kernel(const iT           *d_column_index,
                     // else
                     //     d_y[row_start] += sum;
                     if(first_direct)
-                        d_y[row_start] = beta * d_y[row_start] + sum * alpha;
+                        d_y[row_start] = beta * d_y[row_start] + sum;
                     else
-                        d_y[row_start] += sum * alpha;
+                        d_y[row_start] += sum;
                 }
 
             }
@@ -401,8 +407,8 @@ void spmv_csr5_tail_partition_kernel(const iT           *d_row_pointer,
         vT sum = 0;
         for (iT idx = idx_start; idx < idx_stop; idx++)
         {
-            // sum += d_value[idx] * d_x[d_column_index[idx]];// * alpha;
-            sum += d_value[idx] * d_x[d_column_index[idx]] * alpha;
+            // sum += d_value[idx] * d_x[d_column_index[idx]];
+            sum += d_value[idx] * d_x[d_column_index[idx]] * alpha;  // * alpha;
         }
 
         if(row_id == tail_partition_start && d_row_pointer[row_id] != index_first_element_tail)
@@ -448,7 +454,6 @@ void LeSpMV_csr5(const ValueType alpha, const CSR5_Matrix<IndexType, UIndexType,
             <IndexType, UIndexType, ValueType>
             (csr5.row_offset, csr5.col_index, csr5.values, x, y,
              csr5.tail_partition_start, csr5._p, csr5.num_rows, csr5.sigma, csr5.omega, alpha, beta);
-
 }
 
 template void LeSpMV_csr5<int, uint32_t, double>(const double, const CSR5_Matrix<int, uint32_t, double>&, const double* , const double, double*);
