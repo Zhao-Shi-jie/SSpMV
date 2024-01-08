@@ -18,6 +18,7 @@
 // hyperpramaters for SpMV algorithms
 #define CHUNK_SIZE 8
 #define NTRATIO (0.6)
+
 //  general setting in Liu weifeng's library
 //  TILE size: CSR5_SIGMA x CSR5_OMEGA  column major
 //                      y_offset                    seg_offset      bit_flag
