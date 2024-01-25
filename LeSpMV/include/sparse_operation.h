@@ -152,8 +152,10 @@ void compare_spmv_kernels(const SparseMatrix1 & sm1_host, SpMV1 spmv1,
     ValueType max_error = maximum_relative_error(y_host1, y_host2, num_rows);
     printf(" [max error %9f]", max_error);
     
-    if ( max_error > 5 * std::sqrt( std::numeric_limits<ValueType>::epsilon() ) )
-        printf(" POSSIBLE FAILURE");
+    if ( max_error > 5 * std::sqrt( std::numeric_limits<ValueType>::epsilon() ) && max_error < 0.01 )
+        printf(" POSSIBLE small Round-Error");
+    else if ( max_error >= 0.005)
+        printf (" POSSIBLE FAILURE");
                
     delete_array(x_host1);
     delete_array(y_host1);

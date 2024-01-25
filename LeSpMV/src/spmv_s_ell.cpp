@@ -1,7 +1,7 @@
 /**
  * @file spmv_s_ell.cpp
  * @author Shengle Lin (lsl036@hnu.edu.cn)
- * @brief  Simple implementation of SpMV in Sliced ELL format.
+ * @brief  Simple implementation of SpMV in Sliced SELL format.
  *         Using OpenMP automatic parallism and vectorization.
  * @version 0.1
  * @date 2023-12-11
@@ -33,10 +33,10 @@ void __spmv_sell_serial_simple( const IndexType num_rows,
 
         for (IndexType row = 0; row < row_num_perC; ++row)
         {
-            ValueType sum = 0;
             IndexType global_row = chunk_start_row + row;
             if (global_row >= num_rows) break; // 越界检查
-
+            
+            ValueType sum = 0;
             // #pragma omp simd reduction(+:sum)
             for (IndexType i = 0; i < chunk_width; ++i) 
             {
@@ -131,7 +131,7 @@ void LeSpMV_sell(const ValueType alpha, const S_ELL_Matrix<IndexType, ValueType>
     }
     else if(2 == sell.kernel_flag)
     {
-        // load balanced ? maybe no need foe sell
+        // load balanced ? maybe no need for sell
     }
     else{
         //DEFAULT: omp simple implementation

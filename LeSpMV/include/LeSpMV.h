@@ -15,7 +15,7 @@
 #include"sparse_conversion.h"
 #include"spmv_benchmark.h"
 #include"spmv_testroutine.h"
-
+#include"sparse_features.h"
 
 #include"spmv_csr.h"
 #include"spmv_csr5.h"
@@ -23,5 +23,6 @@
 #include"spmv_ell.h"
 #include"spmv_dia.h"
 #include"spmv_s_ell.h"
+#include"spmv_sell_c_sigma.h"
 
 #endif /* LESPMV_H */

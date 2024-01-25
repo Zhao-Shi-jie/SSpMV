@@ -141,6 +141,7 @@ COO_Matrix<IndexType,ValueType> read_coo_matrix(const char * mm_filename)
         coo.row_index = new_rowindex;
         coo.col_index = new_colindex;
         coo.values    = new_V;
+        coo.num_nnzs = true_nnz;
     }
     coo.kernel_flag = KERNEL_FLAG;
     return coo;
@@ -325,3 +326,22 @@ S_ELL_Matrix<IndexType, ValueType> read_sell_matrix(const char * mm_filename, co
 template S_ELL_Matrix<int, float> read_sell_matrix<int, float>(const char * mm_filename, const int chunkwidth, const int alignment);
 template S_ELL_Matrix<int, double> read_sell_matrix<int, double>(const char * mm_filename, const int chunkwidth, const int alignment);
 
+template <class IndexType, class ValueType>
+SELL_C_Sigma_Matrix<IndexType, ValueType> read_sell_c_sigma_matrix(const char * mm_filename, const int slicewidth, const int chunkwidth, const IndexType alignment)
+{
+    CSR_Matrix<IndexType, ValueType> csr;
+    csr = read_csr_matrix<IndexType, ValueType> (mm_filename);
+
+    SELL_C_Sigma_Matrix<IndexType, ValueType> sell_c_sigma;
+
+    FILE* save_features = fopen(MAT_FEATURES,"w");
+    sell_c_sigma = csr_to_sell_c_sigma(csr, save_features, slicewidth, chunkwidth, alignment);
+
+    fclose(save_features);
+    delete_csr_matrix(csr);
+
+    return sell_c_sigma;
+}
+
+template SELL_C_Sigma_Matrix<int, float> read_sell_c_sigma_matrix<int, float>(const char * mm_filename, const int slicewidth, const int chunkwidth, const int alignment);
+template SELL_C_Sigma_Matrix<int, double> read_sell_c_sigma_matrix<int, double>(const char * mm_filename, const int slicewidth, const int chunkwidth, const int alignment);

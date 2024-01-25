@@ -209,6 +209,41 @@ struct S_ELL_Matrix : public Matrix_Features<IndexType>
     ValueType ** values;
 };
 
+/**
+ * @brief SELL-c-sigma Sparse Matrix Format
+ * 
+ * @tparam IndexType 
+ * @tparam ValueType 
+ */
+template <typename IndexType, typename ValueType>
+struct SELL_C_Sigma_Matrix : public Matrix_Features<IndexType>
+{
+    typedef IndexType index_type;
+    typedef ValueType value_type;
+    
+    IndexType sliceWidth_Sigma;     // 重排序的分段宽度 Height of each slice (number of rows grouped together for reordering)
+    IndexType chunkWidth_C;         // The width of a chunk (number of sigma segments), inside a chunk, rows have the same number of columns
+
+    IndexType sliceNum;             // Total number of slices
+    IndexType chunkNum;             // Total number of chunks
+    IndexType validchunkNum;        // valid number of chunks (contains nnz is valid)
+    IndexType chunk_num_per_slice;  // Number of chunks per slice
+    IndexType alignment;            // Memory alignment for SIMD
+
+    IndexType *reorder;             // Reordering of rows within each slice (length = num_rows)
+    IndexType *chunk_len;           // Number of elements in each chunk (length = sliceNum * chunk_num_per_slice)
+
+    // 默认按照行优先存储
+    IndexType ** col_index;         // Column indices for non-zero values, per chunk
+    ValueType ** values;            // Non-zero values, per slice/ chunk?
+
+    // Extra
+    // IndexType *chunkLengths;        // Actual number of non-zero elements in each row within the chunk
+    // IndexType *slice_ptr;           // Points to the beginning of each slice in the values array (length = sliceNum + 1)
+    // IndexType *sliceOffsets;        // Starting point of each slice in the chunk_len array  (length = sliceNum + 1)
+    // IndexType *sliceDesc;           // Descriptor for each slice, could include max NNZ per row in the slice
+};
+
 ////////////////////////////////////////////////////////////////////////////////
 // Delete the memory usage of different Matrix struct
 ////////////////////////////////////////////////////////////////////////////////
@@ -267,7 +302,6 @@ void delete_ell_matrix(ELL_Matrix<IndexType,ValueType>& ell){
 template <typename IndexType, typename ValueType>
 void delete_s_ell_matrix(S_ELL_Matrix<IndexType,ValueType>& s_ell){
     s_ell.alignment = 0;
-    s_ell.chunk_num = 0;
 
     // s_ell.row_width.clear();
     // s_ell.col_index.clear();
@@ -282,6 +316,29 @@ void delete_s_ell_matrix(S_ELL_Matrix<IndexType,ValueType>& s_ell){
     }
     delete[] s_ell.col_index;
     delete[] s_ell.values;
+    s_ell.chunk_num = 0;
+}
+
+template <typename IndexType, typename ValueType>
+void delete_s_ell_c_sigma_matrix(SELL_C_Sigma_Matrix<IndexType,ValueType>& s_ell_c_sigma){
+    s_ell_c_sigma.alignment = 0;
+    
+    s_ell_c_sigma.chunk_num_per_slice = 0;
+
+    delete_array(s_ell_c_sigma.reorder);
+    delete_array(s_ell_c_sigma.chunk_len);
+
+    for (IndexType sliceID = 0; sliceID < s_ell_c_sigma.sliceNum; sliceID++)
+    {
+        delete_array(s_ell_c_sigma.col_index[sliceID]);
+        delete_array(s_ell_c_sigma.values[sliceID]);
+    }
+    delete[] s_ell_c_sigma.col_index;
+    delete[] s_ell_c_sigma.values;
+    s_ell_c_sigma.sliceNum  = 0;
+
+    // delete_array(s_ell_c_sigma.slice_ptr);
+    // delete_array(s_ell_c_sigma.sliceOffsets);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -306,6 +363,7 @@ void delete_host_matrix(ELL_Matrix<IndexType,ValueType>& ell){ delete_ell_matrix
 template <typename IndexType, typename ValueType>
 void delete_host_matrix(S_ELL_Matrix<IndexType,ValueType>& s_ell){ delete_s_ell_matrix(s_ell); }
 
-
+template <typename IndexType, typename ValueType>
+void delete_host_matrix(SELL_C_Sigma_Matrix<IndexType,ValueType>& s_ell_c_sigma){ delete_s_ell_c_sigma_matrix(s_ell_c_sigma); }
 
 #endif /* SPARSE_FORMAT_H */

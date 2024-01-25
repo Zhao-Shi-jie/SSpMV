@@ -1,0 +1,87 @@
+/**
+ * @file test_features.cpp
+ * @author your name (you@domain.com)
+ * @brief 
+ * @version 0.1
+ * @date 2024-01-23
+ * 
+ * @copyright Copyright (c) 2024
+ * 
+ */
+#include<iostream>
+#include<cstdio>
+#include"../include/LeSpMV.h"
+#include"../include/cmdline.h"
+
+void usage(int argc, char** argv)
+{
+    std::cout << "Usage:\n";
+    std::cout << "\t" << argv[0] << " with following parameters:\n";
+    std::cout << "\t" << " my_matrix.mtx\n";
+    std::cout << "\t" << " --matID=m_num, giving the matrix ID number in dataset (default 0).\n";
+    std::cout << "\t" << " --precision=64(or 32), for counting features (default 64).\n";
+    std::cout << "\t" << " --threads=t_num, define the number of omp threads.\n";
+    std::cout << "Note: my_matrix.mtx must be real-valued sparse matrix in the MatrixMarket file format.\n"; 
+}
+
+template <typename IndexType, typename ValueType>
+void test_features(int argc, char** argv)
+{
+    char * mm_filename = NULL;
+    for(int i = 1; i < argc; i++){
+        if(argv[i][0] != '-'){
+            mm_filename = argv[i];
+            break;
+        }
+    }
+
+    if(mm_filename == NULL)
+    {
+        printf("You need to input a matrix file! see '--help' for more details\n");
+        return;
+    }
+
+    IndexType matID = 0;
+    char * matID_str = get_argval(argc, argv, "matID");
+    if(matID_str != NULL)
+    {
+        matID = atoi(matID_str);
+    }
+
+    MTX<IndexType, ValueType> mtx(matID);
+    mtx.MtxLoad(mm_filename);
+    mtx.CalculateFeatures();
+    mtx.FeaturesPrint();
+    mtx.FeaturesWrite(MAT_FEATURES);
+}
+
+int main(int argc, char** argv) {
+    if (get_arg(argc, argv, "help") != NULL){
+        usage(argc, argv);
+        return EXIT_SUCCESS;
+    }
+
+    int precision = 64;
+    char * precision_str = get_argval(argc, argv, "precision");
+    if(precision_str != NULL)
+        precision = atoi(precision_str);
+
+    // 包括超线程
+    Le_set_thread_num(CPU_SOCKET * CPU_CORES_PER_SOC * CPU_HYPER_THREAD);
+    char * threads_str = get_argval(argc, argv, "threads");
+    if(threads_str != NULL)
+        Le_set_thread_num(atoi(threads_str));
+
+    if(precision ==  32){
+        test_features<int, float>(argc, argv);
+    }
+    else if(precision == 64){
+        test_features<int, double>(argc, argv);
+    }
+    else{
+        usage(argc, argv);
+        return EXIT_FAILURE;
+    }
+
+    return 0;
+}

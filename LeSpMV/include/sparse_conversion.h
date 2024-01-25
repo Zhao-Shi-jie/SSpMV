@@ -234,7 +234,7 @@ ELL_Matrix<IndexType, ValueType> csr_to_ell(const CSR_Matrix<IndexType, ValueTyp
  * @tparam ValueType 
  */
 template <class IndexType, class ValueType>
-S_ELL_Matrix<IndexType, ValueType> csr_to_sell(const CSR_Matrix<IndexType, ValueType> &csr, FILE *fp_feature, const int chunkwidth = CHUNK_SIZE,  const IndexType alignment = (SIMD_WIDTH/sizeof(ValueType)))
+S_ELL_Matrix<IndexType, ValueType> csr_to_sell(const CSR_Matrix<IndexType, ValueType> &csr, FILE *fp_feature, const int chunkwidth = CHUNK_SIZE,  const IndexType alignment = (SIMD_WIDTH/8/sizeof(ValueType)))
 {
     S_ELL_Matrix<IndexType, ValueType> sell;
 
@@ -311,6 +311,145 @@ S_ELL_Matrix<IndexType, ValueType> csr_to_sell(const CSR_Matrix<IndexType, Value
     }
     
     return sell;
+}
+
+template <class IndexType, class ValueType>
+SELL_C_Sigma_Matrix<IndexType, ValueType> csr_to_sell_c_sigma(const CSR_Matrix<IndexType, ValueType> &csr, FILE *fp_feature, const int slicewidth = SELL_SIGMA, const int chunkwidth = CHUNK_SIZE,  const IndexType alignment = (SIMD_WIDTH/8/sizeof(ValueType)))
+{
+    SELL_C_Sigma_Matrix<IndexType, ValueType> sell_c_sigma;
+
+    sell_c_sigma.num_rows = csr.num_rows;
+    sell_c_sigma.num_cols = csr.num_cols;
+    sell_c_sigma.num_nnzs = csr.num_nnzs;
+
+    sell_c_sigma.tag = 0;
+
+    sell_c_sigma.sliceWidth_Sigma    = slicewidth;
+    sell_c_sigma.chunkWidth_C        = chunkwidth;
+    sell_c_sigma.alignment           = alignment;
+
+    // 确定需要多少个slice
+    sell_c_sigma.sliceNum = (sell_c_sigma.num_rows + sell_c_sigma.sliceWidth_Sigma -1) / sell_c_sigma.sliceWidth_Sigma;
+
+    sell_c_sigma.validchunkNum = (sell_c_sigma.num_rows + sell_c_sigma.chunkWidth_C -1) / sell_c_sigma.chunkWidth_C;
+    
+    // chunk 无法整除 slice
+    if (slicewidth % chunkwidth)
+    {
+        printf(" Sigma must be multiple divided by c\n");
+        exit(-1);
+    }
+    else{
+        sell_c_sigma.chunk_num_per_slice = slicewidth/ chunkwidth;
+    }
+    sell_c_sigma.chunkNum = sell_c_sigma.sliceNum * sell_c_sigma.chunk_num_per_slice;
+    
+
+    sell_c_sigma.reorder = new_array<IndexType>(sell_c_sigma.num_rows);
+
+    /*-----------------------------------------------*/
+    //  Step1. 确定重排序数组 
+    /*-----------------------------------------------*/
+    // Create a vector to hold the number of non-zeros per row and the original row index
+    std::vector<std::pair<IndexType, IndexType>> nnz_count(csr.num_rows);
+
+    // Count the non-zeros for each row
+    for (IndexType i = 0; i < csr.num_rows; ++i) {
+        nnz_count[i].first = csr.row_offset[i + 1] - csr.row_offset[i]; // Number of non-zeros
+        nnz_count[i].second = i; // Original row index
+    }
+
+    for (IndexType slice = 0; slice < sell_c_sigma.sliceNum; slice++)
+    {
+        // Calculate the start and end row of the current slice
+        IndexType start_row = slice * sell_c_sigma.sliceWidth_Sigma;
+        IndexType end_row = std::min(start_row + sell_c_sigma.sliceWidth_Sigma, csr.num_rows);
+
+        // Sort the rows in the slice by non-zero count
+        std::sort(nnz_count.begin() + start_row, nnz_count.begin() + end_row,
+            std::greater<std::pair<IndexType, IndexType>>());
+
+        // Fill the sell_c_sigma.reorder array with the new order of the rows
+        for (IndexType i = start_row; i < end_row; ++i) {
+            // reorder[i] 保存放置在 重序后第 i 行的 原始行号是多少
+            // SpMV时, 累加到y的原始行 y[reorder[i]] += A[i][column_id]*x[column_id]
+            sell_c_sigma.reorder[i] = nnz_count[i].second;
+        }
+    }
+
+    /*-----------------------------------------------*/
+    //  Step2. 确定 chunk_len数组，计算每个chunk的列数
+    /*-----------------------------------------------*/
+    sell_c_sigma.chunk_len = new_array<IndexType> (sell_c_sigma.validchunkNum);
+
+    // Initialize chunk_len to zeros
+    std::fill_n(sell_c_sigma.chunk_len, sell_c_sigma.validchunkNum, 0);
+
+    // Iterate through each row, now using the reorder mapping
+    for (IndexType row = 0; row < csr.num_rows; ++row){
+        // get the real_rowID in Reorder array
+        IndexType real_rowID = sell_c_sigma.reorder[row];
+
+        IndexType nnzs_in_row = csr.row_offset[real_rowID + 1] - csr.row_offset[real_rowID];
+
+        // Determine the sliceID and chunkID of the reordered row
+        // IndexType sliceID = row / sell_c_sigma.sliceWidth_Sigma;
+        // IndexType chunkID = (row % sell_c_sigma.sliceWidth_Sigma) / sell_c_sigma.chunkWidth_C;
+        IndexType chunkID = row / sell_c_sigma.chunkWidth_C;
+
+        // Update the chunk length
+        // sell_c_sigma.chunk_len[sliceID * sell_c_sigma.chunk_num_per_slice + chunkID] = std::max( sell_c_sigma.chunk_len[sliceID * sell_c_sigma.chunk_num_per_slice + chunkID], nnzs_in_row );
+        sell_c_sigma.chunk_len[chunkID] = std::max(sell_c_sigma.chunk_len[chunkID], nnzs_in_row);
+    }
+    
+    // alignment for chunk_len
+    for (IndexType i = 0; i < sell_c_sigma.validchunkNum; i++)
+    {
+        sell_c_sigma.chunk_len[i] = ((sell_c_sigma.chunk_len[i] + sell_c_sigma.alignment - 1)/ sell_c_sigma.alignment) * sell_c_sigma.alignment;
+    }
+
+    /*-----------------------------------------------*/
+    //  Step3. 确定 col_index 和  values. 在计算时可以只看chunk了
+    /*-----------------------------------------------*/
+    sell_c_sigma.col_index = new IndexType*[sell_c_sigma.validchunkNum];
+    sell_c_sigma.values    = new ValueType*[sell_c_sigma.validchunkNum];
+    for (IndexType chunk = 0; chunk < sell_c_sigma.validchunkNum; chunk++)
+    {
+        size_t elem_nums = sell_c_sigma.chunk_len[chunk] * sell_c_sigma.chunkWidth_C;
+        sell_c_sigma.col_index[chunk] = new_array<IndexType> (elem_nums);
+
+        // 初始化 col_index 中每个元素为 -1
+        std::fill_n(sell_c_sigma.col_index[chunk], elem_nums, static_cast<IndexType>(-1));
+
+        sell_c_sigma.values[chunk] = new_array<ValueType> (elem_nums);
+        // 初始化 values 中每个元素为 0 
+        std::fill_n(sell_c_sigma.values[chunk], elem_nums, ValueType(0));
+    }
+
+    //转换 CSR 到 S-ELL-c-sigma
+    for (IndexType row = 0; row < csr.num_rows; row++)
+    {
+        // get the row index with Reorder array
+        IndexType real_rowID = sell_c_sigma.reorder[row];
+
+        IndexType chunk_id = row / sell_c_sigma.chunkWidth_C; // 所属的 chunk 号
+        IndexType row_within_chunk = row % sell_c_sigma.chunkWidth_C; // chunk 内部的行号 0 ~ C-1
+
+        IndexType row_start        = csr.row_offset[real_rowID];
+        IndexType row_end          = csr.row_offset[real_rowID + 1];
+
+        for (IndexType idx = row_start; idx < row_end; idx++)
+        {
+            IndexType col = csr.col_index[idx];
+            ValueType val = csr.values[idx];
+
+            IndexType pos = row_within_chunk * sell_c_sigma.chunk_len[chunk_id] + (idx - row_start);
+            sell_c_sigma.col_index[chunk_id][pos] = col;
+            sell_c_sigma.values[chunk_id][pos]    = val;
+        }
+    }
+
+    return sell_c_sigma;
 }
 
 template <class IndexType, class ValueType>

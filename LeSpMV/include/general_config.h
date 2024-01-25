@@ -9,13 +9,12 @@
 #define MAX_DIAG_NUM 10240
 #define MAX_ITER 1000
 #define MIN_ITER 500 
-#define MAX_R 8
-#define MAX_C 8
 
 #define TIME_LIMIT 20.0  
 #define NUM_FORMATS 7
 
 // hyperpramaters for SpMV algorithms
+#define SELL_SIGMA 512   // (2^9), 4096 (2^12) , and 16384 (2^14)
 #define CHUNK_SIZE 8
 #define NTRATIO (0.6)
 
@@ -59,6 +58,11 @@
     #define SCHEDULE_STRATEGY static
 #endif // !SCHEDULE_STRATEGY
 
+// SCHE_MODE :  0 = omp_set_schedule(omp_sched_static, 0);
+//              1 = omp_set_schedule(omp_sched_static, chunk_size);
+//              2 = omp_set_schedule(omp_sched_dynamic, chunk_size);
+//              3 = omp_set_schedule(omp_sched_guided, chunk_size);
+#define SCHE_MODE 1
 
 #define MAT_FEATURES "./features/mat_features.txt"
 

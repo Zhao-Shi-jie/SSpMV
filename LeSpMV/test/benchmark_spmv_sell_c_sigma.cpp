@@ -1,11 +1,11 @@
 /**
- * @file benchmark_spmv_sell.cpp
- * @author Shengle Lin (lsl036@hnu.edu.cn)
+ * @file benchmark_spmv_sell_c_sigma.cpp
+ * @author your name (you@domain.com)
  * @brief 
  * @version 0.1
- * @date 2023-12-12
+ * @date 2024-01-22
  * 
- * @copyright Copyright (c) 2023
+ * @copyright Copyright (c) 2024
  * 
  */
 #include<iostream>
@@ -27,7 +27,7 @@ void usage(int argc, char** argv)
 }
 
 template <typename IndexType, typename ValueType>
-void run_s_ell_kernels(int argc, char **argv)
+void run_sell_c_sigma_kernels(int argc, char **argv)
 {
     char * mm_filename = NULL;
     for(int i = 1; i < argc; i++){
@@ -51,6 +51,7 @@ void run_s_ell_kernels(int argc, char **argv)
     fflush(stdout);
 
     int sche_mode = SCHE_MODE;
+
     // 此时 0 == 1 都是 StCont 方式，因为按照本身的chunk划分
     char * schedule_str = get_argval(argc, argv, "sche");
     if(schedule_str != NULL)
@@ -63,10 +64,10 @@ void run_s_ell_kernels(int argc, char **argv)
         }
     }
 
-    std::cout << " , S_ELL matrix only support store in *RowMajor*" << std::endl;
+    std::cout << " , SELL-c-sigma matrix only support store in *RowMajor*" << std::endl;
 
     for(IndexType methods = 0; methods < 2; ++methods){
-        test_s_ell_matrix_kernels(csr, methods, sche_mode);
+        test_sell_c_sigma_matrix_kernels(csr, methods, sche_mode);
         fflush(stdout);
     }
 
@@ -96,11 +97,11 @@ int main(int argc, char** argv)
 
     if(precision ==  32){
         // run_all_kernels<int, float>(argc,argv);
-        run_s_ell_kernels<int, float>(argc,argv);
+        run_sell_c_sigma_kernels<int, float>(argc,argv);
     }
     else if(precision == 64){
         // run_all_kernels<int, double>(argc,argv);
-        run_s_ell_kernels<int, double>(argc,argv);
+        run_sell_c_sigma_kernels<int, double>(argc,argv);
     }
     else{
         usage(argc, argv);

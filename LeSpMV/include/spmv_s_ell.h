@@ -29,7 +29,7 @@ void __spmv_sell_omp_simple(const IndexType num_rows,
 
 /**
  * @brief Compute y += alpha * A * x + beta * y for a sparse matrix
- *        Matrix Format: ELL
+ *        Matrix Format: SELL
  *        Inside call : __spmv_sell_omp_simple() to calculation
  * 
  * @tparam IndexType 
