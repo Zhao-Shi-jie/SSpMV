@@ -24,5 +24,6 @@
 #include"spmv_dia.h"
 #include"spmv_s_ell.h"
 #include"spmv_sell_c_sigma.h"
+#include"spmv_sell_c_R.h"
 
 #endif /* LESPMV_H */

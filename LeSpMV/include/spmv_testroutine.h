@@ -43,4 +43,7 @@ int test_s_ell_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, in
 template <typename IndexType, typename ValueType>
 int test_sell_c_sigma_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag, int schedule_mod);
 
+template <typename IndexType, typename ValueType>
+int test_sell_c_R_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag, int schedule_mod);
+
 #endif /* SPMV_TESTROUTINE_H */

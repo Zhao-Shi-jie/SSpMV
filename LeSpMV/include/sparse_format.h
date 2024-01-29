@@ -231,17 +231,41 @@ struct SELL_C_Sigma_Matrix : public Matrix_Features<IndexType>
     IndexType alignment;            // Memory alignment for SIMD
 
     IndexType *reorder;             // Reordering of rows within each slice (length = num_rows)
-    IndexType *chunk_len;           // Number of elements in each chunk (length = sliceNum * chunk_num_per_slice)
+    IndexType *chunk_len;           // Number of elements in each chunk (length = validchunkNum)
 
     // 默认按照行优先存储
     IndexType ** col_index;         // Column indices for non-zero values, per chunk
-    ValueType ** values;            // Non-zero values, per slice/ chunk?
+    ValueType ** values;            // Non-zero values, per chunk
 
     // Extra
     // IndexType *chunkLengths;        // Actual number of non-zero elements in each row within the chunk
     // IndexType *slice_ptr;           // Points to the beginning of each slice in the values array (length = sliceNum + 1)
     // IndexType *sliceOffsets;        // Starting point of each slice in the chunk_len array  (length = sliceNum + 1)
     // IndexType *sliceDesc;           // Descriptor for each slice, could include max NNZ per row in the slice
+};
+
+
+template <typename IndexType, typename ValueType>
+struct SELL_C_R_Matrix : public Matrix_Features<IndexType>
+{
+    typedef IndexType index_type;
+    typedef ValueType value_type;
+    
+    // IndexType sliceWidth_Sigma;     // 重排序的分段宽度 Height of each slice 现在固定为 rows 数目
+    IndexType chunkWidth_C;         // The width of a chunk (number of sigma segments), inside a chunk, rows have the same number of columns
+
+    // IndexType sliceNum;             // slice 就是一片完整的矩阵
+    // IndexType chunkNum;             // Total number of chunks
+    IndexType validchunkNum;        // valid number of chunks 现在和chunkNum相等
+    // IndexType chunk_num_per_slice;  // Number of chunks per slice 不再需要
+    IndexType alignment;            // Memory alignment for SIMD
+
+    IndexType *reorder;             // Reordering of rows within each slice (length = num_rows)
+    IndexType *chunk_len;           // Number of elements in each chunk (length = validchunkNum)
+
+    // 默认按照行优先存储
+    IndexType ** col_index;         // Column indices for non-zero values, per chunk
+    ValueType ** values;            // Non-zero values, per chunk
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -328,19 +352,36 @@ void delete_s_ell_c_sigma_matrix(SELL_C_Sigma_Matrix<IndexType,ValueType>& s_ell
     delete_array(s_ell_c_sigma.reorder);
     delete_array(s_ell_c_sigma.chunk_len);
 
-    for (IndexType sliceID = 0; sliceID < s_ell_c_sigma.sliceNum; sliceID++)
+    for (IndexType chunkID = 0; chunkID < s_ell_c_sigma.validchunkNum; chunkID++)
     {
-        delete_array(s_ell_c_sigma.col_index[sliceID]);
-        delete_array(s_ell_c_sigma.values[sliceID]);
+        delete_array(s_ell_c_sigma.col_index[chunkID]);
+        delete_array(s_ell_c_sigma.values[chunkID]);
     }
     delete[] s_ell_c_sigma.col_index;
     delete[] s_ell_c_sigma.values;
     s_ell_c_sigma.sliceNum  = 0;
-
+    s_ell_c_sigma.chunkNum  = 0;
+    s_ell_c_sigma.validchunkNum = 0;
     // delete_array(s_ell_c_sigma.slice_ptr);
     // delete_array(s_ell_c_sigma.sliceOffsets);
 }
 
+template <typename IndexType, typename ValueType>
+void delete_s_ell_c_R_matrix(SELL_C_R_Matrix<IndexType,ValueType>& s_ell_c_R){
+    s_ell_c_R.alignment = 0;
+
+    delete_array(s_ell_c_R.reorder);
+    delete_array(s_ell_c_R.chunk_len);
+
+    for (IndexType chunkID = 0; chunkID < s_ell_c_R.validchunkNum; chunkID++)
+    {
+        delete_array(s_ell_c_R.col_index[chunkID]);
+        delete_array(s_ell_c_R.values[chunkID]);
+    }
+    delete[] s_ell_c_R.col_index;
+    delete[] s_ell_c_R.values;
+    s_ell_c_R.validchunkNum  = 0;
+}
 ////////////////////////////////////////////////////////////////////////////////
 // Delete Matrix struct
 ////////////////////////////////////////////////////////////////////////////////
@@ -365,5 +406,8 @@ void delete_host_matrix(S_ELL_Matrix<IndexType,ValueType>& s_ell){ delete_s_ell_
 
 template <typename IndexType, typename ValueType>
 void delete_host_matrix(SELL_C_Sigma_Matrix<IndexType,ValueType>& s_ell_c_sigma){ delete_s_ell_c_sigma_matrix(s_ell_c_sigma); }
+
+template <typename IndexType, typename ValueType>
+void delete_host_matrix(SELL_C_R_Matrix<IndexType,ValueType>& s_ell_c_R){ delete_s_ell_c_R_matrix(s_ell_c_R); }
 
 #endif /* SPARSE_FORMAT_H */

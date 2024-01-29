@@ -345,3 +345,23 @@ SELL_C_Sigma_Matrix<IndexType, ValueType> read_sell_c_sigma_matrix(const char * 
 
 template SELL_C_Sigma_Matrix<int, float> read_sell_c_sigma_matrix<int, float>(const char * mm_filename, const int slicewidth, const int chunkwidth, const int alignment);
 template SELL_C_Sigma_Matrix<int, double> read_sell_c_sigma_matrix<int, double>(const char * mm_filename, const int slicewidth, const int chunkwidth, const int alignment);
+
+
+template <class IndexType, class ValueType>
+SELL_C_R_Matrix<IndexType, ValueType> read_sell_c_R_matrix(const char * mm_filename, const int chunkwidth, const IndexType alignment)
+{
+    CSR_Matrix<IndexType, ValueType> csr;
+    csr = read_csr_matrix<IndexType, ValueType> (mm_filename);
+
+    SELL_C_R_Matrix<IndexType, ValueType> mtx;
+
+    FILE* save_features = fopen(MAT_FEATURES,"w");
+    mtx = csr_to_sell_c_R(csr, save_features, chunkwidth, alignment);
+
+    fclose(save_features);
+    delete_csr_matrix(csr);
+
+    return mtx;
+}
+template SELL_C_R_Matrix<int,float> read_sell_c_R_matrix(const char * mm_filename, const int chunkwidth, const int alignment);
+template SELL_C_R_Matrix<int,double> read_sell_c_R_matrix(const char * mm_filename, const int chunkwidth, const int alignment);

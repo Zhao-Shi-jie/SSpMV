@@ -102,4 +102,7 @@ S_ELL_Matrix<IndexType, ValueType> read_sell_matrix(const char * mm_filename, co
 template <class IndexType, class ValueType>
 SELL_C_Sigma_Matrix<IndexType, ValueType> read_sell_c_sigma_matrix(const char * mm_filename, const int slicewidth, const int chunkwidth, const IndexType alignment);
 
+template <class IndexType, class ValueType>
+SELL_C_R_Matrix<IndexType, ValueType> read_sell_c_R_matrix(const char * mm_filename, const int chunkwidth, const IndexType alignment);
+
 #endif /* SPARSE_IO_H */
