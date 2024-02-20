@@ -565,9 +565,19 @@ SELL_C_R_Matrix<IndexType, ValueType> csr_to_sell_c_R(const CSR_Matrix<IndexType
     return sell_c_R;
 }
 
-
+/**
+ * @brief CSR format to DIA format
+ * 
+ * @tparam IndexType 
+ * @tparam ValueType 
+ * @param csr 
+ * @param max_diags 
+ * @param fp_feature 
+ * @param alignment 
+ * @return DIA_Matrix<IndexType, ValueType> 
+ */
 template <class IndexType, class ValueType>
-DIA_Matrix<IndexType, ValueType> csr_to_dia(const CSR_Matrix<IndexType, ValueType> &csr, const IndexType max_diags, FILE *fp_feature, const IndexType alignment = (SIMD_WIDTH/sizeof(ValueType)))
+DIA_Matrix<IndexType, ValueType> csr_to_dia(const CSR_Matrix<IndexType, ValueType> &csr, const IndexType max_diags, FILE *fp_feature, const IndexType alignment = (SIMD_WIDTH/8/sizeof(ValueType)))
 {
     DIA_Matrix<IndexType, ValueType> dia;
 
@@ -713,6 +723,24 @@ DIA_Matrix<IndexType, ValueType> csr_to_dia(const CSR_Matrix<IndexType, ValueTyp
 
 }
 
+template <class IndexType, class ValueType>
+BSR_Matrix<IndexType, ValueType> csr_to_bsr(const CSR_Matrix<IndexType, ValueType> &csr, const IndexType blockDimRow, IndexType blockDimCol=(SIMD_WIDTH/8/sizeof(ValueType)))
+{
+    BSR_Matrix<IndexType, ValueType> bsr;
+
+    return bsr;
+}
+
+/**
+ * @brief CSR format to CSR5 format. Only deal with double precision from Weifeng Liu.
+ * 
+ * @tparam IndexType 
+ * @tparam UIndexType 
+ * @tparam ValueType 
+ * @param csr 
+ * @param fp_feature 
+ * @return CSR5_Matrix<IndexType, UIndexType, ValueType> 
+ */
 template <class IndexType, typename UIndexType, class ValueType>
 CSR5_Matrix<IndexType, UIndexType, ValueType> csr_to_csr5(const CSR_Matrix<IndexType, ValueType> &csr, FILE *fp_feature)
 {

@@ -83,7 +83,7 @@ ELL_Matrix<IndexType, ValueType> read_ell_matrix(const char * mm_filename, Leadi
  * @return DIA_Matrix<IndexType, ValueType> 
  */
 template <class IndexType, class ValueType>
-DIA_Matrix<IndexType, ValueType> read_dia_matrix(const char * mm_filename, const IndexType max_diags, const IndexType alignment = (SIMD_WIDTH/sizeof(ValueType)));
+DIA_Matrix<IndexType, ValueType> read_dia_matrix(const char * mm_filename, const IndexType max_diags, const IndexType alignment = (SIMD_WIDTH/8/sizeof(ValueType)));
 
 /**
  * @brief Read sparse matrix in Sliced_ELL format from ".mtx" format file.

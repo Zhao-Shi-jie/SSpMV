@@ -104,6 +104,27 @@ struct CSR_Matrix : public Matrix_Features<IndexType>
 };
 
 /**
+ * @brief Blocked Compressed Sparse Row Matrix Format
+ * 
+ * @tparam IndexType 
+ * @tparam ValueType 
+ */
+template <typename IndexType, typename ValueType>
+struct BSR_Matrix : public Matrix_Features<IndexType>
+{
+    typedef IndexType index_type;
+    typedef ValueType value_type;
+
+    IndexType blockDim_r;       // row nums of block
+    IndexType blockDim_c;       // col nums of block, which should utilize vectorization length.
+
+    IndexType* row_ptr;
+    IndexType* block_colindex;
+    ValueType* block_data;      // store the nnzs of blocks in row major
+};
+
+
+/**
  * @brief CSR5 Matrix Format from Weifeng Liu
  *  < Liu, Weifeng, and Brian Vinter. "CSR5: An efficient storage format for cross-platform sparse matrix-vector 
  *  multiplication." Proceedings of the 29th ACM on International Conference on Supercomputing. 2015. >
@@ -287,6 +308,15 @@ void delete_csr_matrix(CSR_Matrix<IndexType,ValueType>& csr){
     delete_array(csr.values);
 }
 
+template <typename IndexType, typename ValueType>
+void delete_bsr_matrix(BSR_Matrix<IndexType,ValueType>& bsr){
+    bsr.blockDim_c = 0;
+    bsr.blockDim_r = 0;
+    delete_array(bsr.row_ptr);
+    delete_array(bsr.block_colindex);
+    delete_array(bsr.block_data);
+}
+
 template <typename IndexType, typename UIndexType, typename ValueType>
 void delete_csr5_matrix(CSR5_Matrix<IndexType,UIndexType,ValueType>& csr5){
     delete_array(csr5.row_offset);
@@ -391,6 +421,9 @@ void delete_host_matrix(COO_Matrix<IndexType,ValueType>& coo){ delete_coo_matrix
 
 template <typename IndexType, typename ValueType>
 void delete_host_matrix(CSR_Matrix<IndexType,ValueType>& csr){ delete_csr_matrix(csr); }
+
+template <typename IndexType, typename ValueType>
+void delete_host_matrix(BSR_Matrix<IndexType,ValueType>& bsr){ delete_bsr_matrix(bsr); }
 
 template <typename IndexType, typename UIndexType, typename ValueType>
 void delete_host_matrix(CSR5_Matrix<IndexType,UIndexType,ValueType>& csr5){ delete_csr5_matrix(csr5); }

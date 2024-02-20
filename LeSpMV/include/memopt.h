@@ -19,9 +19,11 @@
 
 #include <stdlib.h>
 #include <cstring>
+#include <cstdint>
 #include <memory.h>
 #include <malloc.h>
 #include <stdio.h>
+#include "plat_config.h"
 ////////////////////////////////////////////////////////////////////
 // allocate and free data between host and device
 ////////////////////////////////////////////////////////////////////
@@ -36,7 +38,10 @@
 template <typename T>
 T* new_array(const size_t N){
     //dispatch on location
-    return (T*) malloc(N * sizeof(T));
+    // return (T*) malloc(N * sizeof(T));
+    
+    // aliment memory allocation
+    return (T*) memalign(CACHE_LINE, (uint64_t) N * sizeof(T));
 }
 
 template <typename T>
