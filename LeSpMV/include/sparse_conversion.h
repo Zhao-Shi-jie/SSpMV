@@ -724,9 +724,15 @@ DIA_Matrix<IndexType, ValueType> csr_to_dia(const CSR_Matrix<IndexType, ValueTyp
 }
 
 template <class IndexType, class ValueType>
-BSR_Matrix<IndexType, ValueType> csr_to_bsr(const CSR_Matrix<IndexType, ValueType> &csr, const IndexType blockDimRow, IndexType blockDimCol=(SIMD_WIDTH/8/sizeof(ValueType)))
+BSR_Matrix<IndexType, ValueType> csr_to_bsr(const CSR_Matrix<IndexType, ValueType> &csr, const IndexType blockDimRow=BSR_BlockDimRow, IndexType blockDimCol=(SIMD_WIDTH/8/sizeof(ValueType)))
 {
     BSR_Matrix<IndexType, ValueType> bsr;
+    bsr.num_rows = csr.num_rows;
+    bsr.num_cols = csr.num_cols;
+    bsr.num_nnzs = csr.num_nnzs;
+
+    bsr.blockDim_r = blockDimRow;
+    bsr.blockDim_c = blockDimCol;
 
     return bsr;
 }
@@ -812,7 +818,7 @@ CSR5_Matrix<IndexType, UIndexType, ValueType> csr_to_csr5(const CSR_Matrix<Index
 
     malloc_timer.start();
     // malloc the newly added arrays for CSR5
-    csr5.tile_ptr = (UIndexType *) memalign(X86_CACHELINE, (uint64_t) (csr5._p + 1) * sizeof(UIndexType));
+    csr5.tile_ptr = (UIndexType *) memalign(CACHE_LINE, (uint64_t) (csr5._p + 1) * sizeof(UIndexType));
     if (csr5.tile_ptr == NULL){
         printf("error: UNABLE TO ASIGN MEMORY IN CSR5 tile_ptr \n");
         exit(-2);
@@ -821,7 +827,7 @@ CSR5_Matrix<IndexType, UIndexType, ValueType> csr_to_csr5(const CSR_Matrix<Index
         csr5.tile_ptr[i] = 0;
     }
 
-    csr5.tile_desc = (UIndexType *) memalign(X86_CACHELINE, (uint64_t)( csr5._p * csr5.omega * csr5.num_packets) * sizeof(UIndexType));
+    csr5.tile_desc = (UIndexType *) memalign(CACHE_LINE, (uint64_t)( csr5._p * csr5.omega * csr5.num_packets) * sizeof(UIndexType));
     if (csr5.tile_desc == NULL){
         printf("error: UNABLE TO ASIGN MEMORY IN CSR5 tile_desc \n");
         exit(-2);
@@ -829,14 +835,14 @@ CSR5_Matrix<IndexType, UIndexType, ValueType> csr_to_csr5(const CSR_Matrix<Index
     memset(csr5.tile_desc, 0, csr5._p * csr5.omega * csr5.num_packets * sizeof(UIndexType));
 
     int thread_num = Le_get_thread_num();
-    csr5.calibrator = (ValueType *) memalign(X86_CACHELINE, (uint64_t)(thread_num * X86_CACHELINE));
+    csr5.calibrator = (ValueType *) memalign(CACHE_LINE, (uint64_t)(thread_num * CACHE_LINE));
     if (csr5.tile_desc == NULL){
         printf("error: UNABLE TO ASIGN MEMORY IN CSR5 calibrator \n");
         exit(-2);
     }
-    memset(csr5.calibrator, 0, thread_num * X86_CACHELINE);
+    memset(csr5.calibrator, 0, thread_num * CACHE_LINE);
 
-    csr5.tile_desc_offset_ptr = (IndexType *) memalign(X86_CACHELINE, (uint64_t) (csr5._p + 1) * sizeof(IndexType));
+    csr5.tile_desc_offset_ptr = (IndexType *) memalign(CACHE_LINE, (uint64_t) (csr5._p + 1) * sizeof(IndexType));
     if (csr5.tile_desc_offset_ptr == NULL){
         printf("error: UNABLE TO ASIGN MEMORY IN CSR5 tile_desc_offset_ptr \n");
         exit(-2);
@@ -944,9 +950,9 @@ CSR5_Matrix<IndexType, UIndexType, ValueType> csr_to_csr5(const CSR_Matrix<Index
     }
 
     // step 2.2 generate_tile_descriptor_s2_kernel
-    int *s_segn_scan_all = (int *) memalign(X86_CACHELINE, (uint64_t) (2 * csr5.omega * thread_num) * sizeof(int));
+    int *s_segn_scan_all = (int *) memalign(CACHE_LINE, (uint64_t) (2 * csr5.omega * thread_num) * sizeof(int));
 
-    int *s_present_all   = (int *) memalign(X86_CACHELINE, (uint64_t) (2 * csr5.omega * thread_num) * sizeof(int));
+    int *s_present_all   = (int *) memalign(CACHE_LINE, (uint64_t) (2 * csr5.omega * thread_num) * sizeof(int));
 
     for (int i = 0; i < thread_num; i++)
         s_present_all[i*2*csr5.omega + csr5.omega]=1;
@@ -1070,7 +1076,7 @@ CSR5_Matrix<IndexType, UIndexType, ValueType> csr_to_csr5(const CSR_Matrix<Index
     tile_desc_time += tile_desc_timer.stop();
 
     if (csr5.num_offsets) {
-        csr5.tile_desc_offset = (IndexType *) memalign(X86_CACHELINE, (uint64_t)(csr5.num_offsets) * sizeof(IndexType));
+        csr5.tile_desc_offset = (IndexType *) memalign(CACHE_LINE, (uint64_t)(csr5.num_offsets) * sizeof(IndexType));
 
         // generate_tile_descriptor_offset
         const int bit_bitflag = 32 - bit_all_offset;

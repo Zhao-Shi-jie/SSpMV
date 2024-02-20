@@ -18,7 +18,7 @@ void aosoa_transpose_kernel_smem(T         *d_data,
     int num_p = ceil((double)nnz / (double)(omega * sigma)) - 1;
     int num_thread = Le_get_thread_num();
 
-    T *s_data_all = (T *)memalign(X86_CACHELINE, (uint64_t) sigma * omega * sizeof(T) * num_thread);
+    T *s_data_all = (T *)memalign(CACHE_LINE, (uint64_t) sigma * omega * sizeof(T) * num_thread);
 
     #pragma omp parallel for
     for (int par_id = 0; par_id < num_p; par_id++)

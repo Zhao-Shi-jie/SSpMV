@@ -135,7 +135,7 @@ void spmv_csr5_compute_kernel(const iT           *d_column_index,
     const __m512d c_zero512d        = _mm512_setzero_pd();
     const __m512i c_one512i         = _mm512_set1_epi32(1);
 
-    const int stride_vT = X86_CACHELINE / sizeof(vT);
+    const int stride_vT = CACHE_LINE / sizeof(vT);
     const int num_thread_active = ceil((p-1.0)/chunk);
 
     #pragma omp parallel
@@ -372,7 +372,7 @@ void spmv_csr5_calibrate_kernel(const uiT *d_partition_pointer,
 {
     const int num_thread = Le_get_thread_num();
     const int chunk = ceil((double)(p-1) / (double)num_thread);
-    const int stride_vT = X86_CACHELINE / sizeof(vT);
+    const int stride_vT = CACHE_LINE / sizeof(vT);
     // calculate the number of maximal active threads (for a static loop scheduling with size chunk)
     int num_thread_active = ceil((p-1.0)/chunk);
     int num_cali = num_thread_active < num_thread ? num_thread_active : num_thread;
