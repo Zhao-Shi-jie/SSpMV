@@ -50,6 +50,17 @@ size_t bytes_per_spmv(const CSR_Matrix<IndexType,ValueType>& mtx)
     return bytes;
 }
 
+template <typename IndexType, typename ValueType>
+size_t bytes_per_spmv(const BSR_Matrix<IndexType,ValueType>& mtx)
+{
+    size_t bytes = 0;
+    bytes += 2*sizeof(IndexType) * mtx.mb;     // row pointer
+    bytes += 1*sizeof(IndexType) * mtx.nnzb; // column index
+    bytes += 2*sizeof(ValueType) * mtx.nnzb * mtx.blockDim_c * mtx.blockDim_r; // A[i,j] and x[j]
+    bytes += 2*sizeof(ValueType) * mtx.num_rows;     // y[i] = y[i] + ...
+    return bytes;
+}
+
 template <typename IndexType, typename UIndexType, typename ValueType>
 size_t bytes_per_spmv(const CSR5_Matrix<IndexType, UIndexType, ValueType>& mtx)
 {
