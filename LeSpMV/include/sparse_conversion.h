@@ -724,7 +724,7 @@ DIA_Matrix<IndexType, ValueType> csr_to_dia(const CSR_Matrix<IndexType, ValueTyp
 }
 
 template <class IndexType, class ValueType>
-BSR_Matrix<IndexType, ValueType> csr_to_bsr(const CSR_Matrix<IndexType, ValueType> &csr, const IndexType blockDimRow=BSR_BlockDimRow, IndexType blockDimCol=(SIMD_WIDTH/8/sizeof(ValueType)))
+BSR_Matrix<IndexType, ValueType> csr_to_bsr(const CSR_Matrix<IndexType, ValueType> &csr, const IndexType blockDimRow = BSR_BlockDimRow, IndexType blockDimCol = (SIMD_WIDTH/8/sizeof(ValueType)))
 {
     BSR_Matrix<IndexType, ValueType> bsr;
     bsr.num_rows = csr.num_rows;
@@ -733,6 +733,149 @@ BSR_Matrix<IndexType, ValueType> csr_to_bsr(const CSR_Matrix<IndexType, ValueTyp
 
     bsr.blockDim_r = blockDimRow;
     bsr.blockDim_c = blockDimCol;
+    bsr.blockNNZ = blockDimRow * blockDimCol;
+
+    bsr.mb = (bsr.num_rows + blockDimRow - 1)/ blockDimRow;
+    bsr.nb = (bsr.num_cols + blockDimCol - 1)/ blockDimCol;
+
+    // ** Sepcial Case: quick return if blockDim == 1
+    if (blockDimRow == 1 && blockDimCol == 1)
+    {
+        // malloc the row_ptr
+        bsr.row_ptr = new_array<IndexType> (bsr.mb + 1);
+        memset(bsr.row_ptr, 0, (bsr.mb + 1) * sizeof(IndexType));
+
+        #pragma omp parallel for schedule(dynamic, 1024)
+        for(IndexType i = 0; i < csr.num_rows + 1; i++)
+        {
+            bsr.row_ptr[i] = csr.row_offset[i];
+        }
+
+        bsr.nnzb = bsr.row_ptr[bsr.mb] - bsr.row_ptr[0];
+
+        // malloc the colindex
+        bsr.block_colindex = new_array<IndexType> (bsr.nnzb);
+        memset(bsr.block_colindex, 0, bsr.nnzb * sizeof(IndexType));
+        // malloc the data
+        bsr.block_data = new_array<ValueType> (bsr.nnzb * blockDimRow * blockDimCol);
+        memset(bsr.block_data, 0, (bsr.nnzb * blockDimRow * blockDimCol) * sizeof(ValueType));
+
+        #pragma omp parallel for schedule(dynamic, 1024)
+        for(IndexType i = 0; i < csr.num_nnzs; i++)
+        {
+            bsr.block_colindex[i] = csr.col_index[i];
+            bsr.block_data[i] = csr.values[i];
+        }
+        // #pragma omp parallel for schedule(dynamic, 1024)
+        // for(size_t i = 0; i < csr.num_nnzs; i++)
+        // {
+        //     bsr.block_data[i] = csr.values[i];
+        // }
+        return bsr;
+    }
+
+    // ** General Case:
+    // determine number of non-zero block columns for each block row of the bsr matrix
+    bsr.row_ptr = new_array<IndexType> (bsr.mb + 1);
+    memset(bsr.row_ptr, 0, (bsr.mb + 1) * sizeof(IndexType));
+
+    bsr.row_ptr[0] = 0;
+    #pragma omp parallel for schedule(dynamic, 1024)
+    for(IndexType i = 0; i < bsr.mb; i++)
+    {
+        IndexType start = csr.row_offset[i * blockDimRow];
+        IndexType end   = csr.row_offset[std::min(csr.num_rows, blockDimRow * i + blockDimRow)];
+
+        std::vector<IndexType> temp(bsr.nb, 0);
+        for (IndexType j = start; j < end; j++)  // 一个block块内的rowID
+        {
+            IndexType blockCol = csr.col_index[j] / blockDimCol; // 计算元素所属的列block号
+            temp[blockCol] = 1;  // 标记，这一个列块有nnz
+        }
+
+        IndexType sum = 0;
+        for (IndexType j = 0; j < temp.size(); j++)
+        {
+            sum += temp[j]; // i 行 block 共有 sum 个 block要存
+        }
+        bsr.row_ptr[i+1] = sum;
+    }
+
+    for (IndexType i = 0; i < bsr.mb; i++)
+    {
+        bsr.row_ptr[i+1] += bsr.row_ptr[i];
+    }
+
+    bsr.nnzb = bsr.row_ptr[bsr.mb] - bsr.row_ptr[0];
+
+    // find bsr col indices array
+    // malloc the colindex
+    bsr.block_colindex = new_array<IndexType> (bsr.nnzb);
+    memset(bsr.block_colindex, 0, bsr.nnzb * sizeof(IndexType));
+    // malloc the data
+    bsr.block_data = new_array<ValueType> (bsr.nnzb * blockDimRow * blockDimCol);
+    memset(bsr.block_data, 0, (bsr.nnzb * blockDimRow * blockDimCol) * sizeof(ValueType));
+
+    IndexType colIndex = 0;
+
+    for (IndexType i = 0; i < bsr.mb; i++)
+    {
+        IndexType start = csr.row_offset[i*blockDimRow];
+        IndexType end   = csr.row_offset[std::min(csr.num_rows,(i+1)*blockDimRow)];
+        
+        std::vector<IndexType> temp(bsr.nb, 0);
+
+        for (IndexType j = start; j < end; j++)
+        {
+            IndexType blockCol = csr.col_index[j] / blockDimCol;
+            temp[blockCol] = 1;  // 标记，这一个列块有nnz
+        }
+
+        for (IndexType j = 0; j < bsr.nb; j++)
+        {
+            if( temp[j] == 1)
+            {
+                bsr.block_colindex[colIndex] = j;
+                colIndex++;
+            }
+        }
+    }
+
+    // get bsr block values array.
+    for (IndexType i = 0; i < bsr.num_rows; i++)
+    {
+        IndexType blockRow = i / blockDimRow;
+        
+        IndexType start = csr.row_offset[i];
+        IndexType end   = csr.row_offset[i+1];
+
+        for (IndexType j = start; j < end; j++) // 遍历第 i 行的非零元
+        {
+            IndexType blockCol = csr.col_index[j] / blockDimCol;
+
+            colIndex = -1;
+
+            for (IndexType k = bsr.row_ptr[blockRow]; k < bsr.row_ptr[blockRow+1]; k++)
+            {
+                if( bsr.block_colindex[k] == blockCol)
+                {
+                    colIndex = k - bsr.row_ptr[blockRow];
+                    break;
+                }
+            }
+            
+            assert(colIndex != -1);
+
+            IndexType blockIndex = 0;
+
+            // row major
+            blockIndex = csr.col_index[j] % blockDimCol + (i % blockDimRow) * blockDimCol;    // 块内index位置
+
+            IndexType index = bsr.row_ptr[blockRow] * blockDimRow * blockDimCol + colIndex * blockDimRow * blockDimCol + blockIndex;
+
+            bsr.block_data[index] = csr.values[j];
+        }
+    }
 
     return bsr;
 }

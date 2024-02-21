@@ -18,6 +18,7 @@
 #include"sparse_features.h"
 
 #include"spmv_csr.h"
+#include"spmv_bsr.h"
 #include"spmv_csr5.h"
 #include"spmv_coo.h"
 #include"spmv_ell.h"
