@@ -39,6 +39,15 @@ int test_bsr_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
     else if (1 == bsr.kernel_flag)
     {
         std::cout << "\n===  Compared BSR omp with csr default  ===" << std::endl;
+
+        // 设置 omp 调度策略
+        const IndexType thread_num = Le_get_thread_num();
+        
+        IndexType chunk_size = OMP_ROWS_SIZE;
+        chunk_size = std::max(chunk_size, bsr.mb/thread_num);
+
+        set_omp_schedule(schedule_mod, chunk_size);
+
         // test correctness
         test_spmv_kernel(csr_ref, LeSpMV_csr<IndexType, ValueType>,
                          bsr, LeSpMV_bsr<IndexType, ValueType>,

@@ -47,8 +47,8 @@ int test_dia_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
         // 设置 omp 调度策略
         const IndexType thread_num = Le_get_thread_num();
         
-        IndexType chunk_size = OMP_ROWS_SIZE;
-        chunk_size = std::max(chunk_size, dia.complete_ndiags/thread_num); // 对角线数目 除以线程数
+        // IndexType chunk_size = OMP_ROWS_SIZE;
+        const IndexType chunk_size = std::max(1, dia.complete_ndiags/thread_num); // 对角线数目 除以线程数
 
         set_omp_schedule(schedule_mod, chunk_size);
 
