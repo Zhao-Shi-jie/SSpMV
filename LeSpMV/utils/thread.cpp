@@ -39,7 +39,7 @@ int Le_get_thread_id()
 #endif
 }
 
-void set_omp_schedule(int sche_mode, int chunk_size) {
+void set_omp_schedule(int sche_mode, int chunk_size=0) {
 #ifdef _OPENMP
     switch (sche_mode) {
         case 0:
@@ -64,7 +64,8 @@ void set_omp_schedule(int sche_mode, int chunk_size) {
             printf("===  OMP Guided schedule strategy  === \n");
             break;
         default:
-            // 报告错误或使用默认调度策略
+            omp_set_schedule(omp_sched_static, 0); // 默认 Static
+            printf("===  OMP Static schedule strategy  === \n");
             break;
     }
 #endif

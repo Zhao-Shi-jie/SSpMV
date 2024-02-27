@@ -13,7 +13,7 @@
 #include<iostream>
 
 template <typename IndexType, typename ValueType>
-int test_dia_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag)
+int test_dia_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag, int schedule_mod)
 {
     std::cout << "=====  Testing ELL Kernels  =====" << std::endl;
 
@@ -43,6 +43,15 @@ int test_dia_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
     else if (1 == dia.kernel_flag)
     {
         std::cout << "\n===  Compared DIA omp with csr default  ===" << std::endl;
+
+        // 设置 omp 调度策略
+        const IndexType thread_num = Le_get_thread_num();
+        
+        IndexType chunk_size = OMP_ROWS_SIZE;
+        chunk_size = std::max(chunk_size, dia.complete_ndiags/thread_num); // 对角线数目 除以线程数
+
+        set_omp_schedule(schedule_mod, chunk_size);
+
         // test correctness
         test_spmv_kernel(csr_ref, LeSpMV_csr<IndexType, ValueType>,
                          dia, LeSpMV_dia<IndexType, ValueType>,
@@ -58,6 +67,6 @@ int test_dia_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
     return 0;
 }
 
-template int test_dia_matrix_kernels<int,float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag);
+template int test_dia_matrix_kernels<int,float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag, int schedule_mod);
 
-template int test_dia_matrix_kernels<int,double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag);
+template int test_dia_matrix_kernels<int,double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag, int schedule_mod);

@@ -19,8 +19,10 @@ void usage(int argc, char** argv)
     std::cout << "Usage:\n";
     std::cout << "\t" << argv[0] << " with following parameters:\n";
     std::cout << "\t" << " my_matrix.mtx\n";
-    std::cout << "\t" << " --precision=32(or 64)\n";
-    std::cout << "\t" << " --threads= define the num of omp threads\n";
+    std::cout << "\t" << " --precision = 32(or 64)\n";
+    std::cout << "\t" << " --threads   = define the num of omp threads\n";
+    std::cout << "\t" << " --sche      = chosing the schedule strategy\n";
+    std::cout << "\t" << "               0: static | 1: static, CHUNK_SIZE | 2: dynamic | 3: guided\n";
     std::cout << "Note: my_matrix.mtx must be real-valued sparse matrix in the MatrixMarket file format.\n"; 
 }
 
@@ -48,8 +50,20 @@ void run_dia_kernels(int argc, char **argv)
 
     fflush(stdout);
 
+    int sche_mode = 0;
+    char * schedule_str = get_argval(argc, argv, "sche");
+    if(schedule_str != NULL)
+    {
+        sche_mode = atoi(schedule_str);
+        if (sche_mode!=0 && sche_mode!=1 && sche_mode!=2 && sche_mode!=3)
+        {
+            std::cout << "sche must be [0,1,2,3]. '--help see more details'" << std::endl;
+            return ;
+        }
+    }
+
     for(IndexType methods = 0; methods < 2; ++methods){
-        test_dia_matrix_kernels(csr, methods);
+        test_dia_matrix_kernels(csr, methods, sche_mode);
         fflush(stdout);
     }
 

@@ -29,11 +29,6 @@ void __spmv_bsr_serial_simple(  const IndexType num_rows,
                                 const ValueType beta,
                                 ValueType *y)
 {
-    // 先对y进行缩放
-    // for (IndexType i = 0; i < num_rows; ++i) {
-    //     y[i] *= beta;
-    // }
-
     for (IndexType i = 0; i < mb; i++)
     {
         IndexType start = row_ptr[i];
@@ -49,12 +44,9 @@ void __spmv_bsr_serial_simple(  const IndexType num_rows,
             // 执行块与向量的乘法
             for (IndexType br = 0; br < blockDimRow; ++br) {
                 for (IndexType bc = 0; bc < blockDimCol; ++bc) {
-                    // 计算输出向量的索引
-                    // IndexType y_index = i * blockDimRow + br;
-                    // 计算输入向量的索引
+                    // 计算输入向量x 的索引
                     IndexType x_index = block_col * blockDimCol + bc;
                     // 累加结果
-                    // y[y_index] += alpha * values[j * blockDimRow * blockDimCol + br * blockDimCol + bc] * x[x_index];
                     tmp[br] += alpha * values[j * blockDimRow * blockDimCol + br * blockDimCol + bc] * x[x_index];
                 }
             }
@@ -66,6 +58,7 @@ void __spmv_bsr_serial_simple(  const IndexType num_rows,
             IndexType y_index = i * blockDimRow + br;
             if (y_index < num_rows)
             {
+                // 更新 y
                 y[y_index] = tmp[br] + beta * y[y_index];
             }
         }
@@ -87,9 +80,10 @@ void __spmv_bsr_omp_simple( const IndexType num_rows,
                             const ValueType beta,
                             ValueType *y)
 {
-    const IndexType m_inner = num_rows;
     const IndexType thread_num = Le_get_thread_num();
 
+    // #pragma omp parallel for num_threads(thread_num)
+    
 }
 
 template <typename IndexType, typename ValueType>

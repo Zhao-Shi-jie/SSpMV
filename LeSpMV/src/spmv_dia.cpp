@@ -54,13 +54,13 @@ void __spmv_dia_omp_simple(  const ValueType alpha,
 {
     const IndexType thread_num = Le_get_thread_num();
 
-    #pragma omp parallel for num_threads(thread_num) schedule(static)
+    #pragma omp parallel for num_threads(thread_num)
     for (IndexType i = 0; i < num_rows; ++i) {
         y[i] = beta * y[i];
     }
 
     // 然后并行计算矩阵向量乘法
-    #pragma omp parallel for num_threads(thread_num) schedule(static)
+    #pragma omp parallel for num_threads(thread_num)
     for (IndexType d = 0; d < complete_ndiags; ++d) {
         int offset = dia_offset[d]; // 获取当前偏移量
         IndexType start = std::max(IndexType(0), -offset);
