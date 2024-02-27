@@ -57,9 +57,9 @@ void run_sell_c_R_kernels(int argc, char **argv)
     if(schedule_str != NULL)
     {
         sche_mode = atoi(schedule_str);
-        if ( sche_mode!=1 && sche_mode!=2 && sche_mode!=3)
+        if (sche_mode!=0 && sche_mode!=1 && sche_mode!=2 && sche_mode!=3)
         {
-            std::cout << "sche must be [1,2,3]. '--help see more details'" << std::endl;
+            std::cout << "sche must be [0,1,2,3]. '--help see more details'" << std::endl;
             return ;
         }
     }
