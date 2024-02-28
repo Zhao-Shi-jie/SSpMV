@@ -57,7 +57,18 @@ int test_bsr_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
         std::cout << "\n===  Performance of BSR omp simple  ===" << std::endl;
         // count performance of Gflops and Gbytes
         benchmark_spmv_on_host(bsr, LeSpMV_bsr<IndexType, ValueType>,"bsr_omp_simple");
-        
+    }
+    else if(2 == kernel_tag){
+        std::cout << "\n===  Compared bsr_lb_nnz with csr default  ===" << std::endl;
+
+        // test correctness
+        test_spmv_kernel(csr_ref, LeSpMV_csr<IndexType, ValueType>,
+                         bsr, LeSpMV_bsr<IndexType, ValueType>,
+                         "bsr_omp_lb_nnz");
+
+        std::cout << "\n===  Performance of BSR_lb_nnz  ===" << std::endl;
+        // count performance of Gflops and Gbytes
+        benchmark_spmv_on_host(bsr, LeSpMV_bsr<IndexType, ValueType>, "bsr_omp_lb_nnz");
     }
 
     delete_host_matrix(bsr);

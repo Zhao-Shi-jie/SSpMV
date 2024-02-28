@@ -8,8 +8,6 @@ void __spmv_bsr_serial_simple(  const IndexType num_rows,
                                 const IndexType blockDimRow,
                                 const IndexType blockDimCol,
                                 const IndexType mb,
-                                const IndexType nb,
-                                const IndexType nnzb,
                                 const ValueType alpha,
                                 const IndexType *row_ptr,
                                 const IndexType *col_index,
@@ -23,8 +21,6 @@ void __spmv_bsr_omp_simple( const IndexType num_rows,
                             const IndexType blockDimRow,
                             const IndexType blockDimCol,
                             const IndexType mb,
-                            const IndexType nb,
-                            const IndexType nnzb,
                             const ValueType alpha,
                             const IndexType *row_ptr,
                             const IndexType *col_index,
@@ -32,6 +28,19 @@ void __spmv_bsr_omp_simple( const IndexType num_rows,
                             const ValueType *x,
                             const ValueType beta,
                             ValueType *y);
+
+template <typename IndexType, typename ValueType>
+void __spmv_bsr_lb_alpha(   const IndexType blockDimRow,
+                            const IndexType blockDimCol,
+                            const IndexType mb,
+                            const IndexType num_rows,
+                            const ValueType alpha,
+                            const IndexType *row_ptr,
+                            const IndexType *col_index,
+                            const ValueType *values,
+                            const ValueType *x,
+                            const ValueType beta,
+                            ValueType *y);                            
 
 /**
  * @brief Compute y += alpha * A * x + beta * y for a sparse matrix

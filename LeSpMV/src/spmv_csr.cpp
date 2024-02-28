@@ -47,7 +47,7 @@ inline void  __spmv_csr_perthread(  const ValueType alpha,
         
         ValueType sum = 0;
         // 对每行中的非零元素执行乘法和累加, omp 自动化 SIMD
-        #pragma omp simd reduction(+:sum)
+        #pragma omp simd
         for (IndexType col_id = pks; col_id < pke; ++col_id) {
             sum += Ax[col_id] * x[Aj[col_id]];
         }
