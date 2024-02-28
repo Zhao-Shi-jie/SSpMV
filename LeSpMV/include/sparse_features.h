@@ -135,6 +135,73 @@ class MTX{
         std::vector<std::string> symm_pair_;
         std::unordered_map<std::string,std::string> m_;
         std::vector<std::vector<int> > image_;
+
+    /*
+
+    RB means consider row block including whole cols:
+    (Likewise, CB means consider col block including whole rows)
+    Here,  t_num_rows = 2.
+        ________________________
+          x  x  x  x  x  x  x  x |
+          x  x  x  x  x  x  x  x |  ---> RB
+        ------------------------   
+          x  x  x  x  x  x  x  x
+          x  x  x  x  x  x  x  x
+        ------------------------
+          x  x  x  x  x  x  x  x
+          x  x  x  x  x  x  x  x
+        ________________________
+    */
+    // Tiles features 默认 2048*2048 tiles
+        IndexType t_num_blocks = MAT_TILE_SIZE;
+        IndexType t_num_rows = -1;  // tiles 内的行数目
+        IndexType t_num_cols = -1;  // tiles 内的列数目
+
+        // ave_nnz
+        ValueType t_ave_nnz_all_tiles = 0.0;
+        ValueType t_ave_nnz_RB = 0.0;   // row block
+        ValueType t_ave_nnz_CB = 0.0;   // col block
+
+        // var_nnz
+        ValueType t_var_nnz_all_tiles = 0.0;
+        ValueType t_var_nnz_RB = 0.0;
+        ValueType t_var_nnz_CB = 0.0;
+
+        // standard diviation
+        ValueType t_standard_dev_all_tiles = 0.0;
+        ValueType t_standard_dev_RB = 0.0;
+        ValueType t_standard_dev_CB = 0.0;
+
+        // min and max nnz for each 
+        IndexType t_min_nnz_all_tiles_ = 100000000;
+        IndexType t_max_nnz_all_tiles_ = 0.0;
+        IndexType t_min_nnz_each_RB_   = 100000000;
+        IndexType t_max_nnz_each_RB_   = 0;
+        IndexType t_min_nnz_each_CB_   = 100000000;
+        IndexType t_max_nnz_each_CB_   = 0;
+
+        // Gini index  [0, 1] -> [balanced ~ imbalanced]
+        ValueType t_Gini_all_tiles_ = 0.0;
+        ValueType t_Gini_RB_ = 0.0;          
+        ValueType t_Gini_CB_ = 0.0;
+
+        // p-ratio [0, 0.5] -> [imbalanced ~ balanced]
+        ValueType t_P_ratio_all_tiles_ = 0.0;
+        ValueType t_P_ratio_RB_ = 0.0;
+        ValueType t_P_ratio_CB_ = 0.0;
+
+        // none zero ratio
+        ValueType t_nz_ratio_tiles_ = 0.0;
+        ValueType t_nz_ratio_RB_ = 0.0;
+        ValueType t_nz_ratio_CB_ = 0.0;
+
+        // aditional information
+        std::vector<IndexType> uniq_RB;  // 记录每个tiles的非零行数
+        std::vector<IndexType> uniq_CB;  // 记录每个tiles的非零列数
+        ValueType uniqR = 0.0;
+        ValueType uniqC = 0.0;
+
+
 };
 
 #endif /* SPARSE_FEATURES_H */

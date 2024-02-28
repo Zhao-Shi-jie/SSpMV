@@ -5,7 +5,7 @@
 ////////////////////////////////////////////////////////////////
 
 // experimental setting
-#define MAT_GRID_SIZE 512  //not use
+#define MAT_TILE_SIZE 2048   // split matrix into 2048*2048 tiles
 #define MAX_DIAG_NUM 10240
 #define MAX_ITER 1000
 #define MIN_ITER 500 

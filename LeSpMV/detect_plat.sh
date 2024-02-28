@@ -102,7 +102,7 @@ echo "#define CPU_L3CACHE_SIZE $cpu_l3cache_bytes" >> $plat_headfile
 echo "#define CPU_L2CACHE_SIZE $cpu_l2cache_bytes" >> $plat_headfile
 echo "#define CPU_L1DCACHE_SIZE $cpu_l1d_cache_bytes" >> $plat_headfile
 echo "#define CPU_L1IACHE_SIZE $cpu_l1i_cache_bytes" >> $plat_headfile
-echo "#define CACHE_LINE $cpu_cacheline_size" >> $plat_headfile
+echo "#define CACHE_LINE $cpu_cacheline_size // bytes" >> $plat_headfile
 echo "" >> $plat_headfile
 echo "// Main Memory size in Giga Bytes" >> $plat_headfile
 echo "#define MAIN_MEM_SIZE $total_mem_GB" >> $plat_headfile

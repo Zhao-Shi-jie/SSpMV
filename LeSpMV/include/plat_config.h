@@ -1,7 +1,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#define CPU_FREQUENCY 1000.000e6
+#define CPU_FREQUENCY 1000.183e6
 #define CPU_MAX_FREQUENCY 3200.0000e6
 #define CPU_SOCKET 2
 #define CPU_CORES_PER_SOC 14
@@ -13,7 +13,7 @@
 #define CPU_L2CACHE_SIZE 29360128
 #define CPU_L1DCACHE_SIZE 917504
 #define CPU_L1IACHE_SIZE 917504
-#define CACHE_LINE 64
+#define CACHE_LINE 64 // bytes
 
 // Main Memory size in Giga Bytes
 #define MAIN_MEM_SIZE 251
