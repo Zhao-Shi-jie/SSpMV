@@ -43,7 +43,8 @@ int test_bsr_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
         // 设置 omp 调度策略
         const IndexType thread_num = Le_get_thread_num();
         
-        IndexType chunk_size = OMP_ROWS_SIZE;
+        // IndexType chunk_size = OMP_ROWS_SIZE;
+        IndexType chunk_size = 1; // BSR 调度的最小单位是一个block，行block数目为: mb
         chunk_size = std::max(chunk_size, bsr.mb/thread_num);
 
         set_omp_schedule(schedule_mod, chunk_size);

@@ -66,7 +66,7 @@ void run_bsr_kernels(int argc, char **argv)
 
     std::cout << " , SELL-c-R matrix only support store in *RowMajor*" << std::endl;
 
-    for(IndexType methods = 0; methods < 1; ++methods){
+    for(IndexType methods = 0; methods < 2; ++methods){
         test_bsr_matrix_kernels(csr, methods, sche_mode);
         fflush(stdout);
     }

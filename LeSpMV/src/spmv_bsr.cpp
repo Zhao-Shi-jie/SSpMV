@@ -47,7 +47,8 @@ void __spmv_bsr_serial_simple(  const IndexType num_rows,
                     // 计算输入向量x 的索引
                     IndexType x_index = block_col * blockDimCol + bc;
                     // 累加结果
-                    tmp[br] += alpha * values[j * blockDimRow * blockDimCol + br * blockDimCol + bc] * x[x_index];
+                    // tmp[br] += alpha * values[j * blockDimRow * blockDimCol + br * blockDimCol + bc] * x[x_index];
+                    tmp[br] += values[j * blockDimRow * blockDimCol + br * blockDimCol + bc] * x[x_index];
                 }
             }
         }
@@ -59,7 +60,8 @@ void __spmv_bsr_serial_simple(  const IndexType num_rows,
             if (y_index < num_rows)
             {
                 // 更新 y
-                y[y_index] = tmp[br] + beta * y[y_index];
+                // y[y_index] = tmp[br] + beta * y[y_index];
+                y[y_index] = alpha * tmp[br] + beta * y[y_index];
             }
         }
     }
@@ -82,8 +84,41 @@ void __spmv_bsr_omp_simple( const IndexType num_rows,
 {
     const IndexType thread_num = Le_get_thread_num();
 
-    // #pragma omp parallel for num_threads(thread_num)
-    
+    #pragma omp parallel for num_threads(thread_num)
+    for (IndexType i = 0; i < mb; i++)
+    {
+        IndexType start = row_ptr[i];
+        IndexType end   = row_ptr[i+1];
+
+        std::vector<ValueType> tmp(blockDimRow,0);
+
+        for (IndexType j = start; j < end; j++)
+        {
+            // 获取当前块的列索引
+            IndexType block_col = col_index[j];
+
+            // 执行块与向量的乘法
+            for (IndexType br = 0; br < blockDimRow; ++br) {
+                #pragma omp simd
+                for (IndexType bc = 0; bc < blockDimCol; ++bc) {
+                    // 计算输入向量x 的索引
+                    IndexType x_index = block_col * blockDimCol + bc;
+                    // 累加结果
+                    tmp[br] += values[j * blockDimRow * blockDimCol + br * blockDimCol + bc] * x[x_index];
+                }
+            }
+        }
+        // 更新 y
+        for (IndexType br = 0; br < blockDimRow; br++)
+        {
+            // 计算输出向量的索引
+            IndexType y_index = i * blockDimRow + br;
+            if (y_index < num_rows)
+            {
+                y[y_index] = alpha * tmp[br] + beta * y[y_index];
+            }
+        }
+    }
 }
 
 template <typename IndexType, typename ValueType>
@@ -96,6 +131,10 @@ void LeSpMV_bsr(const ValueType alpha, const BSR_Matrix<IndexType, ValueType>& b
     else if (1 == bsr.kernel_flag)
     {
         __spmv_bsr_omp_simple(bsr.num_rows, bsr.blockDim_r, bsr.blockDim_c, bsr.mb, bsr.nb, bsr.nnzb, alpha, bsr.row_ptr, bsr.block_colindex, bsr.block_data, x, beta, y);
+    }
+    else if(2 == bsr.kernel_flag)
+    {
+        __spmv_bsr_lb_alpha(bsr.num_rows, bsr.blockDim_r, bsr.blockDim_c, bsr.mb, bsr.nb, bsr.nnzb, alpha, bsr.row_ptr, bsr.block_colindex, bsr.block_data, x, beta, y);
     }
     else
     {
