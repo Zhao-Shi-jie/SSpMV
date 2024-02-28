@@ -195,12 +195,32 @@ class MTX{
         ValueType t_nz_ratio_RB_ = 0.0;
         ValueType t_nz_ratio_CB_ = 0.0;
 
-        // aditional information
+    // aditional information
+        // uniq
         std::vector<IndexType> uniq_RB;  // 记录每个tiles的非零行数
         std::vector<IndexType> uniq_CB;  // 记录每个tiles的非零列数
-        ValueType uniqR = 0.0;
-        ValueType uniqC = 0.0;
+        ValueType uniqR = 0.0;           // sum devide nnz
+        ValueType uniqC = 0.0;           // sum devide nnz
 
+        // GrX_uniq  ; for cacheline evaluate
+        IndexType GrX = CACHE_LINE / sizeof(ValueType);
+        std::vector<IndexType> GrX_uniqRB;
+        std::vector<IndexType> GrX_uniqCB;
+        ValueType GrX_uniqR = 0.0;       // sum devide nnz
+        ValueType GrX_uniqC = 0.0;       // sum devide nnz
+
+        // porReuse ; for data reuse in the LLC
+        // 记录这一 行/列 中 有几个 tiles中的 行/列 非零
+        std::vector<IndexType> porReuseRB;  // size: num_rows
+        std::vector<IndexType> porReuseCB;  // size: num_cols
+        ValueType potReuseR = 0.0;      // sum devide num of rows
+        ValueType potReuseC = 0.0;      // sum devide num of cols
+
+        // GrX_porReuse ; for data reuse in the LLC with more coarse granularity
+        std::vector<IndexType> GrX_porReuseRB;  // size: num_GrXrows
+        std::vector<IndexType> GrX_porReuseCB;  // size: num_GrXcols
+        ValueType GrX_potReuseR = 0.0;      // sum devide num of GrXrows
+        ValueType GrX_potReuseC = 0.0;      // sum devide num of GrXcols
 
 };
 
