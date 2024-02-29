@@ -180,21 +180,23 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* file_path)
     
     //  可以存 tile features
     if (tile_flag){
-        t_num_RB = num_rows / t_num_blocks;
-        t_num_CB = num_cols / t_num_blocks;
-        t_num_lastRB = t_num_RB + num_rows % t_num_blocks;
-        t_num_lastCB = t_num_CB + num_cols % t_num_blocks;
+        t_num_RB = num_rows + t_num_blocks - 1 / t_num_blocks;
+        t_num_CB = num_cols + t_num_blocks - 1 / t_num_blocks;
+        nnz_by_Tiles_.resize(t_num_blocks * t_num_blocks, 0);
+        nnz_by_RB_.resize(t_num_blocks, 0);
+        nnz_by_CB_.resize(t_num_blocks, 0);
     }
 
 
     IndexType row_idx, col_idx;
+    IndexType t_rowidx, t_colidx;   // tiles 中的序号
     ValueType value;
     ValueType value_abs;
 
     std::cout << "- Reading sparse matrix from file: "<< file_path << std::endl;
     fflush(stdout);
 
-    if(mm_is_pattern(mat_code)){
+    if(mm_is_pattern(mat_code)){        // 二进制矩阵， 元素只有0/1
         for (IndexType i = 0; i < nnz_mtx_; i++)
         {
             assert(fscanf(mtx_file,"%d %d\n", &row_idx, &col_idx) == 2);
@@ -206,15 +208,30 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* file_path)
             
             nnz_by_row_[row_idx]++; // 本行的 nnz 加一
             nnz_by_col_[col_idx]++; // 本列的 nnz 加一
+            // 存一下分tile的信息
+            if (tile_flag){
+                t_rowidx = row_idx/t_num_RB;
+                t_colidx = col_idx/t_num_CB;
+                nnz_by_Tiles_[t_rowidx * t_num_blocks + t_colidx]++;
+                nnz_by_RB_[t_rowidx]++;
+                nnz_by_CB_[t_colidx]++;
+            }
 
-            if(is_symmetric_){ // 对称矩阵情况
-                if(row_idx == col_idx){  // 对角线
+            if(is_symmetric_){              // 对称矩阵情况
+                if(row_idx == col_idx){     // 对角线
                     nnz_diagonal_ ++;
                     Diag_Dom[row_idx] += value_abs;
                     max_value_diagonal_ = 1.0; // pattern matrix only have 1.0
-                } else{   // 非对角线
+                } else{                     // 非对角线
                     nnz_by_row_[col_idx]++;     // 对称的情况，把列号所在的nnz也加进来
                     nnz_by_col_[row_idx]++;     // 对称的情况，把行号所在的nnz也加进来
+                    // 存一下 tile 的信息
+                    if(tile_flag)
+                    {
+                        nnz_by_Tiles_[t_colidx * t_num_blocks + t_rowidx]++;
+                        nnz_by_RB_[t_colidx]++;
+                        nnz_by_CB_[t_rowidx]++;
+                    }
                     nnz_lower_ ++;
                     nnz_upper_ ++;
                     Diag_Dom[row_idx] -= 1.0;
@@ -257,6 +274,14 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* file_path)
 
             nnz_by_row_[row_idx]++;
             nnz_by_col_[col_idx]++;
+            // 存一下分tile的信息
+            if (tile_flag){
+                t_rowidx = row_idx/t_num_RB;
+                t_colidx = col_idx/t_num_CB;
+                nnz_by_Tiles_[t_rowidx * t_num_blocks + t_colidx]++;
+                nnz_by_RB_[t_rowidx]++;
+                nnz_by_CB_[t_colidx]++;
+            }
 
             if(is_symmetric_){
                 if(row_idx == col_idx){
@@ -267,6 +292,12 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* file_path)
                 } else{
                     nnz_by_row_[col_idx]++;
                     nnz_by_col_[row_idx]++;
+                    if(tile_flag)
+                    {
+                        nnz_by_Tiles_[t_colidx * t_num_blocks + t_rowidx]++;
+                        nnz_by_RB_[t_colidx]++;
+                        nnz_by_CB_[t_rowidx]++;
+                    }
                     nnz_lower_ ++;
                     nnz_upper_ ++;
                     Diag_Dom[row_idx] -= value_abs;
@@ -496,6 +527,12 @@ bool MTX<IndexType, ValueType>::CalculateFeatures()
     else
         is_symmetric_ = false;
 
+
+    if ((num_rows >= t_num_blocks) && (num_cols >= t_num_blocks) )
+    {
+        CalculateTilesFeatures();
+    }
+
     return true;
 }
 
@@ -505,7 +542,21 @@ template bool MTX<int, double>::CalculateFeatures();
 template <typename IndexType, typename ValueType>
 bool MTX<IndexType, ValueType>::CalculateTilesFeatures()
 {
+    t_ave_nnz_all_tiles = (ValueType) num_nnzs / (t_num_blocks * t_num_blocks);
+    t_ave_nnz_RB        = (ValueType) num_nnzs / t_num_blocks;
+    t_ave_nnz_CB        = (ValueType) num_nnzs / t_num_blocks;
 
+    ValueType diff_RB, diff_CB;
+
+    for (IndexType i = 0; i < t_num_blocks; i++)
+    {
+        diff_RB = nnz_by_RB_[i]
+        var_nnz_each_col_ += diff * diff;
+
+    }
+
+    
+    return true;
 }
 
 template bool MTX<int, float>::CalculateTilesFeatures();

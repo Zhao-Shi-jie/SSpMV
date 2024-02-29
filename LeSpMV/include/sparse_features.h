@@ -71,7 +71,10 @@ class MTX{
             std::cout<< "max_value_diagonal = " << max_value_diagonal_ << std::endl;
             std::cout<< "row_variability    = " << row_variability_ << std::endl;
             std::cout<< "col_variability    = " << col_variability_ << std::endl;
-            
+
+            // Tile features
+            std::cout<< "t_ave_nnz_RB        : " << t_ave_nnz_RB << std::endl;
+            std::cout<< "t_ave_nnz_CB        : " << t_ave_nnz_CB << std::endl;
         }
 
     private:
@@ -157,8 +160,6 @@ class MTX{
         IndexType t_num_blocks = MAT_TILE_SIZE;
         IndexType t_num_RB = -1;        // tiles 内的行数目
         IndexType t_num_CB = -1;        // tiles 内的列数目
-        IndexType t_num_lastRB = -1;    // 最后一个块的行数目
-        IndexType t_num_lastCB = -1;    // 最后一个块的列数目
 
         // ave_nnz
         ValueType t_ave_nnz_all_tiles = 0.0;
@@ -176,8 +177,11 @@ class MTX{
         ValueType t_standard_dev_CB = 0.0;
     
     // Intermediate variables
+        // Rowmajor 存 tiles 分块   (rowID/t_num_RB) * t_num_blocks + (colID/t_num_CB)
+        std::vector<IndexType> nnz_by_Tiles_;  // 保存每个tiles的 nnz 数目
+        // RB 和 CB 的分块
         std::vector<IndexType> nnz_by_RB_;     // 保存每个行块的 nnz 数目
-        std::vector<IndexType> nnz_by_RB_;     // 保存每个列块的 nnz 数目
+        std::vector<IndexType> nnz_by_CB_;     // 保存每个列块的 nnz 数目
 
         // min and max nnz for each 
         IndexType t_min_nnz_all_tiles_ = 100000000;
