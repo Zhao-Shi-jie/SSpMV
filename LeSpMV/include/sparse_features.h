@@ -185,7 +185,7 @@ class MTX{
 
         // min and max nnz for each 
         IndexType t_min_nnz_all_tiles_ = 100000000;
-        IndexType t_max_nnz_all_tiles_ = 0.0;
+        IndexType t_max_nnz_all_tiles_ = 0;
         IndexType t_min_nnz_each_RB_   = 100000000;
         IndexType t_max_nnz_each_RB_   = 0;
         IndexType t_min_nnz_each_CB_   = 100000000;

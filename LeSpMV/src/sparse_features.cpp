@@ -546,16 +546,118 @@ bool MTX<IndexType, ValueType>::CalculateTilesFeatures()
     t_ave_nnz_RB        = (ValueType) num_nnzs / t_num_blocks;
     t_ave_nnz_CB        = (ValueType) num_nnzs / t_num_blocks;
 
-    ValueType diff_RB, diff_CB;
+    ValueType diff_tiles, diff_RB, diff_CB;
 
+    // Count RB and CB features
     for (IndexType i = 0; i < t_num_blocks; i++)
     {
-        diff_RB = nnz_by_RB_[i]
-        var_nnz_each_col_ += diff * diff;
+        diff_RB = nnz_by_RB_[i] - t_ave_nnz_RB;
+        diff_CB = nnz_by_CB_[i] - t_ave_nnz_CB;
+        t_var_nnz_RB += diff_RB * diff_RB;
+        t_var_nnz_CB += diff_CB * diff_CB;
 
+        t_min_nnz_each_RB_ = std::min(t_min_nnz_each_RB_, nnz_by_RB_[i]);
+        t_max_nnz_each_RB_ = std::max(t_max_nnz_each_RB_, nnz_by_RB_[i]);
+
+        t_min_nnz_each_CB_ = std::min(t_min_nnz_each_CB_, nnz_by_CB_[i]);
+        t_max_nnz_each_CB_ = std::max(t_max_nnz_each_CB_, nnz_by_CB_[i]);
     }
+    t_var_nnz_RB /= t_num_blocks;
+    t_standard_dev_RB = std::sqrt(t_var_nnz_RB);
+    t_var_nnz_CB /= t_num_blocks;
+    t_standard_dev_CB = std::sqrt(t_var_nnz_CB);
 
-    
+    // Count Tile features
+    for (IndexType i = 0; i < t_num_blocks*t_num_blocks; i++)
+    {
+        diff_tiles = nnz_by_Tiles_[i] - t_ave_nnz_all_tiles;
+        t_var_nnz_all_tiles += diff_tiles * diff_tiles;
+
+        t_min_nnz_all_tiles_ = std::min(t_min_nnz_all_tiles_, nnz_by_Tiles_[i]);
+        t_max_nnz_all_tiles_ = std::max(t_max_nnz_all_tiles_, nnz_by_Tiles_[i]);
+    }
+    t_var_nnz_all_tiles /= (t_num_blocks*t_num_blocks);
+    t_standard_dev_all_tiles = std::sqrt(t_var_nnz_all_tiles);
+
+// 统计 Tiles p-ratio
+    std::sort(nnz_by_Tiles_.begin(), nnz_by_Tiles_.end());
+    IndexType Tile_quit = (t_num_blocks*t_num_blocks);
+    IndexType Tile_step_Numnnzs = 0;
+    IndexType Tile_count = 0;
+    ValueType p_tmp_Tile = 0.0;
+    ValueType one_minus_p_Tile = 0.0;
+    do
+    {
+        --Tile_quit;
+        ++Tile_count;
+        Tile_step_Numnnzs += nnz_by_Tiles_[Tile_quit];
+        p_tmp_Tile = (double) Tile_count / (t_num_blocks*t_num_blocks);
+        one_minus_p_Tile = (double) Tile_step_Numnnzs / num_nnzs;
+    } while ( p_tmp_Tile + one_minus_p_Tile < 1.0);
+    t_P_ratio_all_tiles_ = p_tmp_Tile;
+
+// 计算 Tile Gini coefficient
+    // 累计和
+    std::vector<IndexType> cumulative_sum_Tile(nnz_by_Tiles_.size());
+    std::partial_sum(nnz_by_Tiles_.begin(), nnz_by_Tiles_.end(), cumulative_sum_Tile.begin());
+    // 梯形规则（trapezoidal rule）近似计算面积B
+    ValueType Area_Tile_B     = trapezoidalRule(cumulative_sum_Tile, (t_num_blocks*t_num_blocks));
+    ValueType Area_Tile_total = (ValueType) num_nnzs * (t_num_blocks*t_num_blocks) / 2.0;
+    t_Gini_all_tiles_ = (Area_Tile_total - Area_Tile_B) / Area_Tile_total;
+
+// 统计 RB p-ratio
+    std::sort(nnz_by_RB_.begin(), nnz_by_RB_.end());
+    IndexType RB_quit = t_num_blocks;
+    IndexType RB_step_Numnnzs = 0;
+    IndexType RB_count = 0;
+    ValueType p_tmp_RB = 0.0;
+    ValueType one_minus_p_RB = 0.0;
+    do
+    {
+        --RB_quit;
+        ++RB_count;
+        RB_step_Numnnzs += nnz_by_RB_[RB_quit];
+        p_tmp_RB = (double) RB_count / t_num_blocks;
+        one_minus_p_RB = (double) RB_step_Numnnzs / num_nnzs;
+    } while ( p_tmp_RB + one_minus_p_RB < 1.0);
+    t_P_ratio_RB_ = p_tmp_RB;
+
+// 计算 RB Gini coefficient
+    // 累计和
+    std::vector<IndexType> cumulative_sum_RB(nnz_by_RB_.size());
+    std::partial_sum(nnz_by_RB_.begin(), nnz_by_RB_.end(), cumulative_sum_RB.begin());
+    // 梯形规则（trapezoidal rule）近似计算面积B
+    ValueType Area_RB_B     = trapezoidalRule(cumulative_sum_RB, t_num_blocks);
+    ValueType Area_RB_total = (ValueType) num_nnzs * t_num_blocks / 2.0;
+    t_Gini_RB_ = (Area_RB_total - Area_RB_B) / Area_RB_total;
+
+// 统计 CB p-ratio
+    std::sort(nnz_by_CB_.begin(), nnz_by_CB_.end());
+    IndexType CB_quit = t_num_blocks;
+    IndexType CB_step_Numnnzs = 0;
+    IndexType CB_count = 0;
+    ValueType p_tmp_CB = 0.0;
+    ValueType one_minus_p_CB = 0.0;
+    do
+    {
+        --CB_quit;
+        ++CB_count;
+        CB_step_Numnnzs += nnz_by_CB_[CB_quit];
+        p_tmp_CB = (double) CB_count / t_num_blocks;
+        one_minus_p_CB = (double) CB_step_Numnnzs / num_nnzs;
+    } while ( p_tmp_CB + one_minus_p_CB < 1.0);
+    t_P_ratio_CB_ = p_tmp_CB;
+
+// 计算 CB Gini coefficient
+    // 累计和
+    std::vector<IndexType> cumulative_sum_CB(nnz_by_CB_.size());
+    std::partial_sum(nnz_by_CB_.begin(), nnz_by_CB_.end(), cumulative_sum_CB.begin());
+    // 梯形规则（trapezoidal rule）近似计算面积B
+    ValueType Area_CB_B     = trapezoidalRule(cumulative_sum_CB, t_num_blocks);
+    ValueType Area_CB_total = (ValueType) num_nnzs * t_num_blocks / 2.0;
+    t_Gini_CB_ = (Area_CB_total - Area_CB_B) / Area_CB_total;
+
+
     return true;
 }
 
