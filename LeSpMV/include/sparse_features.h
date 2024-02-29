@@ -22,6 +22,7 @@ class MTX{
         bool ConvertToCSR(CSR_Matrix<IndexType, ValueType> &csr);
         void Stringsplit(const std::string& s, const char split, std::vector<std::string>& res);
         bool CalculateFeatures();
+        bool CalculateTilesFeatures();
         bool PrintImage(std::string& outputpath);
         double MtxLoad_time_= 0.0;
         double CalculateFeatures_time_= 0.0;
@@ -154,8 +155,10 @@ class MTX{
     */
     // Tiles features 默认 2048*2048 tiles
         IndexType t_num_blocks = MAT_TILE_SIZE;
-        IndexType t_num_rows = -1;  // tiles 内的行数目
-        IndexType t_num_cols = -1;  // tiles 内的列数目
+        IndexType t_num_RB = -1;        // tiles 内的行数目
+        IndexType t_num_CB = -1;        // tiles 内的列数目
+        IndexType t_num_lastRB = -1;    // 最后一个块的行数目
+        IndexType t_num_lastCB = -1;    // 最后一个块的列数目
 
         // ave_nnz
         ValueType t_ave_nnz_all_tiles = 0.0;
@@ -171,6 +174,10 @@ class MTX{
         ValueType t_standard_dev_all_tiles = 0.0;
         ValueType t_standard_dev_RB = 0.0;
         ValueType t_standard_dev_CB = 0.0;
+    
+    // Intermediate variables
+        std::vector<IndexType> nnz_by_RB_;     // 保存每个行块的 nnz 数目
+        std::vector<IndexType> nnz_by_RB_;     // 保存每个列块的 nnz 数目
 
         // min and max nnz for each 
         IndexType t_min_nnz_all_tiles_ = 100000000;

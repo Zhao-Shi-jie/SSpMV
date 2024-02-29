@@ -175,6 +175,18 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* file_path)
 
     symm_pair_.reserve(nnz_mtx_);
 
+    //  判断矩阵是否足够大分 tile 读取 tile特征
+    bool tile_flag = (num_rows >= t_num_blocks) && (num_cols >= t_num_blocks);
+    
+    //  可以存 tile features
+    if (tile_flag){
+        t_num_RB = num_rows / t_num_blocks;
+        t_num_CB = num_cols / t_num_blocks;
+        t_num_lastRB = t_num_RB + num_rows % t_num_blocks;
+        t_num_lastCB = t_num_CB + num_cols % t_num_blocks;
+    }
+
+
     IndexType row_idx, col_idx;
     ValueType value;
     ValueType value_abs;
@@ -489,6 +501,15 @@ bool MTX<IndexType, ValueType>::CalculateFeatures()
 
 template bool MTX<int, float>::CalculateFeatures();
 template bool MTX<int, double>::CalculateFeatures();
+
+template <typename IndexType, typename ValueType>
+bool MTX<IndexType, ValueType>::CalculateTilesFeatures()
+{
+
+}
+
+template bool MTX<int, float>::CalculateTilesFeatures();
+template bool MTX<int, double>::CalculateTilesFeatures();
 
 template <typename IndexType, typename ValueType>
 bool MTX<IndexType, ValueType>::PrintImage(std::string& outputpath){
