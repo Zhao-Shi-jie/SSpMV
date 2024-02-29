@@ -70,11 +70,43 @@ class MTX{
             std::cout<< "max_value_offdiag  = " << max_value_offdiag_ << std::endl;
             std::cout<< "max_value_diagonal = " << max_value_diagonal_ << std::endl;
             std::cout<< "row_variability    = " << row_variability_ << std::endl;
-            std::cout<< "col_variability    = " << col_variability_ << std::endl;
+            std::cout<< "col_variability    = " << col_variability_ << std::endl << std::endl;
 
             // Tile features
+            std::cout<< "==========   Tile Features   ==========" << std::endl;
+            std::cout<< "Number of Tiles  : " << t_num_blocks << std::endl;
+            std::cout<< "Tile inner size  : " << t_num_RB << " * " << t_num_CB << std::endl;
+            std::cout<< "t_ave_nnz_tiles     : " << t_ave_nnz_all_tiles << std::endl;
             std::cout<< "t_ave_nnz_RB        : " << t_ave_nnz_RB << std::endl;
-            std::cout<< "t_ave_nnz_CB        : " << t_ave_nnz_CB << std::endl;
+            std::cout<< "t_ave_nnz_CB        : " << t_ave_nnz_CB << std::endl<< std::endl;
+
+            std::cout<< "t_var_nnz_tiles     : " << t_var_nnz_all_tiles << std::endl;
+            std::cout<< "t_var_nnz_RB        : " << t_var_nnz_RB << std::endl;
+            std::cout<< "t_var_nnz_CB        : " << t_var_nnz_CB << std::endl<< std::endl;
+
+            std::cout<< "t_stand_dev_tiles     : " << t_standard_dev_all_tiles << std::endl;
+            std::cout<< "t_stand_dev_RB        : " << t_standard_dev_RB << std::endl;
+            std::cout<< "t_stand_dev_CB        : " << t_standard_dev_CB << std::endl<< std::endl;
+
+            std::cout<< "min_nnz_each_tiles       : " << t_min_nnz_all_tiles_ << std::endl;
+            std::cout<< "max_nnz_each_tiles       : " << t_max_nnz_all_tiles_ << std::endl;
+            std::cout<< "min_nnz_each_RB          : " << t_min_nnz_each_RB_ << std::endl;
+            std::cout<< "max_nnz_each_RB          : " << t_max_nnz_each_RB_ << std::endl;
+            std::cout<< "min_nnz_each_CB          : " << t_min_nnz_each_CB_ << std::endl;
+            std::cout<< "max_nnz_each_CB          : " << t_max_nnz_each_CB_ << std::endl<< std::endl;
+
+            std::cout<< "Gini_nnz_tiles     : " << t_Gini_all_tiles_ << std::endl;
+            std::cout<< "Gini_nnz_RB        : " << t_Gini_RB_ << std::endl;
+            std::cout<< "Gini_nnz_CB        : " << t_Gini_CB_ << std::endl<< std::endl;
+
+            std::cout<< "P-ratio_tiles      : " << t_P_ratio_all_tiles_ << std::endl;
+            std::cout<< "P-ratio_RB         : " << t_P_ratio_RB_ << std::endl;
+            std::cout<< "P-ratio_CB         : " << t_P_ratio_CB_ << std::endl<< std::endl;
+
+            std::cout<< "NE_ratio_tiles_     : " << t_nz_ratio_tiles_ << std::endl;
+            std::cout<< "NE_ratio_RB         : " << t_nz_ratio_RB_ << std::endl;
+            std::cout<< "NE_ratio_CB         : " << t_nz_ratio_CB_ << std::endl<< std::endl;
+
         }
 
     private:
@@ -158,8 +190,10 @@ class MTX{
     */
     // Tiles features 默认 2048*2048 tiles
         IndexType t_num_blocks = MAT_TILE_SIZE;
-        IndexType t_num_RB = -1;        // tiles 内的行数目
-        IndexType t_num_CB = -1;        // tiles 内的列数目
+        IndexType t_num_RB = -1;        // tiles 内的行数目 (小)
+        IndexType t_num_CB = -1;        // tiles 内的列数目 (小)
+        IndexType t_mod_RB = -1;        // 前 t_mod_RB 行的 t_num_RB+1
+        IndexType t_mod_CB = -1;        // 前 t_mod_CB 列的 t_num_CB+1
 
         // ave_nnz
         ValueType t_ave_nnz_all_tiles = 0.0;

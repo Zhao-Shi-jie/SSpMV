@@ -180,16 +180,23 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* file_path)
     
     //  可以存 tile features
     if (tile_flag){
-        t_num_RB = num_rows + t_num_blocks - 1 / t_num_blocks;
-        t_num_CB = num_cols + t_num_blocks - 1 / t_num_blocks;
+        // t_num_RB = (num_rows + t_num_blocks - 1) / t_num_blocks;
+        // t_num_CB = (num_cols + t_num_blocks - 1) / t_num_blocks;
+        // 为避免空块，只能向下取整； 多出的元素均匀分给 0 ~ t_mod_RB-1 行，和 0 ~ t_mod_CB-1 列
+        t_num_RB = num_rows / t_num_blocks; t_mod_RB = num_rows % t_num_blocks;
+        t_num_CB = num_cols / t_num_blocks; t_mod_CB = num_cols % t_num_blocks;
         nnz_by_Tiles_.resize(t_num_blocks * t_num_blocks, 0);
         nnz_by_RB_.resize(t_num_blocks, 0);
         nnz_by_CB_.resize(t_num_blocks, 0);
     }
-
+    // 45056  +  1716 = 46772
+    //  1716 * 23 = 39,468 ； 332 * 22 = 7,304 ； 39468 + 7304 = 46,772
 
     IndexType row_idx, col_idx;
     IndexType t_rowidx, t_colidx;   // tiles 中的序号
+    // rowidx < threshold  tile_size = (t_num_RB + 1); else tile_size = t_num_RB
+    IndexType RB_threshold = t_mod_RB * (t_num_RB + 1);
+    IndexType CB_threshold = t_mod_CB * (t_num_CB + 1);
     ValueType value;
     ValueType value_abs;
 
@@ -210,8 +217,8 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* file_path)
             nnz_by_col_[col_idx]++; // 本列的 nnz 加一
             // 存一下分tile的信息
             if (tile_flag){
-                t_rowidx = row_idx/t_num_RB;
-                t_colidx = col_idx/t_num_CB;
+                t_rowidx = (row_idx < RB_threshold)? (row_idx / (t_num_RB+1)):(t_mod_RB + (row_idx - RB_threshold)/t_num_RB);
+                t_colidx = (col_idx < CB_threshold)? (col_idx / (t_num_CB+1)):(t_mod_CB + (col_idx - CB_threshold)/t_num_CB);
                 nnz_by_Tiles_[t_rowidx * t_num_blocks + t_colidx]++;
                 nnz_by_RB_[t_rowidx]++;
                 nnz_by_CB_[t_colidx]++;
@@ -276,8 +283,11 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* file_path)
             nnz_by_col_[col_idx]++;
             // 存一下分tile的信息
             if (tile_flag){
-                t_rowidx = row_idx/t_num_RB;
-                t_colidx = col_idx/t_num_CB;
+                // t_rowidx = row_idx / t_num_RB;
+                // t_colidx = col_idx / t_num_CB;
+                t_rowidx = (row_idx < RB_threshold)? (row_idx / (t_num_RB+1)):(t_mod_RB + (row_idx - RB_threshold)/t_num_RB);
+                t_colidx = (col_idx < CB_threshold)? (col_idx / (t_num_CB+1)):(t_mod_CB + (col_idx - CB_threshold)/t_num_CB);
+
                 nnz_by_Tiles_[t_rowidx * t_num_blocks + t_colidx]++;
                 nnz_by_RB_[t_rowidx]++;
                 nnz_by_CB_[t_colidx]++;
@@ -374,7 +384,7 @@ bool MTX<IndexType, ValueType>::CalculateFeatures()
 
     IndexType threadNum = Le_get_thread_num();
 
-    nnz_ratio_ =  (ValueType) num_nnzs / (num_rows * num_cols);
+    nnz_ratio_ =  (ValueType) num_nnzs / ( (ValueType) num_rows * num_cols);
     ave_nnz_each_row_ = (ValueType) num_nnzs / num_rows;
     ave_nnz_each_col_ = (ValueType) num_nnzs / num_cols;
     
@@ -514,7 +524,7 @@ bool MTX<IndexType, ValueType>::CalculateFeatures()
             }
         }
         pattern_symm_ = (ValueType) symm_num_pattern/ (nnz_mtx_ - nnz_diagonal_);
-        value_symm_   = (ValueType) symm_num_value / (nnz_mtx_ - nnz_diagonal_);
+        value_symm_   = (ValueType) symm_num_value  / (nnz_mtx_ - nnz_diagonal_);
         
     }
     else{       // rectangular
@@ -542,7 +552,7 @@ template bool MTX<int, double>::CalculateFeatures();
 template <typename IndexType, typename ValueType>
 bool MTX<IndexType, ValueType>::CalculateTilesFeatures()
 {
-    t_ave_nnz_all_tiles = (ValueType) num_nnzs / (t_num_blocks * t_num_blocks);
+    t_ave_nnz_all_tiles = (ValueType) num_nnzs / ((ValueType) t_num_blocks * t_num_blocks);
     t_ave_nnz_RB        = (ValueType) num_nnzs / t_num_blocks;
     t_ave_nnz_CB        = (ValueType) num_nnzs / t_num_blocks;
 
@@ -551,6 +561,14 @@ bool MTX<IndexType, ValueType>::CalculateTilesFeatures()
     // Count RB and CB features
     for (IndexType i = 0; i < t_num_blocks; i++)
     {
+        if (nnz_by_RB_[i])
+            ++t_nz_ratio_RB_ ;
+        else
+            printf("zero RB = %d\n", i);
+
+        if (nnz_by_CB_[i])
+            ++t_nz_ratio_CB_ ;
+
         diff_RB = nnz_by_RB_[i] - t_ave_nnz_RB;
         diff_CB = nnz_by_CB_[i] - t_ave_nnz_CB;
         t_var_nnz_RB += diff_RB * diff_RB;
@@ -562,21 +580,28 @@ bool MTX<IndexType, ValueType>::CalculateTilesFeatures()
         t_min_nnz_each_CB_ = std::min(t_min_nnz_each_CB_, nnz_by_CB_[i]);
         t_max_nnz_each_CB_ = std::max(t_max_nnz_each_CB_, nnz_by_CB_[i]);
     }
-    t_var_nnz_RB /= t_num_blocks;
+    t_nz_ratio_RB_ /= (ValueType) t_num_blocks;
+    t_var_nnz_RB   /= (ValueType) t_num_blocks;
     t_standard_dev_RB = std::sqrt(t_var_nnz_RB);
-    t_var_nnz_CB /= t_num_blocks;
+
+    t_nz_ratio_CB_ /= (ValueType) t_num_blocks;
+    t_var_nnz_CB   /= (ValueType) t_num_blocks;
     t_standard_dev_CB = std::sqrt(t_var_nnz_CB);
 
     // Count Tile features
     for (IndexType i = 0; i < t_num_blocks*t_num_blocks; i++)
     {
+        if (nnz_by_Tiles_[i])
+            ++t_nz_ratio_tiles_ ;
+
         diff_tiles = nnz_by_Tiles_[i] - t_ave_nnz_all_tiles;
         t_var_nnz_all_tiles += diff_tiles * diff_tiles;
 
         t_min_nnz_all_tiles_ = std::min(t_min_nnz_all_tiles_, nnz_by_Tiles_[i]);
         t_max_nnz_all_tiles_ = std::max(t_max_nnz_all_tiles_, nnz_by_Tiles_[i]);
     }
-    t_var_nnz_all_tiles /= (t_num_blocks*t_num_blocks);
+    t_nz_ratio_tiles_   /= ((ValueType) t_num_blocks*t_num_blocks);
+    t_var_nnz_all_tiles /= ((ValueType) t_num_blocks*t_num_blocks);
     t_standard_dev_all_tiles = std::sqrt(t_var_nnz_all_tiles);
 
 // 统计 Tiles p-ratio
@@ -601,9 +626,9 @@ bool MTX<IndexType, ValueType>::CalculateTilesFeatures()
     std::vector<IndexType> cumulative_sum_Tile(nnz_by_Tiles_.size());
     std::partial_sum(nnz_by_Tiles_.begin(), nnz_by_Tiles_.end(), cumulative_sum_Tile.begin());
     // 梯形规则（trapezoidal rule）近似计算面积B
-    ValueType Area_Tile_B     = trapezoidalRule(cumulative_sum_Tile, (t_num_blocks*t_num_blocks));
-    ValueType Area_Tile_total = (ValueType) num_nnzs * (t_num_blocks*t_num_blocks) / 2.0;
-    t_Gini_all_tiles_ = (Area_Tile_total - Area_Tile_B) / Area_Tile_total;
+    ValueType Area_Tile_B     = trapezoidalRule(cumulative_sum_Tile, (IndexType)nnz_by_Tiles_.size());
+    ValueType Area_Tile_total = (ValueType) num_nnzs * nnz_by_Tiles_.size() / 2.0;
+    t_Gini_all_tiles_ = (ValueType) (Area_Tile_total - Area_Tile_B) / Area_Tile_total;
 
 // 统计 RB p-ratio
     std::sort(nnz_by_RB_.begin(), nnz_by_RB_.end());
@@ -629,7 +654,7 @@ bool MTX<IndexType, ValueType>::CalculateTilesFeatures()
     // 梯形规则（trapezoidal rule）近似计算面积B
     ValueType Area_RB_B     = trapezoidalRule(cumulative_sum_RB, t_num_blocks);
     ValueType Area_RB_total = (ValueType) num_nnzs * t_num_blocks / 2.0;
-    t_Gini_RB_ = (Area_RB_total - Area_RB_B) / Area_RB_total;
+    t_Gini_RB_ = (ValueType) (Area_RB_total - Area_RB_B) / Area_RB_total;
 
 // 统计 CB p-ratio
     std::sort(nnz_by_CB_.begin(), nnz_by_CB_.end());
@@ -655,7 +680,7 @@ bool MTX<IndexType, ValueType>::CalculateTilesFeatures()
     // 梯形规则（trapezoidal rule）近似计算面积B
     ValueType Area_CB_B     = trapezoidalRule(cumulative_sum_CB, t_num_blocks);
     ValueType Area_CB_total = (ValueType) num_nnzs * t_num_blocks / 2.0;
-    t_Gini_CB_ = (Area_CB_total - Area_CB_B) / Area_CB_total;
+    t_Gini_CB_ = (ValueType) (Area_CB_total - Area_CB_B) / Area_CB_total;
 
 
     return true;
