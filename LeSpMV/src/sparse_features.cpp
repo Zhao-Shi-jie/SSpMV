@@ -375,6 +375,37 @@ template bool MTX<int, float>::MtxLoad(const char* file_path);
 template bool MTX<int, double>::MtxLoad(const char* file_path);
 
 template <typename IndexType, typename ValueType>
+void P_ratioAndGini(const std::vector<IndexType> vec, const IndexType num_nnzs, ValueType &p_ratio, ValueType &Gini)
+{
+    std::vector<IndexType> ordered_vec = vec;
+    std::sort(ordered_vec.begin(), ordered_vec.end());
+
+    IndexType length = vec.size();
+    IndexType quit = length;
+    IndexType step_numnnzs = 0, count = 0;
+    ValueType p_tmp = 0.0, one_minus_p = 0.0;
+
+    do
+    {
+        --quit; ++count;
+        step_numnnzs += ordered_vec[quit];
+        p_tmp       = (double) count / length;
+        one_minus_p = (double) step_numnnzs / num_nnzs;
+    } while (p_tmp + one_minus_p < 1.0);
+    // calculate p-ratio
+    p_ratio = p_tmp;
+
+    // 累计和
+    std::vector<IndexType> cumulative_sum(ordered_vec.size());
+    std::partial_sum(ordered_vec.begin(), ordered_vec.end(), cumulative_sum.begin());
+    // 梯形规则（trapezoidal rule）近似计算面积B
+    ValueType Area_B     = trapezoidalRule(cumulative_sum, length);
+    ValueType Area_total = (ValueType) num_nnzs * length / 2.0;
+    // calculate Gini coefficient
+    Gini = (Area_total - Area_B) / Area_total;
+}
+
+template <typename IndexType, typename ValueType>
 bool MTX<IndexType, ValueType>::CalculateFeatures() 
 {
     IndexType nz_row_num = 0, nz_col_num = 0, dominance = 0;
@@ -409,38 +440,14 @@ bool MTX<IndexType, ValueType>::CalculateFeatures()
             dominance ++;
         }
     }
-    // 计算 row Gini coefficient
-    std::sort(nnz_by_row_.begin(), nnz_by_row_.end());
-
-    // 统计 row p-ratio
-    IndexType row_quit = num_rows;
-    IndexType row_step_Numnnzs = 0;
-    IndexType row_count = 0;
-    ValueType p_tmp_row = 0.0;
-    ValueType one_minus_p_row = 0.0;
-    do
-    {
-        --row_quit;
-        ++row_count;
-        row_step_Numnnzs += nnz_by_row_[row_quit];
-        p_tmp_row = (double) row_count/num_rows;
-        one_minus_p_row = (double) row_step_Numnnzs/num_nnzs;
-    } while ( p_tmp_row + one_minus_p_row < 1.0);
-    P_ratio_row_ = p_tmp_row;
-
-    // 累计和
-    std::vector<IndexType> cumulative_sum_row(nnz_by_row_.size());
-    std::partial_sum(nnz_by_row_.begin(), nnz_by_row_.end(), cumulative_sum_row.begin());
-    // 梯形规则（trapezoidal rule）近似计算面积B
-    ValueType Area_row_B     = trapezoidalRule(cumulative_sum_row, num_rows);
-    ValueType Area_row_total = (ValueType) num_nnzs * num_rows / 2.0;
-    Gini_row_ = (Area_row_total - Area_row_B) / Area_row_total;
-
     // 计算 row nz_ratio 和 其他统计信息
     nz_row_ratio_ = (ValueType) nz_row_num/ num_rows;
     row_variability_ = row_divide_max;
     var_nnz_each_row_ /= num_rows;
     standard_dev_row_ = std::sqrt(var_nnz_each_row_);
+
+    // calculate P-ratio and Gini index
+    P_ratioAndGini(nnz_by_row_, num_nnzs, P_ratio_row_, Gini_row_);
 
     for (IndexType j = 0; j < num_cols; j++)
     {
@@ -458,38 +465,14 @@ bool MTX<IndexType, ValueType>::CalculateFeatures()
         ValueType diff = nnz_by_col_[j] - ave_nnz_each_col_; // 计算每列nnz和平均值的差
         var_nnz_each_col_ += diff * diff;
     }
-    // 计算 col Gini coefficient
-    std::sort(nnz_by_col_.begin(), nnz_by_col_.end());
-    // 统计 col p-ratio
-    IndexType col_quit = num_cols;
-    IndexType col_step_Numnnzs = 0;
-    IndexType col_count = 0;
-    ValueType p_tmp_col = 0.0;
-    ValueType one_minus_p_col = 0.0;
-    do
-    {
-        --col_quit;
-        ++col_count;
-        col_step_Numnnzs += nnz_by_col_[col_quit];
-        p_tmp_col = (double) col_count/num_cols;
-        one_minus_p_col = (double) col_step_Numnnzs/num_nnzs;
-    } while ( p_tmp_col + one_minus_p_col < 1.0);
-    P_ratio_col_ = p_tmp_col;
-    // 累计和
-    std::vector<IndexType> cumulative_sum_col(nnz_by_col_.size());
-    std::partial_sum(nnz_by_col_.begin(), nnz_by_col_.end(), cumulative_sum_col.begin());
-    // 梯形规则（trapezoidal rule）近似计算面积B
-    ValueType Area_col_B     = trapezoidalRule(cumulative_sum_col, num_cols);
-    ValueType Area_col_total = (ValueType) num_nnzs * num_cols / 2.0;
-    Gini_col_ = (Area_col_total - Area_col_B) / Area_col_total;
-    
-
-
     // 计算 col nz_ratio 和 其他统计信息
     nz_col_ratio_ = (ValueType) nz_col_num/ num_cols;
     col_variability_ = col_divide_max;
     var_nnz_each_col_ /= num_cols;
     standard_dev_col_ = std::sqrt(var_nnz_each_col_);
+
+    // calculate P-ratio and Gini index
+    P_ratioAndGini(nnz_by_col_, num_nnzs, P_ratio_col_, Gini_col_);
 
     // 计算对角占优比例
     diagonal_dominant_ratio_ = (ValueType) dominance/ std::min(num_rows,num_cols);
@@ -603,85 +586,14 @@ bool MTX<IndexType, ValueType>::CalculateTilesFeatures()
     t_nz_ratio_tiles_   /= ((ValueType) t_num_blocks*t_num_blocks);
     t_var_nnz_all_tiles /= ((ValueType) t_num_blocks*t_num_blocks);
     t_standard_dev_all_tiles = std::sqrt(t_var_nnz_all_tiles);
+    // calculate Tiles' P-ratio and Gini index
+    P_ratioAndGini(nnz_by_Tiles_, num_nnzs, t_P_ratio_all_tiles_, t_Gini_all_tiles_);
 
-// 统计 Tiles p-ratio
-    std::sort(nnz_by_Tiles_.begin(), nnz_by_Tiles_.end());
-    IndexType Tile_quit = (t_num_blocks*t_num_blocks);
-    IndexType Tile_step_Numnnzs = 0;
-    IndexType Tile_count = 0;
-    ValueType p_tmp_Tile = 0.0;
-    ValueType one_minus_p_Tile = 0.0;
-    do
-    {
-        --Tile_quit;
-        ++Tile_count;
-        Tile_step_Numnnzs += nnz_by_Tiles_[Tile_quit];
-        p_tmp_Tile = (double) Tile_count / (t_num_blocks*t_num_blocks);
-        one_minus_p_Tile = (double) Tile_step_Numnnzs / num_nnzs;
-    } while ( p_tmp_Tile + one_minus_p_Tile < 1.0);
-    t_P_ratio_all_tiles_ = p_tmp_Tile;
+    // calculate RB's P-ratio and Gini index
+    P_ratioAndGini(nnz_by_RB_, num_nnzs, t_P_ratio_RB_, t_Gini_RB_);
 
-// 计算 Tile Gini coefficient
-    // 累计和
-    std::vector<IndexType> cumulative_sum_Tile(nnz_by_Tiles_.size());
-    std::partial_sum(nnz_by_Tiles_.begin(), nnz_by_Tiles_.end(), cumulative_sum_Tile.begin());
-    // 梯形规则（trapezoidal rule）近似计算面积B
-    ValueType Area_Tile_B     = trapezoidalRule(cumulative_sum_Tile, (IndexType)nnz_by_Tiles_.size());
-    ValueType Area_Tile_total = (ValueType) num_nnzs * nnz_by_Tiles_.size() / 2.0;
-    t_Gini_all_tiles_ = (ValueType) (Area_Tile_total - Area_Tile_B) / Area_Tile_total;
-
-// 统计 RB p-ratio
-    std::sort(nnz_by_RB_.begin(), nnz_by_RB_.end());
-    IndexType RB_quit = t_num_blocks;
-    IndexType RB_step_Numnnzs = 0;
-    IndexType RB_count = 0;
-    ValueType p_tmp_RB = 0.0;
-    ValueType one_minus_p_RB = 0.0;
-    do
-    {
-        --RB_quit;
-        ++RB_count;
-        RB_step_Numnnzs += nnz_by_RB_[RB_quit];
-        p_tmp_RB = (double) RB_count / t_num_blocks;
-        one_minus_p_RB = (double) RB_step_Numnnzs / num_nnzs;
-    } while ( p_tmp_RB + one_minus_p_RB < 1.0);
-    t_P_ratio_RB_ = p_tmp_RB;
-
-// 计算 RB Gini coefficient
-    // 累计和
-    std::vector<IndexType> cumulative_sum_RB(nnz_by_RB_.size());
-    std::partial_sum(nnz_by_RB_.begin(), nnz_by_RB_.end(), cumulative_sum_RB.begin());
-    // 梯形规则（trapezoidal rule）近似计算面积B
-    ValueType Area_RB_B     = trapezoidalRule(cumulative_sum_RB, t_num_blocks);
-    ValueType Area_RB_total = (ValueType) num_nnzs * t_num_blocks / 2.0;
-    t_Gini_RB_ = (ValueType) (Area_RB_total - Area_RB_B) / Area_RB_total;
-
-// 统计 CB p-ratio
-    std::sort(nnz_by_CB_.begin(), nnz_by_CB_.end());
-    IndexType CB_quit = t_num_blocks;
-    IndexType CB_step_Numnnzs = 0;
-    IndexType CB_count = 0;
-    ValueType p_tmp_CB = 0.0;
-    ValueType one_minus_p_CB = 0.0;
-    do
-    {
-        --CB_quit;
-        ++CB_count;
-        CB_step_Numnnzs += nnz_by_CB_[CB_quit];
-        p_tmp_CB = (double) CB_count / t_num_blocks;
-        one_minus_p_CB = (double) CB_step_Numnnzs / num_nnzs;
-    } while ( p_tmp_CB + one_minus_p_CB < 1.0);
-    t_P_ratio_CB_ = p_tmp_CB;
-
-// 计算 CB Gini coefficient
-    // 累计和
-    std::vector<IndexType> cumulative_sum_CB(nnz_by_CB_.size());
-    std::partial_sum(nnz_by_CB_.begin(), nnz_by_CB_.end(), cumulative_sum_CB.begin());
-    // 梯形规则（trapezoidal rule）近似计算面积B
-    ValueType Area_CB_B     = trapezoidalRule(cumulative_sum_CB, t_num_blocks);
-    ValueType Area_CB_total = (ValueType) num_nnzs * t_num_blocks / 2.0;
-    t_Gini_CB_ = (ValueType) (Area_CB_total - Area_CB_B) / Area_CB_total;
-
+    // calculate CB's P-ratio and Gini index
+    P_ratioAndGini(nnz_by_CB_, num_nnzs, t_P_ratio_CB_, t_Gini_CB_);
 
     return true;
 }
