@@ -116,18 +116,18 @@ std::string extractFileNameWithoutExtension(const std::string& filePath) {
 }
 
 template <typename IndexType, typename ValueType>
-bool MTX<IndexType, ValueType>::MtxLoad(const char* file_path) 
+bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path) 
 {
     int retcode = 0;
     MM_typecode mat_code;
     int is_integer = 0, is_real = 0, is_pattern = 0;
 
-    FILE *mtx_file = fopen(file_path, "r");
+    FILE *mtx_file = fopen(mat_path, "r");
     if(mtx_file == NULL){
-        std::cout << "Unable to open mtx file: "<< file_path << std::endl;
+        std::cout << "Unable to open mtx file: "<< mat_path << std::endl;
         exit(1);
     }
-    matrixName = extractFileNameWithoutExtension(file_path);
+    matrixName = extractFileNameWithoutExtension(mat_path);
 
     // Get the matrix type
     if (mm_read_banner(mtx_file, &mat_code) != 0){
@@ -200,7 +200,7 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* file_path)
     ValueType value;
     ValueType value_abs;
 
-    std::cout << "- Reading sparse matrix from file: "<< file_path << std::endl;
+    std::cout << "- Reading sparse matrix from file: "<< mat_path << std::endl;
     fflush(stdout);
 
     if(mm_is_pattern(mat_code)){        // 二进制矩阵， 元素只有0/1
@@ -371,8 +371,8 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* file_path)
     return true;
 }
 
-template bool MTX<int, float>::MtxLoad(const char* file_path);
-template bool MTX<int, double>::MtxLoad(const char* file_path);
+template bool MTX<int, float>::MtxLoad(const char* mat_path);
+template bool MTX<int, double>::MtxLoad(const char* mat_path);
 
 template <typename IndexType, typename ValueType>
 void P_ratioAndGini(const std::vector<IndexType> vec, const IndexType num_nnzs, ValueType &p_ratio, ValueType &Gini)
@@ -528,7 +528,6 @@ bool MTX<IndexType, ValueType>::CalculateFeatures()
 
     return true;
 }
-
 template bool MTX<int, float>::CalculateFeatures();
 template bool MTX<int, double>::CalculateFeatures();
 
@@ -597,9 +596,17 @@ bool MTX<IndexType, ValueType>::CalculateTilesFeatures()
 
     return true;
 }
-
 template bool MTX<int, float>::CalculateTilesFeatures();
 template bool MTX<int, double>::CalculateTilesFeatures();
+
+template <typename IndexType, typename ValueType>
+bool MTX<IndexType, ValueType>::CalculateTilesExtraFeatures(const char* mat_path)
+{
+
+}
+template bool MTX<int, float>::CalculateTilesExtraFeatures(const char* mat_path);
+template bool MTX<int, double>::CalculateTilesExtraFeatures(const char* mat_path);
+
 
 template <typename IndexType, typename ValueType>
 bool MTX<IndexType, ValueType>::PrintImage(std::string& outputpath){

@@ -17,12 +17,13 @@ class MTX{
             matrixID_ = matID;
             std::cout << "== MTX Features Extraction ==\n" << std::endl;
         }
-        bool MtxLoad(const char* file_path);
+        bool MtxLoad(const char* mat_path);
         bool FeaturesWrite(const char* file_path);
         bool ConvertToCSR(CSR_Matrix<IndexType, ValueType> &csr);
         void Stringsplit(const std::string& s, const char split, std::vector<std::string>& res);
         bool CalculateFeatures();
         bool CalculateTilesFeatures();
+        bool CalculateTilesExtraFeatures(const char* mat_path);
         bool PrintImage(std::string& outputpath);
         double MtxLoad_time_= 0.0;
         double CalculateFeatures_time_= 0.0;
