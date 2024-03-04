@@ -602,7 +602,8 @@ template bool MTX<int, double>::CalculateTilesFeatures();
 template <typename IndexType, typename ValueType>
 bool MTX<IndexType, ValueType>::CalculateTilesExtraFeatures(const char* mat_path)
 {
-
+    
+    return true;
 }
 template bool MTX<int, float>::CalculateTilesExtraFeatures(const char* mat_path);
 template bool MTX<int, double>::CalculateTilesExtraFeatures(const char* mat_path);
