@@ -743,6 +743,11 @@ BSR_Matrix<IndexType, ValueType> csr_to_bsr(const CSR_Matrix<IndexType, ValueTyp
     {
         // malloc the row_ptr
         bsr.row_ptr = new_array<IndexType> (bsr.mb + 1);
+        if (bsr.row_ptr == nullptr)
+        {
+            printf("BSR row_ptr malloc failed\n");
+            exit(-1);
+        }
         memset(bsr.row_ptr, 0, (bsr.mb + 1) * sizeof(IndexType));
 
         #pragma omp parallel for schedule(dynamic, 1024)
@@ -755,10 +760,20 @@ BSR_Matrix<IndexType, ValueType> csr_to_bsr(const CSR_Matrix<IndexType, ValueTyp
 
         // malloc the colindex
         bsr.block_colindex = new_array<IndexType> (bsr.nnzb);
+        if (bsr.block_colindex == nullptr)
+        {
+            printf("BSR block_colindex malloc failed\n");
+            exit(-1);
+        }
         memset(bsr.block_colindex, 0, bsr.nnzb * sizeof(IndexType));
         // malloc the data
-        bsr.block_data = new_array<ValueType> (bsr.nnzb * blockDimRow * blockDimCol);
-        memset(bsr.block_data, 0, (bsr.nnzb * blockDimRow * blockDimCol) * sizeof(ValueType));
+        bsr.block_data = new_array<ValueType> ((size_t) bsr.nnzb * blockDimRow * blockDimCol);
+        if (bsr.block_data == nullptr)
+        {
+            printf("BSR block_data malloc failed\n");
+            exit(-1);
+        }
+        memset(bsr.block_data, 0, ((size_t) bsr.nnzb * blockDimRow * blockDimCol) * sizeof(ValueType));
 
         #pragma omp parallel for schedule(dynamic, 1024)
         for(IndexType i = 0; i < csr.num_nnzs; i++)
@@ -777,6 +792,11 @@ BSR_Matrix<IndexType, ValueType> csr_to_bsr(const CSR_Matrix<IndexType, ValueTyp
     // ** General Case:
     // determine number of non-zero block columns for each block row of the bsr matrix
     bsr.row_ptr = new_array<IndexType> (bsr.mb + 1);
+    if (bsr.row_ptr == nullptr)
+    {
+        printf("BSR row_ptr malloc failed\n");
+        exit(-1);
+    }
     memset(bsr.row_ptr, 0, (bsr.mb + 1) * sizeof(IndexType));
 
     bsr.row_ptr[0] = 0;
@@ -811,10 +831,20 @@ BSR_Matrix<IndexType, ValueType> csr_to_bsr(const CSR_Matrix<IndexType, ValueTyp
     // find bsr col indices array
     // malloc the colindex
     bsr.block_colindex = new_array<IndexType> (bsr.nnzb);
+    if (bsr.block_colindex == nullptr)
+    {
+        printf("BSR block_colindex malloc failed\n");
+        exit(-1);
+    }
     memset(bsr.block_colindex, 0, bsr.nnzb * sizeof(IndexType));
     // malloc the data
-    bsr.block_data = new_array<ValueType> (bsr.nnzb * blockDimRow * blockDimCol);
-    memset(bsr.block_data, 0, (bsr.nnzb * blockDimRow * blockDimCol) * sizeof(ValueType));
+    bsr.block_data = new_array<ValueType> ((size_t) bsr.nnzb * blockDimRow * blockDimCol);
+    if (bsr.block_data == nullptr)
+    {
+        printf("BSR block_data malloc failed\n");
+        exit(-1);
+    }
+    memset(bsr.block_data, 0, ((size_t) bsr.nnzb * blockDimRow * blockDimCol) * sizeof(ValueType));
 
     IndexType colIndex = 0;
 
@@ -871,7 +901,7 @@ BSR_Matrix<IndexType, ValueType> csr_to_bsr(const CSR_Matrix<IndexType, ValueTyp
             // row major
             blockIndex = csr.col_index[j] % blockDimCol + (i % blockDimRow) * blockDimCol;    // 块内index位置
 
-            IndexType index = bsr.row_ptr[blockRow] * blockDimRow * blockDimCol + colIndex * blockDimRow * blockDimCol + blockIndex;
+            size_t index = (size_t) bsr.row_ptr[blockRow] * blockDimRow * blockDimCol + colIndex * blockDimRow * blockDimCol + blockIndex;
 
             bsr.block_data[index] = csr.values[j];
         }

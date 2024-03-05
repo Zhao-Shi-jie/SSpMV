@@ -626,13 +626,13 @@ template <typename IndexType, typename ValueType>
 void AnalyzeTile_Group(const ValueType* values, const IndexType blockDimRow, const IndexType blockDimCol, const IndexType GroupNum, IndexType& GrX_uniqRB, IndexType& GrX_uniqCB, bool flag_Row, bool flag_Col)
 {
     if (flag_Row){
-        for (IndexType bc = 0; bc < blockDimCol; ++bc) {
-            for (IndexType br = 0; br < blockDimRow; br++) {
-                // IndexType idx = br * blockDimCol + bc; // 行优先存储的 索引
+        for (size_t bc = 0; bc < blockDimCol; ++bc) {
+            for (size_t br = 0; br < blockDimRow; br++) {
+                // size_t idx = br * blockDimCol + bc; // 行优先存储的 索引
                 if( values[br * blockDimCol + bc] ){ // 当前元素非零，往后看 GroupNum 行的元素
                     if(br + GroupNum <= blockDimRow) // 还在tile row范围内，分析
                     {
-                        IndexType step;
+                        size_t step;
                         for (step = 1; step < GroupNum; step++)
                         {
                             if( values[(br+step) * blockDimCol + bc] == 0)
@@ -651,12 +651,12 @@ void AnalyzeTile_Group(const ValueType* values, const IndexType blockDimRow, con
     }
 
     if (flag_Col){
-        for (IndexType br = 0; br < blockDimRow; br++){
-            for (IndexType bc = 0; bc < blockDimCol; ++bc) {
+        for (size_t br = 0; br < blockDimRow; br++){
+            for (size_t bc = 0; bc < blockDimCol; ++bc) {
                 if( values[br * blockDimCol + bc] ){ // 当前元素非零，往后看 GroupNum 列的元素
                     if(bc + GroupNum <= blockDimCol) // 还在tile col范围内，分析
                     {
-                        IndexType step;
+                        size_t step;
                         for (step = 1; step < GroupNum; step++)
                         {
                             if( values[br * blockDimCol + bc + step] == 0)
@@ -700,34 +700,36 @@ bool MTX<IndexType, ValueType>::CalculateTilesExtraFeatures(const char* mat_path
         GrX_uniqCB.resize(bsr.mb * bsr.nb, 0);
 
     // // 每一个tile 内的 标记矩阵，用于统计改行 or 列 是否已经统计过
-    // std::vector<bool> flag_R(bsr.blockDim_r, true);
-    // std::vector<bool> flag_C(bsr.blockDim_c, true);
+    std::vector<bool> flag_R(bsr.blockDim_r, true);
+    std::vector<bool> flag_C(bsr.blockDim_c, true);
 
-    IndexType threadNum = Le_get_thread_num();
+    // IndexType threadNum = Le_get_thread_num();
 
-    #pragma omp parallel for num_threads(threadNum)
-    for (IndexType i = 0; i < bsr.mb; i++)
+    // #pragma omp parallel for num_threads(threadNum)
+    for (size_t i = 0; i < bsr.mb; i++)
     {
         // 遍历 第i行的行块
-        IndexType start = bsr.row_ptr[i];
-        IndexType end   = bsr.row_ptr[i+1];
+        size_t start = bsr.row_ptr[i];
+        size_t end   = bsr.row_ptr[i+1];
 
-        for (IndexType j = start; j < end; j++)
+        for (size_t j = start; j < end; j++)
         {
             // 获取当前块的列索引
-            IndexType block_col = bsr.block_colindex[j];
+            size_t block_col = bsr.block_colindex[j];
             // 存储在 uniq 中的 tile ID 位置
-            IndexType tileID = i * bsr.nb  + block_col;
+            size_t tileID = i * bsr.nb  + block_col;
 
             // 每一个tile 内的 标记矩阵，用于统计uniqR行 or uniqC列 是否已经统计过
-            std::vector<bool> flag_R(bsr.blockDim_r, true);
-            std::vector<bool> flag_C(bsr.blockDim_c, true);
+            std::fill(flag_R.begin(), flag_R.end(), true);
+            std::fill(flag_C.begin(), flag_C.end(), true);
+            // std::vector<bool> flag_R(bsr.blockDim_r, true);
+            // std::vector<bool> flag_C(bsr.blockDim_c, true);
 
             // 遍历块的内部
-            for (IndexType br = 0; br < bsr.blockDim_r; ++br) {
-                for (IndexType bc = 0; bc < bsr.blockDim_c; ++bc) {
+            for (size_t br = 0; br < bsr.blockDim_r; ++br) {
+                for (size_t bc = 0; bc < bsr.blockDim_c; ++bc) {
                     // 存在 bsr.values 中的 index
-                    IndexType value_id = j * bsr.blockDim_r * bsr.blockDim_c + br * bsr.blockDim_c + bc;
+                    size_t value_id = j * bsr.blockDim_r * bsr.blockDim_c + br * bsr.blockDim_c + bc;
                     
                     // 统计 uniqRB 和 uniqCB, 统计后标记数组更新false
                     if( bsr.block_data[value_id]){  // nnz
@@ -760,7 +762,6 @@ bool MTX<IndexType, ValueType>::CalculateTilesExtraFeatures(const char* mat_path
         GrX_uniqR = (ValueType) std::accumulate(GrX_uniqRB.begin(), GrX_uniqRB.end(), 0) / num_nnzs;
     if( flag_GrX_uniqCB )
         GrX_uniqC = (ValueType) std::accumulate(GrX_uniqCB.begin(), GrX_uniqCB.end(), 0) / num_nnzs;
-
 
     delete_bsr_matrix(bsr);
     return true;

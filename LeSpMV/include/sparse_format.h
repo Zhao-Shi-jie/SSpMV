@@ -117,7 +117,7 @@ struct BSR_Matrix : public Matrix_Features<IndexType>
 
     IndexType blockDim_r;       // row dims per block
     IndexType blockDim_c;       // col dims per block, which should utilize vectorization length.
-    IndexType blockNNZ;
+    IndexType blockNNZ;  // blockDimRow * blockDimCol
 
     IndexType mb;         // number of row blocks in matrix
     IndexType nb;         // number of col blocks in matrix

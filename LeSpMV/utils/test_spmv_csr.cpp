@@ -64,6 +64,12 @@ int test_csr_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
     else if(2 == kernel_tag){
         std::cout << "\n===  Compared csr_lb_nnz with csr default  ===" << std::endl;
 
+        // Pre- partition by numer of nnz per row balanced
+        const IndexType thread_num = Le_get_thread_num();
+        csr_test.partition = new_array<IndexType>(thread_num + 1);
+
+        balanced_partition_row_by_nnz(csr_test.row_offset, csr_test.num_rows, thread_num, csr_test.partition);
+
         // test correctness
         test_spmv_kernel(csr_ref, LeSpMV_csr<IndexType, ValueType>,
                          csr_test, LeSpMV_csr<IndexType, ValueType>,

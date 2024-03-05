@@ -178,12 +178,7 @@ CSR_Matrix<IndexType, ValueType> read_csr_matrix(const char * mm_filename, bool 
 
     csr = coo_to_csr(coo, compact);
 
-    // partition by numer of nnz per row balanced
-    const IndexType thread_num = Le_get_thread_num();
-    csr.partition = new_array<IndexType>(thread_num+1);
-
-    balanced_partition_row_by_nnz(csr.row_offset, csr.num_rows, thread_num, csr.partition);
-
+    std::cout << "- Finish CSR convertion -" << std::endl;
     delete_host_matrix(coo);
 
     csr.kernel_flag = KERNEL_FLAG;
@@ -204,6 +199,8 @@ BSR_Matrix<IndexType, ValueType> read_bsr_matrix(const char * mm_filename, const
     BSR_Matrix<IndexType,ValueType> bsr;
 
     bsr = csr_to_bsr<IndexType, ValueType>(csr, blockDimRow, blockDimCol);
+
+    std::cout << "- Finish BSR convertion -" << std::endl;
 
     delete_csr_matrix(csr);
     
