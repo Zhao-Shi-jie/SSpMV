@@ -241,7 +241,7 @@ class MTX{
         ValueType t_nz_ratio_RB_ = 0.0;
         ValueType t_nz_ratio_CB_ = 0.0;
 
-    // aditional information
+    // Extra information
         // uniq
         std::vector<IndexType> uniq_RB;  // 记录每个tiles的非零行数
         std::vector<IndexType> uniq_CB;  // 记录每个tiles的非零列数

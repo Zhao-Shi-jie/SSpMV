@@ -599,10 +599,72 @@ bool MTX<IndexType, ValueType>::CalculateTilesFeatures()
 template bool MTX<int, float>::CalculateTilesFeatures();
 template bool MTX<int, double>::CalculateTilesFeatures();
 
+// Finding the best Dim that make block_num closed to 2048
+template <typename IndexType>
+IndexType BestDimForBSR( IndexType nums, IndexType target){
+    IndexType bestDim = 0;
+    IndexType bestDiff = 10000;
+    for (IndexType Dim = 1; Dim < nums; Dim++)
+    {
+        IndexType calculated_mb = (nums + Dim - 1) / Dim;
+        IndexType diff = std::abs(calculated_mb - target);
+        
+        if (diff < bestDiff)
+        {
+            bestDiff = diff;
+            bestDim = Dim;
+        }
+
+        if (diff == 0)
+            break;
+    }
+    return bestDim;
+}
+template int BestDimForBSR( int nums, int target);
+
 template <typename IndexType, typename ValueType>
 bool MTX<IndexType, ValueType>::CalculateTilesExtraFeatures(const char* mat_path)
 {
-    
+    // CSR_Matrix<IndexType, ValueType> csr;
+    // csr = read_csr_matrix<IndexType, ValueType> (mat_path);
+
+    // uniq_RB.resize(t_num_blocks * t_num_blocks, 0);
+    // uniq_CB.resize(t_num_blocks * t_num_blocks, 0);
+
+    // IndexType RB_threshold = t_mod_RB * (t_num_RB + 1);
+    // IndexType CB_threshold = t_mod_CB * (t_num_CB + 1);
+    // IndexType t_rowidx, t_colidx;   // tiles 中的序号
+
+    // // 先看一行
+    // for (IndexType rowID = 0; rowID < csr.num_rows; ++rowID)
+    // {
+    //     const IndexType row_start = csr.row_offset[rowID];
+    //     const IndexType row_end   = csr.row_offset[rowID+1];
+
+    //     for (IndexType j = row_start; j < row_end; ++j) {
+    //         IndexType colID = csr.col_index[j];
+    //         t_rowidx = (rowID < RB_threshold)? (rowID / (t_num_RB+1)):(t_mod_RB + (rowID - RB_threshold)/t_num_RB);
+    //         t_colidx = (colID < CB_threshold)? (colID / (t_num_CB+1)):(t_mod_CB + (colID - CB_threshold)/t_num_CB);
+
+    //         IndexType T_ID = t_colidx * t_num_blocks + t_rowidx;
+
+    //         if ( flag_row)
+    //             uniq_RB[T_ID] ++;
+
+    //         uniq_CB[T_ID] ++;
+    //     }
+
+    // }
+    //  应该用 BSR来统计更好， 04. March. 2024
+    BSR_Matrix<IndexType, ValueType> bsr;
+    IndexType tileDim_row = BestDimForBSR(num_rows, t_num_blocks);
+    IndexType tileDim_col = BestDimForBSR(num_cols, t_num_blocks);
+    bsr = read_bsr_matrix<IndexType, ValueType>(mat_path, tileDim_row, tileDim_col);
+
+
+
+
+    delete_bsr_matrix(bsr);
     return true;
 }
 template bool MTX<int, float>::CalculateTilesExtraFeatures(const char* mat_path);

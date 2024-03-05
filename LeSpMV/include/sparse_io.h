@@ -50,6 +50,19 @@ template <class IndexType, class ValueType>
 CSR_Matrix<IndexType, ValueType> read_csr_matrix(const char * mm_filename, bool compact = false);
 
 /**
+ * @brief Read sparse matrix in BSR format from ".mtx" format file.
+ * 
+ * @tparam IndexType 
+ * @tparam ValueType 
+ * @param mm_filename The sparse matrix file, must in mtx format.
+ * @param blockDimRow Row nums of each block
+ * @param blockDimCol Col nums of each block
+ * @return BSR_Matrix<IndexType, ValueType> 
+*/
+template <class IndexType, class ValueType>
+BSR_Matrix<IndexType, ValueType> read_bsr_matrix(const char * mm_filename, const IndexType blockDimRow = BSR_BlockDimRow, const IndexType blockDimCol = (SIMD_WIDTH/8/sizeof(ValueType)));
+
+/**
  * @brief Read sparse matrix in CSR5 format from ".mtx" format file.
  * 
  * @tparam IndexType 

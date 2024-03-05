@@ -194,6 +194,24 @@ CSR_Matrix<IndexType, ValueType> read_csr_matrix(const char * mm_filename, bool 
 template CSR_Matrix<int, float> read_csr_matrix<int, float>(const char * mm_filename, bool);
 template CSR_Matrix<int, double> read_csr_matrix<int, double>(const char * mm_filename, bool);
 
+
+template <class IndexType, class ValueType>
+BSR_Matrix<IndexType, ValueType> read_bsr_matrix(const char * mm_filename, const IndexType blockDimRow, const IndexType blockDimCol)
+{
+    CSR_Matrix<IndexType, ValueType> csr;
+    csr = read_csr_matrix<IndexType, ValueType>(mm_filename);
+
+    BSR_Matrix<IndexType,ValueType> bsr;
+
+    bsr = csr_to_bsr<IndexType, ValueType>(csr, blockDimRow, blockDimCol);
+
+    delete_csr_matrix(csr);
+    
+    return bsr;
+}
+template BSR_Matrix<int, float> read_bsr_matrix<int, float>(const char * mm_filename, const int, const int);
+template BSR_Matrix<int, double> read_bsr_matrix<int, double>(const char * mm_filename, const int, const int);
+
 /**
  * @brief Read a sparse matrix in CSR5 format. Transform from CSR format.
  * 
