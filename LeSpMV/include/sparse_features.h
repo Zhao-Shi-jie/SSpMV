@@ -127,6 +127,9 @@ class MTX{
 
             std::cout<< "GrX_uniqR      = " << GrX_uniqR << std::endl;
             std::cout<< "GrX_uniqC      = " << GrX_uniqC << std::endl<< std::endl;
+
+            std::cout<< "potReuseR      = " << potReuseR << std::endl;
+            std::cout<< "potReuseC      = " << potReuseC << std::endl<< std::endl;
         }
 
     private:
@@ -276,8 +279,10 @@ class MTX{
 
         // porReuse ; for data reuse in the LLC
         // 记录这一 行/列 中 有几个 tiles中的 行/列 非零
-        std::vector<IndexType> potReuseRB;  // size: num_rows
-        std::vector<IndexType> potReuseCB;  // size: num_cols
+        // std::vector<IndexType> potReuseRB;  // size: num_rows
+        // std::vector<IndexType> potReuseCB;  // size: num_cols
+        // Note**: tile内的非零行数目，和一行中非零的tile数目 SUM是一样的,
+        // 因此可以不需要额外的空间来统计信息
         ValueType potReuseR = 0.0;      // sum devide num of rows
         ValueType potReuseC = 0.0;      // sum devide num of cols
 

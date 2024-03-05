@@ -693,11 +693,11 @@ bool MTX<IndexType, ValueType>::CalculateTilesExtraFeatures(const char* mat_path
 
     uniq_RB.resize(bsr.mb * bsr.nb, 0);  // number of total blocks in mat
     uniq_CB.resize(bsr.mb * bsr.nb, 0);
+    
     if( flag_GrX_uniqRB )
         GrX_uniqRB.resize(bsr.mb * bsr.nb, 0);
     if( flag_GrX_uniqCB )
         GrX_uniqCB.resize(bsr.mb * bsr.nb, 0);
-
 
     // // 每一个tile 内的 标记矩阵，用于统计改行 or 列 是否已经统计过
     // std::vector<bool> flag_R(bsr.blockDim_r, true);
@@ -716,16 +716,17 @@ bool MTX<IndexType, ValueType>::CalculateTilesExtraFeatures(const char* mat_path
         {
             // 获取当前块的列索引
             IndexType block_col = bsr.block_colindex[j];
-            // 存贮在 uniq 中的 tile ID 位置
+            // 存储在 uniq 中的 tile ID 位置
             IndexType tileID = i * bsr.nb  + block_col;
 
-            // 每一个tile 内的 标记矩阵，用于统计改行 or 列 是否已经统计过
+            // 每一个tile 内的 标记矩阵，用于统计uniqR行 or uniqC列 是否已经统计过
             std::vector<bool> flag_R(bsr.blockDim_r, true);
             std::vector<bool> flag_C(bsr.blockDim_c, true);
 
             // 遍历块的内部
             for (IndexType br = 0; br < bsr.blockDim_r; ++br) {
                 for (IndexType bc = 0; bc < bsr.blockDim_c; ++bc) {
+                    // 存在 bsr.values 中的 index
                     IndexType value_id = j * bsr.blockDim_r * bsr.blockDim_c + br * bsr.blockDim_c + bc;
                     
                     // 统计 uniqRB 和 uniqCB, 统计后标记数组更新false
@@ -752,6 +753,8 @@ bool MTX<IndexType, ValueType>::CalculateTilesExtraFeatures(const char* mat_path
     
     uniqR = (ValueType) std::accumulate(uniq_RB.begin(), uniq_RB.end(), 0)/num_nnzs;
     uniqC = (ValueType) std::accumulate(uniq_CB.begin(), uniq_CB.end(), 0)/num_nnzs;
+    potReuseR = (ValueType) std::accumulate(uniq_RB.begin(), uniq_RB.end(), 0)/num_rows;
+    potReuseC = (ValueType) std::accumulate(uniq_CB.begin(), uniq_CB.end(), 0)/num_cols;
     
     if( flag_GrX_uniqRB )
         GrX_uniqR = (ValueType) std::accumulate(GrX_uniqRB.begin(), GrX_uniqRB.end(), 0) / num_nnzs;
