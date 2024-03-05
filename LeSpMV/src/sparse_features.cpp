@@ -623,45 +623,140 @@ IndexType BestDimForBSR( IndexType nums, IndexType target){
 template int BestDimForBSR( int nums, int target);
 
 template <typename IndexType, typename ValueType>
+void AnalyzeTile_Group(const ValueType* values, const IndexType blockDimRow, const IndexType blockDimCol, const IndexType GroupNum, IndexType& GrX_uniqRB, IndexType& GrX_uniqCB, bool flag_Row, bool flag_Col)
+{
+    if (flag_Row){
+        for (IndexType bc = 0; bc < blockDimCol; ++bc) {
+            for (IndexType br = 0; br < blockDimRow; br++) {
+                // IndexType idx = br * blockDimCol + bc; // 行优先存储的 索引
+                if( values[br * blockDimCol + bc] ){ // 当前元素非零，往后看 GroupNum 行的元素
+                    if(br + GroupNum <= blockDimRow) // 还在tile row范围内，分析
+                    {
+                        IndexType step;
+                        for (step = 1; step < GroupNum; step++)
+                        {
+                            if( values[(br+step) * blockDimCol + bc] == 0)
+                                break;
+                        }
+                        if(step == GroupNum){   // 连续 GroupNum 行非零
+                            ++GrX_uniqRB;
+                        }
+                        br += step; // 遍历过的这一段行就不用再check了
+                    }
+                    else    // 往后的一个group超过tile的大小了，跳过这个行分析
+                    {   break; }
+                }
+            }
+        }
+    }
+
+    if (flag_Col){
+        for (IndexType br = 0; br < blockDimRow; br++){
+            for (IndexType bc = 0; bc < blockDimCol; ++bc) {
+                if( values[br * blockDimCol + bc] ){ // 当前元素非零，往后看 GroupNum 列的元素
+                    if(bc + GroupNum <= blockDimCol) // 还在tile col范围内，分析
+                    {
+                        IndexType step;
+                        for (step = 1; step < GroupNum; step++)
+                        {
+                            if( values[br * blockDimCol + bc + step] == 0)
+                                break;
+                        }
+                        if(step == GroupNum){   // 连续 GroupNum 列非零
+                            ++GrX_uniqCB;
+                        }
+                        bc += step; // 遍历过的这一段列就不用再check了
+                    }
+                    else    // 往后的一个group超过tile的大小了，跳过这个列分析
+                    {   break; }
+                }
+            }
+        }
+    }
+}
+template void AnalyzeTile_Group<int, float>(const float*, const int, const int, const int, int&, int&, bool, bool);
+template void AnalyzeTile_Group<int, double>(const double*, const int, const int, const int, int&, int&, bool, bool);
+
+
+template <typename IndexType, typename ValueType>
 bool MTX<IndexType, ValueType>::CalculateTilesExtraFeatures(const char* mat_path)
 {
-    // CSR_Matrix<IndexType, ValueType> csr;
-    // csr = read_csr_matrix<IndexType, ValueType> (mat_path);
-
-    // uniq_RB.resize(t_num_blocks * t_num_blocks, 0);
-    // uniq_CB.resize(t_num_blocks * t_num_blocks, 0);
-
-    // IndexType RB_threshold = t_mod_RB * (t_num_RB + 1);
-    // IndexType CB_threshold = t_mod_CB * (t_num_CB + 1);
-    // IndexType t_rowidx, t_colidx;   // tiles 中的序号
-
-    // // 先看一行
-    // for (IndexType rowID = 0; rowID < csr.num_rows; ++rowID)
-    // {
-    //     const IndexType row_start = csr.row_offset[rowID];
-    //     const IndexType row_end   = csr.row_offset[rowID+1];
-
-    //     for (IndexType j = row_start; j < row_end; ++j) {
-    //         IndexType colID = csr.col_index[j];
-    //         t_rowidx = (rowID < RB_threshold)? (rowID / (t_num_RB+1)):(t_mod_RB + (rowID - RB_threshold)/t_num_RB);
-    //         t_colidx = (colID < CB_threshold)? (colID / (t_num_CB+1)):(t_mod_CB + (colID - CB_threshold)/t_num_CB);
-
-    //         IndexType T_ID = t_colidx * t_num_blocks + t_rowidx;
-
-    //         if ( flag_row)
-    //             uniq_RB[T_ID] ++;
-
-    //         uniq_CB[T_ID] ++;
-    //     }
-
-    // }
+    // 使用 BSR 做分块的信息统计， 但并不严格的是 2048 * 2048 块了
     //  应该用 BSR来统计更好， 04. March. 2024
     BSR_Matrix<IndexType, ValueType> bsr;
     IndexType tileDim_row = BestDimForBSR(num_rows, t_num_blocks);
     IndexType tileDim_col = BestDimForBSR(num_cols, t_num_blocks);
+    bool flag_GrX_uniqRB = (tileDim_row >= GrX);
+    bool flag_GrX_uniqCB = (tileDim_col >= GrX);
+
     bsr = read_bsr_matrix<IndexType, ValueType>(mat_path, tileDim_row, tileDim_col);
 
+    uniq_RB.resize(bsr.mb * bsr.nb, 0);  // number of total blocks in mat
+    uniq_CB.resize(bsr.mb * bsr.nb, 0);
+    if( flag_GrX_uniqRB )
+        GrX_uniqRB.resize(bsr.mb * bsr.nb, 0);
+    if( flag_GrX_uniqCB )
+        GrX_uniqCB.resize(bsr.mb * bsr.nb, 0);
 
+
+    // // 每一个tile 内的 标记矩阵，用于统计改行 or 列 是否已经统计过
+    // std::vector<bool> flag_R(bsr.blockDim_r, true);
+    // std::vector<bool> flag_C(bsr.blockDim_c, true);
+
+    IndexType threadNum = Le_get_thread_num();
+
+    #pragma omp parallel for num_threads(threadNum)
+    for (IndexType i = 0; i < bsr.mb; i++)
+    {
+        // 遍历 第i行的行块
+        IndexType start = bsr.row_ptr[i];
+        IndexType end   = bsr.row_ptr[i+1];
+
+        for (IndexType j = start; j < end; j++)
+        {
+            // 获取当前块的列索引
+            IndexType block_col = bsr.block_colindex[j];
+            // 存贮在 uniq 中的 tile ID 位置
+            IndexType tileID = i * bsr.nb  + block_col;
+
+            // 每一个tile 内的 标记矩阵，用于统计改行 or 列 是否已经统计过
+            std::vector<bool> flag_R(bsr.blockDim_r, true);
+            std::vector<bool> flag_C(bsr.blockDim_c, true);
+
+            // 遍历块的内部
+            for (IndexType br = 0; br < bsr.blockDim_r; ++br) {
+                for (IndexType bc = 0; bc < bsr.blockDim_c; ++bc) {
+                    IndexType value_id = j * bsr.blockDim_r * bsr.blockDim_c + br * bsr.blockDim_c + bc;
+                    
+                    // 统计 uniqRB 和 uniqCB, 统计后标记数组更新false
+                    if( bsr.block_data[value_id]){  // nnz
+                        // uniq_RB 判别
+                        if (flag_R[br])  // true: count the none zero row
+                        {
+                           uniq_RB[tileID]++;
+                           flag_R[br] = false;  // convert to false
+                        }
+                        // uniq_CB 判别
+                        if (flag_C[bc])  // true: count the none zero col
+                        {
+                           uniq_CB[tileID]++;
+                           flag_C[bc] = false;  // convert to false
+                        }
+                    }
+                }
+            }
+            // Count the GrX_uniqRB and GrX_uniqCB
+            AnalyzeTile_Group(&bsr.block_data[j * bsr.blockDim_r * bsr.blockDim_c], bsr.blockDim_r, bsr.blockDim_c, GrX, GrX_uniqRB[tileID], GrX_uniqCB[tileID], flag_GrX_uniqRB, flag_GrX_uniqCB);
+        }
+    }
+    
+    uniqR = (ValueType) std::accumulate(uniq_RB.begin(), uniq_RB.end(), 0)/num_nnzs;
+    uniqC = (ValueType) std::accumulate(uniq_CB.begin(), uniq_CB.end(), 0)/num_nnzs;
+    
+    if( flag_GrX_uniqRB )
+        GrX_uniqR = (ValueType) std::accumulate(GrX_uniqRB.begin(), GrX_uniqRB.end(), 0) / num_nnzs;
+    if( flag_GrX_uniqCB )
+        GrX_uniqC = (ValueType) std::accumulate(GrX_uniqCB.begin(), GrX_uniqCB.end(), 0) / num_nnzs;
 
 
     delete_bsr_matrix(bsr);

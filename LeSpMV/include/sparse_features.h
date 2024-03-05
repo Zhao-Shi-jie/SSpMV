@@ -17,6 +17,15 @@ class MTX{
             matrixID_ = matID;
             std::cout << "== MTX Features Extraction ==\n" << std::endl;
         }
+        IndexType getRowNum(){
+            return num_rows;
+        }
+        IndexType getColNum(){
+            return num_cols;
+        }
+        IndexType getTileSize(){
+            return t_num_blocks;
+        }
         bool MtxLoad(const char* mat_path);
         bool FeaturesWrite(const char* file_path);
         bool ConvertToCSR(CSR_Matrix<IndexType, ValueType> &csr);
@@ -108,6 +117,16 @@ class MTX{
             std::cout<< "NE_ratio_RB         : " << t_nz_ratio_RB_ << std::endl;
             std::cout<< "NE_ratio_CB         : " << t_nz_ratio_CB_ << std::endl<< std::endl;
 
+        }
+
+        void ExtraFeaturesPrint(){
+            // Tile extra features
+            std::cout<< "==========   Tile Extra Features   ==========" << std::endl;
+            std::cout<< "uniq_R         = " << uniqR << std::endl;
+            std::cout<< "uniq_C         = " << uniqC << std::endl<< std::endl;
+
+            std::cout<< "GrX_uniqR      = " << GrX_uniqR << std::endl;
+            std::cout<< "GrX_uniqC      = " << GrX_uniqC << std::endl<< std::endl;
         }
 
     private:
@@ -252,19 +271,19 @@ class MTX{
         IndexType GrX = CACHE_LINE / sizeof(ValueType);
         std::vector<IndexType> GrX_uniqRB;
         std::vector<IndexType> GrX_uniqCB;
-        ValueType GrX_uniqR = 0.0;       // sum devide nnz
-        ValueType GrX_uniqC = 0.0;       // sum devide nnz
+        ValueType GrX_uniqR = -1.0;       // sum devide nnz
+        ValueType GrX_uniqC = -1.0;       // sum devide nnz
 
         // porReuse ; for data reuse in the LLC
         // 记录这一 行/列 中 有几个 tiles中的 行/列 非零
-        std::vector<IndexType> porReuseRB;  // size: num_rows
-        std::vector<IndexType> porReuseCB;  // size: num_cols
+        std::vector<IndexType> potReuseRB;  // size: num_rows
+        std::vector<IndexType> potReuseCB;  // size: num_cols
         ValueType potReuseR = 0.0;      // sum devide num of rows
         ValueType potReuseC = 0.0;      // sum devide num of cols
 
         // GrX_porReuse ; for data reuse in the LLC with more coarse granularity
-        std::vector<IndexType> GrX_porReuseRB;  // size: num_GrXrows
-        std::vector<IndexType> GrX_porReuseCB;  // size: num_GrXcols
+        std::vector<IndexType> GrX_potReuseRB;  // size: num_GrXrows
+        std::vector<IndexType> GrX_potReuseCB;  // size: num_GrXcols
         ValueType GrX_potReuseR = 0.0;      // sum devide num of GrXrows
         ValueType GrX_potReuseC = 0.0;      // sum devide num of GrXcols
 

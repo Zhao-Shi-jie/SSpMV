@@ -52,6 +52,13 @@ void test_features(int argc, char** argv)
     mtx.MtxLoad(mm_filename);
     mtx.CalculateFeatures();
     mtx.FeaturesPrint();
+
+    if (mtx.getRowNum() >= mtx.getTileSize() && mtx.getColNum() >= mtx.getTileSize()){
+        mtx.CalculateTilesExtraFeatures(mm_filename);
+        mtx.ExtraFeaturesPrint();
+    }
+
+    
     mtx.FeaturesWrite(MAT_FEATURES);
 }
 
