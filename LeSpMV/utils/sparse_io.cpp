@@ -14,6 +14,7 @@
 #include"../include/thread.h"
 #include"../include/sparse_partition.h"
 #include <cassert>
+
 /**
  * @brief Read sparse matrix in COO format from ".mtx" format file.
  * 
@@ -68,8 +69,11 @@ COO_Matrix<IndexType,ValueType> read_coo_matrix(const char * mm_filename)
     coo.num_nnzs = (IndexType) num_nnzs;
 
     coo.row_index = new_array<IndexType>(coo.num_nnzs);
+    CHECK_ALLOC(coo.row_index);
     coo.col_index = new_array<IndexType>(coo.num_nnzs);
+    CHECK_ALLOC(coo.col_index);
     coo.values    = new_array<ValueType>(coo.num_nnzs);
+    CHECK_ALLOC(coo.values);
 
     std::cout << "- Reading sparse matrix from file: "<< mm_filename << std::endl;
     fflush(stdout);
@@ -113,8 +117,11 @@ COO_Matrix<IndexType,ValueType> read_coo_matrix(const char * mm_filename)
         IndexType true_nnz = off_diagonals + coo.num_nnzs;
 
         IndexType* new_rowindex = new_array<IndexType>(true_nnz);
+        CHECK_ALLOC(new_rowindex);
         IndexType* new_colindex = new_array<IndexType>(true_nnz);
+        CHECK_ALLOC(new_colindex);
         ValueType* new_V        = new_array<ValueType>(true_nnz);
+        CHECK_ALLOC(new_V);
 
         IndexType ptr = 0;
         for (IndexType i = 0; i < coo.num_nnzs; i++)
