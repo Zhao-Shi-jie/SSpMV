@@ -71,16 +71,11 @@ int test_ell_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
     {
         std::cout << "\n===  Compared ell Load-Balance with csr default  ===" << std::endl;
 
-        // 设置 omp 调度策略, load-balance 内部有平衡方式
-        // const IndexType thread_num = Le_get_thread_num();
-        
-        // IndexType chunk_size = OMP_ROWS_SIZE;
-        // if (ld == RowMajor)
-        //     chunk_size = std::max(1, ell.num_rows/thread_num);
-        // else
-        //     chunk_size = std::max(1, ell.num_cols/thread_num);
+        // Pre- partition by numer of nnz per row balanced
+        const IndexType thread_num = Le_get_thread_num();
+        ell.partition = new_array<IndexType>(thread_num + 1);
 
-        // set_omp_schedule(schedule_mod, chunk_size);
+        balanced_partition_row_by_nnz_ell(ell.col_index, ell.num_nnzs, ell.num_rows, ell.max_row_width, thread_num, ell.partition);
 
         // test correctness
         test_spmv_kernel(csr_ref, LeSpMV_csr<IndexType, ValueType>,

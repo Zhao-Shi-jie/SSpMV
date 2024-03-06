@@ -13,6 +13,19 @@
 #include <algorithm>
 #include <stdexcept>
 
+// 宏，用于传递当前的函数名、文件名和行号
+#define CHECK_ALLOC(ptr) checkAlloc((ptr), __FUNCTION__, __FILE__, __LINE__)
+
+// 用于检查指针是否为 nullptr
+inline void checkAlloc(const void* ptr, const char* func, const char* file, int line) {
+    if (ptr == nullptr) {
+        std::cerr << "Memory allocation failed in " << func
+                  << " (" << file << ":" << line << ")" << std::endl;
+        // 抛出异常或进行其他错误处理
+        throw std::bad_alloc();
+    }
+}
+
 template <class IndexType, class ValueType>
 CSR_Matrix<IndexType, ValueType> coo_to_csr( const COO_Matrix<IndexType, ValueType> &coo, bool compact = false)
 {
@@ -24,9 +37,11 @@ CSR_Matrix<IndexType, ValueType> coo_to_csr( const COO_Matrix<IndexType, ValueTy
 
     csr.tag = 0;
     csr.row_offset = new_array<IndexType> (csr.num_rows + 1);
+    CHECK_ALLOC(csr.row_offset);
     csr.col_index  = new_array<IndexType> (csr.num_nnzs);
+    CHECK_ALLOC(csr.col_index);
     csr.values     = new_array<ValueType> (csr.num_nnzs);
-
+    CHECK_ALLOC(csr.values);
     //========== Rowoffset calculation ==========
     for (IndexType i = 0; i < csr.num_rows; i++){
         csr.row_offset[i] = 0;
@@ -95,8 +110,9 @@ ELL_Matrix<IndexType, ValueType> coo_to_ell( const COO_Matrix<IndexType, ValueTy
     ell.max_row_width = *std::max_element(rowCounts.begin(), rowCounts.end());
     // 分配矩阵空间
     ell.col_index = new_array<IndexType> (ell.num_rows * ell.max_row_width);
+    CHECK_ALLOC(ell.col_index);
     ell.values    = new_array<ValueType> (ell.num_rows * ell.max_row_width);
-
+    CHECK_ALLOC(ell.values);
     // 初始化ELL格式的数组
     std::fill_n(ell.col_index, ell.num_rows*ell.max_row_width, static_cast<IndexType> (-1)); // 使用 -1 作为填充值，因为它不是有效的列索引
     std::fill_n(ell.values, ell.num_rows*ell.max_row_width, static_cast<ValueType> (0)); // 零填充values
@@ -135,9 +151,11 @@ COO_Matrix<IndexType, ValueType> csr_to_coo( const CSR_Matrix<IndexType, ValueTy
     coo.num_nnzs = csr.num_nnzs;
 
     coo.row_index  = new_array<IndexType> (coo.num_nnzs);
+    CHECK_ALLOC(coo.row_index);
     coo.col_index  = new_array<IndexType> (coo.num_nnzs);
+    CHECK_ALLOC(coo.col_index);
     coo.values     = new_array<ValueType> (coo.num_nnzs);
-
+    CHECK_ALLOC(coo.values);
     // 转换，按 row index 递增顺序来存 COO
     for (IndexType row = 0; row < coo.num_rows; ++row) {
         for (IndexType i = csr.row_offset[row]; i < csr.row_offset[row + 1]; ++i) {
@@ -185,9 +203,9 @@ ELL_Matrix<IndexType, ValueType> csr_to_ell(const CSR_Matrix<IndexType, ValueTyp
 
     // 分配矩阵空间
     ell.col_index = new_array<IndexType> (ell.num_rows * ell.max_row_width);
+    CHECK_ALLOC(ell.col_index);
     ell.values    = new_array<ValueType> (ell.num_rows * ell.max_row_width);
-
-    ell.partition = copy_array<IndexType>(csr.partition, Le_get_thread_num()+1);
+    CHECK_ALLOC(ell.values);
 
     // 初始化ELL格式的数组
     std::fill_n(ell.col_index, ell.num_rows*ell.max_row_width, static_cast<IndexType> (-1)); // 使用 -1 作为填充值，因为它不是有效的列索引
@@ -252,6 +270,7 @@ S_ELL_Matrix<IndexType, ValueType> csr_to_sell(const CSR_Matrix<IndexType, Value
 
     // sell.row_width.resize (sell.chunk_num, 0);
     sell.row_width = new_array<IndexType>(sell.chunk_num);
+    CHECK_ALLOC(sell.row_width);
     memset(sell.row_width, 0 , sell.chunk_num * sizeof(IndexType));
 
     for (IndexType row = 0; row < csr.num_rows; ++row) {
@@ -268,13 +287,6 @@ S_ELL_Matrix<IndexType, ValueType> csr_to_sell(const CSR_Matrix<IndexType, Value
         sell.row_width[i] = ((sell.row_width[i] + sell.alignment - 1) / sell.alignment) * sell.alignment;
     }
     
-    // sell.col_index.resize(sell.chunk_num);
-    // sell.values.resize(sell.chunk_num);
-    // // 初始化col_index (-1) 和 values (0)
-    // for (IndexType chunk = 0; chunk < sell.chunk_num; ++chunk) {
-    //     sell.col_index[chunk].resize(sell.row_width[chunk] * sell.sliceWidth, IndexType(-1));
-    //     sell.values[chunk].resize(sell.row_width[chunk] * sell.sliceWidth, ValueType(0));
-    // }
     // 为每个chunk的行指针数组分配内存
     sell.col_index = new IndexType*[sell.chunk_num];
     sell.values = new ValueType*[sell.chunk_num];
@@ -282,10 +294,12 @@ S_ELL_Matrix<IndexType, ValueType> csr_to_sell(const CSR_Matrix<IndexType, Value
         size_t elem_nums = sell.row_width[chunk] * sell.sliceWidth;
 
         sell.col_index[chunk] = new_array<IndexType> (elem_nums);
+        CHECK_ALLOC(sell.col_index[chunk]);
         // 初始化col_index中的每个元素为-1
         std::fill_n(sell.col_index[chunk], elem_nums, static_cast<IndexType>(-1));
 
         sell.values[chunk] = new_array<ValueType> (elem_nums);
+        CHECK_ALLOC(sell.values[chunk]);
         // 初始化values中的每个元素为0
         std::fill_n(sell.values[chunk], elem_nums, ValueType(0));
     }
@@ -346,7 +360,7 @@ SELL_C_Sigma_Matrix<IndexType, ValueType> csr_to_sell_c_sigma(const CSR_Matrix<I
     
 
     sell_c_sigma.reorder = new_array<IndexType>(sell_c_sigma.num_rows);
-
+    CHECK_ALLOC(sell_c_sigma.reorder);
     /*-----------------------------------------------*/
     //  Step1. 确定重排序数组 
     /*-----------------------------------------------*/
@@ -381,7 +395,7 @@ SELL_C_Sigma_Matrix<IndexType, ValueType> csr_to_sell_c_sigma(const CSR_Matrix<I
     //  Step2. 确定 chunk_len数组，计算每个chunk的列数
     /*-----------------------------------------------*/
     sell_c_sigma.chunk_len = new_array<IndexType> (sell_c_sigma.validchunkNum);
-
+    CHECK_ALLOC(sell_c_sigma.chunk_len);
     // Initialize chunk_len to zeros
     std::fill_n(sell_c_sigma.chunk_len, sell_c_sigma.validchunkNum, 0);
 
@@ -417,11 +431,12 @@ SELL_C_Sigma_Matrix<IndexType, ValueType> csr_to_sell_c_sigma(const CSR_Matrix<I
     {
         size_t elem_nums = sell_c_sigma.chunk_len[chunk] * sell_c_sigma.chunkWidth_C;
         sell_c_sigma.col_index[chunk] = new_array<IndexType> (elem_nums);
-
+        CHECK_ALLOC(sell_c_sigma.col_index[chunk]);
         // 初始化 col_index 中每个元素为 -1
         std::fill_n(sell_c_sigma.col_index[chunk], elem_nums, static_cast<IndexType>(-1));
 
         sell_c_sigma.values[chunk] = new_array<ValueType> (elem_nums);
+        CHECK_ALLOC(sell_c_sigma.values[chunk]);
         // 初始化 values 中每个元素为 0 
         std::fill_n(sell_c_sigma.values[chunk], elem_nums, ValueType(0));
     }
@@ -470,7 +485,7 @@ SELL_C_R_Matrix<IndexType, ValueType> csr_to_sell_c_R(const CSR_Matrix<IndexType
     sell_c_R.validchunkNum = (sell_c_R.num_rows + sell_c_R.chunkWidth_C -1) / sell_c_R.chunkWidth_C;
 
     sell_c_R.reorder = new_array<IndexType>(sell_c_R.num_rows);
-
+    CHECK_ALLOC(sell_c_R.reorder);
     /*-----------------------------------------------*/
     //  Step1. 确定重排序数组 
     /*-----------------------------------------------*/
@@ -498,7 +513,7 @@ SELL_C_R_Matrix<IndexType, ValueType> csr_to_sell_c_R(const CSR_Matrix<IndexType
     //  Step2. 确定 chunk_len数组，计算每个chunk的列数
     /*-----------------------------------------------*/
     sell_c_R.chunk_len = new_array<IndexType> (sell_c_R.validchunkNum);
-
+    CHECK_ALLOC(sell_c_R.chunk_len);
     // Initialize chunk_len to zeros
     std::fill_n(sell_c_R.chunk_len, sell_c_R.validchunkNum, 0);
 
@@ -530,11 +545,12 @@ SELL_C_R_Matrix<IndexType, ValueType> csr_to_sell_c_R(const CSR_Matrix<IndexType
     {
         size_t elem_nums = sell_c_R.chunk_len[chunk] * sell_c_R.chunkWidth_C;
         sell_c_R.col_index[chunk] = new_array<IndexType> (elem_nums);
-
+        CHECK_ALLOC(sell_c_R.col_index[chunk]);
         // 初始化 col_index 中每个元素为 -1
         std::fill_n(sell_c_R.col_index[chunk], elem_nums, static_cast<IndexType>(-1));
 
         sell_c_R.values[chunk] = new_array<ValueType> (elem_nums);
+        CHECK_ALLOC(sell_c_R.values[chunk]);
         // 初始化 values 中每个元素为 0 
         std::fill_n(sell_c_R.values[chunk], elem_nums, ValueType(0));
     }
@@ -593,6 +609,7 @@ DIA_Matrix<IndexType, ValueType> csr_to_dia(const CSR_Matrix<IndexType, ValueTyp
     const IndexType unmarked = (IndexType) -1;
 
     IndexType* diag_map = new_array<IndexType> (dia.num_rows + dia.num_cols);
+    CHECK_ALLOC(diag_map);
     std::fill(diag_map, diag_map + dia.num_rows + dia.num_cols, unmarked);
 
     // IndexType* diag_map_2 = new_array<IndexType> (dia.num_rows + dia.num_cols);
@@ -701,17 +718,9 @@ DIA_Matrix<IndexType, ValueType> csr_to_dia(const CSR_Matrix<IndexType, ValueTyp
     dia.stride = alignment * ((dia.num_rows + alignment - 1)/ alignment);
 
     dia.diag_offsets = new_array<long int>  ((size_t) dia.complete_ndiags);
-    if ( dia.diag_offsets == nullptr)
-    {
-        printf("MALLOC dia.diag_offsets FAILED! \n");
-        exit(1);
-    }
+    CHECK_ALLOC(dia.diag_offsets);
     dia.diag_data    = new_array<ValueType> ((size_t) dia.complete_ndiags * dia.stride);
-    if ( dia.diag_data == nullptr)
-    {
-        printf("MALLOC dia.diag_data FAILED! \n");
-        exit(1);
-    }
+    CHECK_ALLOC(dia.diag_data);
 
     std::fill(dia.diag_data, dia.diag_data + (size_t) dia.complete_ndiags * dia.stride, ValueType(0));
 
@@ -755,11 +764,7 @@ BSR_Matrix<IndexType, ValueType> csr_to_bsr(const CSR_Matrix<IndexType, ValueTyp
     {
         // malloc the row_ptr
         bsr.row_ptr = new_array<IndexType> (bsr.mb + 1);
-        if (bsr.row_ptr == nullptr)
-        {
-            printf("BSR row_ptr malloc failed\n");
-            exit(-1);
-        }
+        CHECK_ALLOC(bsr.row_ptr);
         memset(bsr.row_ptr, 0, (bsr.mb + 1) * sizeof(IndexType));
 
         #pragma omp parallel for schedule(dynamic, 1024)
@@ -772,19 +777,11 @@ BSR_Matrix<IndexType, ValueType> csr_to_bsr(const CSR_Matrix<IndexType, ValueTyp
 
         // malloc the colindex
         bsr.block_colindex = new_array<IndexType> (bsr.nnzb);
-        if (bsr.block_colindex == nullptr)
-        {
-            printf("BSR block_colindex malloc failed\n");
-            exit(-1);
-        }
+        CHECK_ALLOC(bsr.block_colindex);
         memset(bsr.block_colindex, 0, bsr.nnzb * sizeof(IndexType));
         // malloc the data
         bsr.block_data = new_array<ValueType> ((size_t) bsr.nnzb * blockDimRow * blockDimCol);
-        if (bsr.block_data == nullptr)
-        {
-            printf("BSR block_data malloc failed\n");
-            exit(-1);
-        }
+        CHECK_ALLOC(bsr.block_data);
         memset(bsr.block_data, 0, ((size_t) bsr.nnzb * blockDimRow * blockDimCol) * sizeof(ValueType));
 
         #pragma omp parallel for schedule(dynamic, 1024)
@@ -804,11 +801,7 @@ BSR_Matrix<IndexType, ValueType> csr_to_bsr(const CSR_Matrix<IndexType, ValueTyp
     // ** General Case:
     // determine number of non-zero block columns for each block row of the bsr matrix
     bsr.row_ptr = new_array<IndexType> (bsr.mb + 1);
-    if (bsr.row_ptr == nullptr)
-    {
-        printf("BSR row_ptr malloc failed\n");
-        exit(-1);
-    }
+    CHECK_ALLOC(bsr.row_ptr);
     memset(bsr.row_ptr, 0, (bsr.mb + 1) * sizeof(IndexType));
 
     bsr.row_ptr[0] = 0;
@@ -843,19 +836,11 @@ BSR_Matrix<IndexType, ValueType> csr_to_bsr(const CSR_Matrix<IndexType, ValueTyp
     // find bsr col indices array
     // malloc the colindex
     bsr.block_colindex = new_array<IndexType> (bsr.nnzb);
-    if (bsr.block_colindex == nullptr)
-    {
-        printf("BSR block_colindex malloc failed\n");
-        exit(-1);
-    }
+    CHECK_ALLOC(bsr.block_colindex);
     memset(bsr.block_colindex, 0, bsr.nnzb * sizeof(IndexType));
     // malloc the data
     bsr.block_data = new_array<ValueType> ((size_t) bsr.nnzb * blockDimRow * blockDimCol);
-    if (bsr.block_data == nullptr)
-    {
-        printf("BSR block_data malloc failed\n");
-        exit(-1);
-    }
+    CHECK_ALLOC(bsr.block_data);
     memset(bsr.block_data, 0, ((size_t) bsr.nnzb * blockDimRow * blockDimCol) * sizeof(ValueType));
 
     IndexType colIndex = 0;
