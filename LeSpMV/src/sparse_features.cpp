@@ -541,7 +541,7 @@ bool MTX<IndexType, ValueType>::CalculateTilesFeatures()
     ValueType diff_tiles, diff_RB, diff_CB;
 
     // Count RB and CB features
-    for (IndexType i = 0; i < t_num_blocks; i++)
+    for (size_t i = 0; i < t_num_blocks; i++)
     {
         if (nnz_by_RB_[i])
             ++t_nz_ratio_RB_ ;
@@ -571,7 +571,7 @@ bool MTX<IndexType, ValueType>::CalculateTilesFeatures()
     t_standard_dev_CB = std::sqrt(t_var_nnz_CB);
 
     // Count Tile features
-    for (IndexType i = 0; i < t_num_blocks*t_num_blocks; i++)
+    for (size_t i = 0; i < t_num_blocks*t_num_blocks; i++)
     {
         if (nnz_by_Tiles_[i])
             ++t_nz_ratio_tiles_ ;
@@ -703,9 +703,9 @@ bool MTX<IndexType, ValueType>::CalculateTilesExtraFeatures(const char* mat_path
     std::vector<bool> flag_R(bsr.blockDim_r, true);
     std::vector<bool> flag_C(bsr.blockDim_c, true);
 
-    // IndexType threadNum = Le_get_thread_num();
+    IndexType threadNum = Le_get_thread_num();
 
-    // #pragma omp parallel for num_threads(threadNum)
+    #pragma omp parallel for num_threads(threadNum)
     for (size_t i = 0; i < bsr.mb; i++)
     {
         // 遍历 第i行的行块
