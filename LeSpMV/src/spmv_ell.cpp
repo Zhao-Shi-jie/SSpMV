@@ -27,11 +27,11 @@ void __spmv_ell_serial_simple(  const IndexType num_rows,
     if(ColMajor == ld)
     {
         // #pragma omp parallel for num_threads(thread_num) schedule(SCHEDULE_STRATEGY)
-        for (IndexType rowId = 0; rowId < num_rows; ++rowId)
+        for (size_t rowId = 0; rowId < num_rows; ++rowId)
         {
             ValueType sum = 0.0;
             // #pragma omp simd reduction(+:sum)
-            for (IndexType item = 0; item < maxNonzeros; item++)
+            for (size_t item = 0; item < maxNonzeros; item++)
             {
                 IndexType colID = colIndex[rowId + item * num_rows];
                 ValueType val = values[rowId + item * num_rows];   // 放外面可能是为SIMD
@@ -47,12 +47,12 @@ void __spmv_ell_serial_simple(  const IndexType num_rows,
     else if(RowMajor == ld)
     {
         // #pragma omp parallel for num_threads(thread_num) schedule(SCHEDULE_STRATEGY)
-        for (IndexType rowId = 0; rowId < num_rows; ++rowId)
+        for (size_t rowId = 0; rowId < num_rows; ++rowId)
         {
             ValueType sum = 0.0;
-            IndexType rowOff = rowId * maxNonzeros;
+            size_t rowOff = rowId * maxNonzeros;
             // #pragma omp simd reduction(+:sum)
-            for (IndexType item = 0; item < maxNonzeros; item++)
+            for (size_t item = 0; item < maxNonzeros; item++)
             {
                 IndexType colID = colIndex[rowOff + item];
                 ValueType val = values[rowOff + item]; // 放外面可能是为SIMD
@@ -84,11 +84,11 @@ void __spmv_ell_omp_simple( const IndexType num_rows,
     {
         // #pragma omp parallel for num_threads(thread_num) schedule(SCHEDULE_STRATEGY)
         #pragma omp parallel for num_threads(thread_num)
-        for (IndexType rowId = 0; rowId < num_rows; ++rowId)
+        for (size_t rowId = 0; rowId < num_rows; ++rowId)
         {
             ValueType sum = 0.0;
             #pragma omp simd reduction(+:sum)
-            for (IndexType item = 0; item < maxNonzeros; item++)
+            for (size_t item = 0; item < maxNonzeros; item++)
             {
                 IndexType colID = colIndex[rowId + item * num_rows];
                 ValueType val = values[rowId + item * num_rows]; // 放外面可能是为了SIMD
@@ -105,12 +105,12 @@ void __spmv_ell_omp_simple( const IndexType num_rows,
     {
         // #pragma omp parallel for num_threads(thread_num) schedule(SCHEDULE_STRATEGY)
         #pragma omp parallel for num_threads(thread_num)
-        for (IndexType rowId = 0; rowId < num_rows; ++rowId)
+        for (size_t rowId = 0; rowId < num_rows; ++rowId)
         {
             ValueType sum = 0.0;
-            IndexType rowOff = rowId * maxNonzeros;
+            size_t rowOff = rowId * maxNonzeros;
             #pragma omp simd reduction(+:sum)
-            for (IndexType item = 0; item < maxNonzeros; item++)
+            for (size_t item = 0; item < maxNonzeros; item++)
             {
                 IndexType colID = colIndex[rowOff + item];
                 ValueType val = values[rowOff + item]; // 放外面可能是为了SIMD
@@ -135,11 +135,11 @@ inline void  __spmv_ell_perthread(  const ValueType alpha,
                                     const IndexType num_rows,
                                     const IndexType maxNonzeros )
 {
-    for (IndexType row = lrs; row < lre; row++)
+    for (size_t row = lrs; row < lre; row++)
     {
         ValueType sum = 0.0;
         // Iterate over all possible non-zeros in the row
-        for (IndexType j = 0; j < maxNonzeros; ++j) {
+        for (size_t j = 0; j < maxNonzeros; ++j) {
             IndexType col = colIndex[row*maxNonzeros + j];
             if (col >= 0) { // Assuming -1 is used to indicate padding
                 sum += values[row*maxNonzeros + j] * x[col];
@@ -190,11 +190,11 @@ void __spmv_ell_omp_lb_row( const IndexType num_rows,
         //  暂时使用 omp_simple 的 ColMajor实现方法
         // #pragma omp parallel for num_threads(thread_num) schedule(SCHEDULE_STRATEGY)
         #pragma omp parallel for num_threads(thread_num)
-        for (IndexType rowId = 0; rowId < num_rows; ++rowId)
+        for (size_t rowId = 0; rowId < num_rows; ++rowId)
         {
             ValueType sum = 0.0;
             #pragma omp simd reduction(+:sum)
-            for (IndexType item = 0; item < maxNonzeros; item++)
+            for (size_t item = 0; item < maxNonzeros; item++)
             {
                 IndexType colID = colIndex[rowId + item * num_rows];
                 ValueType val = values[rowId + item * num_rows]; // 放外面可能是为了SIMD

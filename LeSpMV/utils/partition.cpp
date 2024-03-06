@@ -100,13 +100,13 @@ void balanced_partition_row_by_nnz_ell(const IndexType *col_index, const IndexTy
     }
 
     // 当前处理的非零元素数量
-    IndexType current_nnz = 0;
+    size_t current_nnz = 0;
 
-    for (IndexType i = 0, thread_id = 1; i < num_rows && thread_id < num_threads; ++i) {
+    for (size_t i = 0, thread_id = 1; i < num_rows && thread_id < num_threads; ++i) {
 
         // 计算当前行的非零元素数量
-        IndexType nnz_this_row = 0;
-        for (IndexType j = 0; j < max_width; ++j) {
+        size_t nnz_this_row = 0;
+        for (size_t j = 0; j < max_width; ++j) {
             if( col_index[j + i * max_width] >= 0 )
                 ++ nnz_this_row;
             else

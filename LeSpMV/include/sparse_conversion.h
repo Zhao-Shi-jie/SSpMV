@@ -109,9 +109,9 @@ ELL_Matrix<IndexType, ValueType> coo_to_ell( const COO_Matrix<IndexType, ValueTy
 
     ell.max_row_width = *std::max_element(rowCounts.begin(), rowCounts.end());
     // 分配矩阵空间
-    ell.col_index = new_array<IndexType> (ell.num_rows * ell.max_row_width);
+    ell.col_index = new_array<IndexType> ((size_t) ell.num_rows * ell.max_row_width);
     CHECK_ALLOC(ell.col_index);
-    ell.values    = new_array<ValueType> (ell.num_rows * ell.max_row_width);
+    ell.values    = new_array<ValueType> ((size_t) ell.num_rows * ell.max_row_width);
     CHECK_ALLOC(ell.values);
     // 初始化ELL格式的数组
     std::fill_n(ell.col_index, ell.num_rows*ell.max_row_width, static_cast<IndexType> (-1)); // 使用 -1 作为填充值，因为它不是有效的列索引
@@ -120,18 +120,18 @@ ELL_Matrix<IndexType, ValueType> coo_to_ell( const COO_Matrix<IndexType, ValueTy
     // 用COO数据填充ELL数组
     std::vector<IndexType> currentPos(ell.num_rows, 0); // 跟踪每行当前填充位置
     if (ColMajor == ell.ld){
-        for (IndexType i = 0; i < ell.num_nnzs; ++i) {
-            IndexType row = coo.row_index[i];
-            IndexType pos = row + currentPos[row] * ell.num_rows;
+        for (size_t i = 0; i < ell.num_nnzs; ++i) {
+            size_t row = coo.row_index[i];
+            size_t pos = row + (size_t) currentPos[row] * ell.num_rows;
             ell.values[pos] = coo.values[i];
             ell.col_index[pos] = coo.col_index[i];
             currentPos[row]++;
         }
     }
     else if (RowMajor == ell.ld){
-        for (IndexType i = 0; i < ell.num_nnzs; ++i) {
-            IndexType row = coo.row_index[i];
-            IndexType pos = row * ell.max_row_width + currentPos[row];
+        for (size_t i = 0; i < ell.num_nnzs; ++i) {
+            size_t row = coo.row_index[i];
+            size_t pos = (size_t) row * ell.max_row_width + currentPos[row];
             ell.values[pos] = coo.values[i];
             ell.col_index[pos] = coo.col_index[i];
             currentPos[row]++;
@@ -195,16 +195,16 @@ ELL_Matrix<IndexType, ValueType> csr_to_ell(const CSR_Matrix<IndexType, ValueTyp
     ell.ld = ld;
     IndexType max_nnz_per_row = 0;
     //计算每行的非零元数量并找到最大值
-    for (IndexType i = 0; i < csr.num_rows; i++)
+    for (size_t i = 0; i < csr.num_rows; i++)
     {
         max_nnz_per_row = std::max( max_nnz_per_row, csr.row_offset[i+1] - csr.row_offset[i]);
     }
     ell.max_row_width = max_nnz_per_row;
 
     // 分配矩阵空间
-    ell.col_index = new_array<IndexType> (ell.num_rows * ell.max_row_width);
+    ell.col_index = new_array<IndexType> ((size_t) ell.num_rows * ell.max_row_width);
     CHECK_ALLOC(ell.col_index);
-    ell.values    = new_array<ValueType> (ell.num_rows * ell.max_row_width);
+    ell.values    = new_array<ValueType> ((size_t) ell.num_rows * ell.max_row_width);
     CHECK_ALLOC(ell.values);
 
     // 初始化ELL格式的数组
@@ -214,11 +214,11 @@ ELL_Matrix<IndexType, ValueType> csr_to_ell(const CSR_Matrix<IndexType, ValueTyp
     if (ColMajor == ld)
     {
         // 给ELL格式的两个数组进行赋值, col-major
-        for (IndexType rowId = 0; rowId < ell.num_rows; ++rowId)
+        for (size_t rowId = 0; rowId < ell.num_rows; ++rowId)
         {
-            IndexType ellIndex = rowId;
+            size_t ellIndex = rowId;
             // 遍历 CSR row_ptr中 这行的所有非零元素
-            for (IndexType csrIndex = csr.row_offset[rowId]; csrIndex < csr.row_offset[rowId+1]; ++csrIndex) 
+            for (size_t csrIndex = csr.row_offset[rowId]; csrIndex < csr.row_offset[rowId+1]; ++csrIndex)
             {
                 ell.col_index[ellIndex] = csr.col_index[csrIndex];
                 ell.values[ellIndex]    =    csr.values[csrIndex];
@@ -229,11 +229,11 @@ ELL_Matrix<IndexType, ValueType> csr_to_ell(const CSR_Matrix<IndexType, ValueTyp
     else if (RowMajor == ld)
     {
         // 给ELL格式的两个数组进行赋值, row-major
-        for (IndexType rowId = 0; rowId < ell.num_rows; ++rowId)
+        for (size_t rowId = 0; rowId < ell.num_rows; ++rowId)
         {
-            IndexType ellIndex = rowId * ell.max_row_width;
+            size_t ellIndex = rowId * ell.max_row_width;
             // 遍历 CSR row_ptr中 这行的所有非零元素
-            for (IndexType csrIndex = csr.row_offset[rowId]; csrIndex < csr.row_offset[rowId+1]; ++csrIndex) 
+            for (size_t csrIndex = csr.row_offset[rowId]; csrIndex < csr.row_offset[rowId+1]; ++csrIndex)
             {
                 ell.col_index[ellIndex] = csr.col_index[csrIndex];
                 ell.values[ellIndex]    =    csr.values[csrIndex];
