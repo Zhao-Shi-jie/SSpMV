@@ -15,7 +15,7 @@
 template <typename IndexType, typename ValueType>
 int test_dia_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag, int schedule_mod)
 {
-    std::cout << "=====  Testing ELL Kernels  =====" << std::endl;
+    std::cout << "=====  Testing DIA Kernels  =====" << std::endl;
 
     DIA_Matrix<IndexType,ValueType> dia;
 

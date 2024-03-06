@@ -180,17 +180,19 @@ double benchmark_spmv(SparseMatrix & sp_host, SpMV spmv, const int min_iteration
     // warmup    
     timer time_one_iteration;
     spmv(1.0, sp_host, x_host, 0.0, y_host); // alpha = 1, beta = 0;
-    double estimated_time = time_one_iteration.seconds_elapsed();
-//    printf("estimated time for once %f\n", (float) estimated_time);
+    double estimated_time = time_one_iteration.milliseconds_elapsed();
+    // double estimated_time = time_one_iteration.seconds_elapsed();
+    // printf("estimated time for once %lf ms\n", (double) estimated_time);
 
     // determine # of seconds dynamically
     int num_iterations;
     num_iterations = max_iterations;
 
-    if (estimated_time == 0)
+    // if (estimated_time == 0)
+    if (estimated_time < 20) // less than 20 ms, so it can tolerate 20s for each SpMV
         num_iterations = max_iterations;
     else
-        num_iterations = std::min(max_iterations, std::max(min_iterations, (int) (seconds / estimated_time)) ); 
+        num_iterations = std::min(max_iterations, std::max(min_iterations, (int) (seconds*1000 / estimated_time)) ); 
     printf("\tPerforming %d iterations\n", num_iterations);
 
     // time several SpMV iterations

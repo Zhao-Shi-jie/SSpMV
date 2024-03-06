@@ -178,7 +178,7 @@ CSR_Matrix<IndexType, ValueType> read_csr_matrix(const char * mm_filename, bool 
 
     csr = coo_to_csr(coo, compact);
 
-    std::cout << "- Finish CSR convertion -" << std::endl;
+    // std::cout << "- Finish CSR convertion -" << std::endl;
     delete_host_matrix(coo);
 
     csr.kernel_flag = KERNEL_FLAG;

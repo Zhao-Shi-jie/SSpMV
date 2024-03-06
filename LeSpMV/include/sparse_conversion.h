@@ -595,92 +595,93 @@ DIA_Matrix<IndexType, ValueType> csr_to_dia(const CSR_Matrix<IndexType, ValueTyp
     IndexType* diag_map = new_array<IndexType> (dia.num_rows + dia.num_cols);
     std::fill(diag_map, diag_map + dia.num_rows + dia.num_cols, unmarked);
 
-    IndexType* diag_map_2 = new_array<IndexType> (dia.num_rows + dia.num_cols);
-    std::fill(diag_map_2, diag_map_2 + dia.num_rows + dia.num_cols, 0);
+    // IndexType* diag_map_2 = new_array<IndexType> (dia.num_rows + dia.num_cols);
+    // std::fill(diag_map_2, diag_map_2 + dia.num_rows + dia.num_cols, 0);
 
-    for (IndexType i = 0; i < dia.num_rows; i++)
+    for (size_t i = 0; i < dia.num_rows; i++)
     {
         //  遍历 csr 的第 i 行元素
-        for (IndexType jj = csr.row_offset[i]; jj < csr.row_offset[i+1]; jj++)
+        for (size_t jj = csr.row_offset[i]; jj < csr.row_offset[i+1]; jj++)
         {
-            IndexType j = csr.col_index[jj]; // j : 元素的列序号
-            IndexType map_index = (csr.num_rows - i) + j; //offset shifted by + num_rows
+            size_t j = csr.col_index[jj]; // j : 元素的列序号
+            size_t map_index = (csr.num_rows - i) + j; //offset shifted by + num_rows
 
             if( diag_map[map_index] == unmarked)
             {
                 diag_map[map_index] = complete_ndiags;
                 complete_ndiags ++;
             }
-            diag_map_2[map_index] ++;
+            // diag_map_2[map_index] ++;
         }
     }
 
-    IndexType j_ndiags = 0;
-    double ratio;
-    IndexType NTdiags = 0;
-    double* array_ndiags = new_array<double>(10);
-    std::fill(array_ndiags, array_ndiags + 10, 0.0);
+    // size_t j_ndiags = 0;
+    // double ratio;
+    // IndexType NTdiags = 0;
+    // double* array_ndiags = new_array<double>(10);
+    // std::fill(array_ndiags, array_ndiags + 10, 0.0);
 
-    for(IndexType i = 0; i < dia.num_rows + dia.num_cols; ++i){
-        //  此条对角线非空
-        if( diag_map_2[i] != 0 )
-        {
-            j_ndiags ++;
-            ratio = (double) diag_map_2[i] / csr.num_rows;
+    // for(size_t i = 0; i < dia.num_rows + dia.num_cols; ++i){
+    //     //  此条对角线非空
+    //     if( diag_map_2[i] != 0 )
+    //     {
+    //         j_ndiags ++;
+    //         ratio = (double) diag_map_2[i] / csr.num_rows;
 
-            if (ratio < 0.1 )
-                array_ndiags[0] ++;
-            else if (ratio < 0.2 )
-                array_ndiags[1] ++;
-            else if (ratio < 0.3 )
-                array_ndiags[2] ++;
-            else if (ratio < 0.4 )
-                array_ndiags[3] ++;
-            else if (ratio < 0.5 )
-                array_ndiags[4] ++;
-            else if (ratio < 0.6 )
-                array_ndiags[5] ++;
-            else if (ratio < 0.7 )
-                array_ndiags[6] ++;
-            else if (ratio < 0.8 )
-                array_ndiags[7] ++;
-            else if (ratio < 0.9 )
-                array_ndiags[8] ++;
-            else if (ratio <= 1.0 )
-                array_ndiags[9] ++;
+    //         if (ratio < 0.1 )
+    //             array_ndiags[0] ++;
+    //         else if (ratio < 0.2 )
+    //             array_ndiags[1] ++;
+    //         else if (ratio < 0.3 )
+    //             array_ndiags[2] ++;
+    //         else if (ratio < 0.4 )
+    //             array_ndiags[3] ++;
+    //         else if (ratio < 0.5 )
+    //             array_ndiags[4] ++;
+    //         else if (ratio < 0.6 )
+    //             array_ndiags[5] ++;
+    //         else if (ratio < 0.7 )
+    //             array_ndiags[6] ++;
+    //         else if (ratio < 0.8 )
+    //             array_ndiags[7] ++;
+    //         else if (ratio < 0.9 )
+    //             array_ndiags[8] ++;
+    //         else if (ratio <= 1.0 )
+    //             array_ndiags[9] ++;
 
-            if (ratio >= NTRATIO )
-                NTdiags ++;
-        }
-    }
-    assert( j_ndiags == complete_ndiags);
-    delete_array (diag_map_2);
-#ifdef COLLECT_FEATURES
-        fprintf(fp_feature, "Ndiags : %d\n", complete_ndiags );
-#endif
-    for ( int i=0; i<10; i++)
-    {
-        array_ndiags[i] /= complete_ndiags;
-// 对角线稠密范围
-#ifdef COLLECT_FEATURES
-          if ( i == 0 )
-            fprintf(fp_feature, "Num_diags ER in ( %d %%, %d %% ) : %lf \n", i*10, (i+1)*10, array_ndiags[i] );
-          else if ( i == 9 )
-            fprintf(fp_feature, "Num_diags ER in [ %d %%, %d %% ] : %lf \n", i*10, (i+1)*10, array_ndiags[i] );
-          else
-            fprintf(fp_feature, "Num_diags ER in [ %d %%, %d %% ) : %lf \n", i*10, (i+1)*10, array_ndiags[i] );
-#endif
-    }
+    //         if (ratio >= NTRATIO )
+    //             NTdiags ++;
+    //     }
+    // }
+    // assert( j_ndiags == complete_ndiags);
+    // delete_array (diag_map_2);
+// #ifdef COLLECT_FEATURES
+//         fprintf(fp_feature, "Ndiags : %d\n", complete_ndiags );
+// #endif
+
+//     for ( int i=0; i<10; i++)
+//     {
+//         array_ndiags[i] /= complete_ndiags;
+// // 对角线稠密范围
+// #ifdef COLLECT_FEATURES
+//           if ( i == 0 )
+//             fprintf(fp_feature, "Num_diags ER in ( %d %%, %d %% ) : %lf \n", i*10, (i+1)*10, array_ndiags[i] );
+//           else if ( i == 9 )
+//             fprintf(fp_feature, "Num_diags ER in [ %d %%, %d %% ] : %lf \n", i*10, (i+1)*10, array_ndiags[i] );
+//           else
+//             fprintf(fp_feature, "Num_diags ER in [ %d %%, %d %% ) : %lf \n", i*10, (i+1)*10, array_ndiags[i] );
+// #endif
+//     }
     
-#ifdef COLLECT_FEATURES
-        // 达到 NT 比例的对角线占比
-        double NTdiags_ratio = (double) NTdiags/ complete_ndiags;
-        // DIA 格式下的稠密度
-        double ER_DIA = (double) dia.num_nnzs / (complete_ndiags * dia.num_rows);
-        fprintf(fp_feature, "NTdiags_ratio : %lf  ( TH is 0.6 )\n", NTdiags_ratio );
-        fprintf(fp_feature, "ER_DIA : %lf\n", ER_DIA );
-#endif
-    delete_array(array_ndiags);
+// #ifdef COLLECT_FEATURES
+//         // 达到 NT 比例的对角线占比
+//         double NTdiags_ratio = (double) NTdiags/ complete_ndiags;
+//         // DIA 格式下的稠密度
+//         double ER_DIA = (double) dia.num_nnzs / (complete_ndiags * dia.num_rows);
+//         fprintf(fp_feature, "NTdiags_ratio : %lf  ( TH is 0.6 )\n", NTdiags_ratio );
+//         fprintf(fp_feature, "ER_DIA : %lf\n", ER_DIA );
+// #endif
+    // delete_array(array_ndiags);
     dia.complete_ndiags = complete_ndiags;
 
     if(complete_ndiags > max_diags)
@@ -691,28 +692,39 @@ DIA_Matrix<IndexType, ValueType> csr_to_dia(const CSR_Matrix<IndexType, ValueTyp
         // dia.num_nnzs     = 0;
         dia.stride       = 0; 
         dia.gflops	= 0;
-        delete_array(diag_map);                                     
-        return dia;
+        delete_array(diag_map);
+        exit(1);
+        // return dia;
     }
 
     // length of each diagonal in memory, 按照 alignment 对齐
     dia.stride = alignment * ((dia.num_rows + alignment - 1)/ alignment);
 
-    dia.diag_offsets = new_array<int>       (dia.complete_ndiags);
-    dia.diag_data    = new_array<ValueType> (dia.complete_ndiags * dia.stride);
-
-    std::fill(dia.diag_data, dia.diag_data + dia.complete_ndiags * dia.stride, ValueType(0));
-
-    for(IndexType n = 0; n < dia.num_rows + dia.num_cols; n++)
-        if(diag_map[n] != unmarked) // 算出offset
-            dia.diag_offsets[diag_map[n]] = (int) n - (int) dia.num_rows;
-        
-    for (IndexType i = 0; i < csr.num_rows; i++)
+    dia.diag_offsets = new_array<long int>  ((size_t) dia.complete_ndiags);
+    if ( dia.diag_offsets == nullptr)
     {
-        for(IndexType jj = csr.row_offset[i]; jj < csr.row_offset[i+1]; jj++){
-            IndexType j = csr.col_index[jj];
-            IndexType map_index = (csr.num_rows - i) + j; //offset shifted by + num_rows
-            IndexType diag = diag_map[map_index];
+        printf("MALLOC dia.diag_offsets FAILED! \n");
+        exit(1);
+    }
+    dia.diag_data    = new_array<ValueType> ((size_t) dia.complete_ndiags * dia.stride);
+    if ( dia.diag_data == nullptr)
+    {
+        printf("MALLOC dia.diag_data FAILED! \n");
+        exit(1);
+    }
+
+    std::fill(dia.diag_data, dia.diag_data + (size_t) dia.complete_ndiags * dia.stride, ValueType(0));
+
+    for(size_t n = 0; n < dia.num_rows + dia.num_cols; n++)
+        if(diag_map[n] != unmarked) // 算出offset
+            dia.diag_offsets[diag_map[n]] = (long int) n - (long int) dia.num_rows;
+        
+    for (size_t i = 0; i < csr.num_rows; i++)
+    {
+        for(size_t jj = csr.row_offset[i]; jj < csr.row_offset[i+1]; jj++){
+            size_t j = csr.col_index[jj];
+            size_t map_index = (csr.num_rows - i) + j; //offset shifted by + num_rows
+            size_t diag = diag_map[map_index];
             dia.diag_data[diag*dia.stride + i] = csr.values[jj];
         }
     }

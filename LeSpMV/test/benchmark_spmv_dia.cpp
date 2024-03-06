@@ -46,7 +46,7 @@ void run_dia_kernels(int argc, char **argv)
     // reference CSR kernel for dia test
     CSR_Matrix<IndexType, ValueType> csr;
     csr = read_csr_matrix<IndexType, ValueType> (mm_filename);
-    printf("Using %d-by-%d matrix with %d nonzero values", csr.num_rows, csr.num_cols, csr.num_nnzs); 
+    printf("Using %d-by-%d matrix with %d nonzero values\n", csr.num_rows, csr.num_cols, csr.num_nnzs); 
 
     fflush(stdout);
 

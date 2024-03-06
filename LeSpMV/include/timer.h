@@ -36,18 +36,19 @@ class timer
         start = rdtsc();
     }
 
-    float milliseconds_elapsed()
+    double milliseconds_elapsed()
     { 
-        float elapsed_time;
-	 end = rdtsc();
+        double elapsed_time;
+	    end = rdtsc();
         // elapsed_time = 1000*(end - start)/CPU_FREQUENCY;
-        elapsed_time = 1000*(end - start)/CPU_MAX_FREQUENCY;
+        elapsed_time = (double) 1000*(end - start)/CPU_MAX_FREQUENCY;
         return elapsed_time;
     }
-    float seconds_elapsed()
-    { 
+    double seconds_elapsed()
+    {
+        end = rdtsc();
         // return (end - start)/CPU_FREQUENCY;
-        return (end - start)/CPU_MAX_FREQUENCY;
+        return (double)(end - start)/CPU_MAX_FREQUENCY;
     }
 };
 

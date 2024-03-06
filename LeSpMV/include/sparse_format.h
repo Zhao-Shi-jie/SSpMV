@@ -178,7 +178,7 @@ struct DIA_Matrix : public Matrix_Features<IndexType>
     IndexType stride;  // diag 存储按照 alignment 对齐后，访问下一条对角线的stride
     IndexType complete_ndiags;  // 存共有 complete_ndiags 条对角线
 
-    int       * diag_offsets;  //diagonal offsets (must be a signed type)
+    long int  * diag_offsets;  //diagonal offsets (must be a signed type)
     ValueType * diag_data;     //nonzero values stored in a (dia.complete_ndiags * dia.stride) matrix 
 };
 

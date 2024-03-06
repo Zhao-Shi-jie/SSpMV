@@ -545,8 +545,8 @@ bool MTX<IndexType, ValueType>::CalculateTilesFeatures()
     {
         if (nnz_by_RB_[i])
             ++t_nz_ratio_RB_ ;
-        else
-            printf("zero RB = %d\n", i);
+        // else
+        //     printf("zero RB = %d\n", i);
 
         if (nnz_by_CB_[i])
             ++t_nz_ratio_CB_ ;
