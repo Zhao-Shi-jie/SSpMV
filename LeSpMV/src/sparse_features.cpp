@@ -180,8 +180,6 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
     
     //  可以存 tile features
     if (tile_flag){
-        // t_num_RB = (num_rows + t_num_blocks - 1) / t_num_blocks;
-        // t_num_CB = (num_cols + t_num_blocks - 1) / t_num_blocks;
         // 为避免空块，只能向下取整； 多出的元素均匀分给 0 ~ t_mod_RB-1 行，和 0 ~ t_mod_CB-1 列
         t_num_RB = num_rows / t_num_blocks; t_mod_RB = num_rows % t_num_blocks;
         t_num_CB = num_cols / t_num_blocks; t_mod_CB = num_cols % t_num_blocks;
@@ -189,8 +187,6 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
         nnz_by_RB_.resize(t_num_blocks, 0);
         nnz_by_CB_.resize(t_num_blocks, 0);
     }
-    // 45056  +  1716 = 46772
-    //  1716 * 23 = 39,468 ； 332 * 22 = 7,304 ； 39468 + 7304 = 46,772
 
     IndexType row_idx, col_idx;
     IndexType t_rowidx, t_colidx;   // tiles 中的序号
@@ -206,7 +202,11 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
     if(mm_is_pattern(mat_code)){        // 二进制矩阵， 元素只有0/1
         for (IndexType i = 0; i < nnz_mtx_; i++)
         {
-            assert(fscanf(mtx_file,"%d %d\n", &row_idx, &col_idx) == 2);
+            if constexpr(std::is_same<IndexType, int>::value) {
+                assert(fscanf(mtx_file,"%d %d\n", &row_idx, &col_idx) == 2);
+            } else if constexpr(std::is_same<IndexType, long long>::value) {
+                assert(fscanf(mtx_file,"%lld %lld\n", &row_idx, &col_idx) == 2);
+            }
             // adjust from 1-based to 0-based indexing
             --row_idx;
             --col_idx;
@@ -272,7 +272,11 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
         for( IndexType i = 0; i < nnz_mtx_; i++ ){
             IndexType row_id, col_id;
             double V;
-            assert(fscanf(mtx_file, "%d %d %lf\n", &row_id, &col_id, &V) == 3);
+            if constexpr(std::is_same<IndexType, int>::value) {
+                assert(fscanf(mtx_file, "%d %d %lf\n", &row_id, &col_id, &V) == 3);
+            } else if constexpr(std::is_same<IndexType, long long>::value) {
+                assert(fscanf(mtx_file, "%lld %lld %lf\n", &row_id, &col_id, &V) == 3);
+            }
 
             row_idx   = (IndexType) row_id - 1;
             col_idx   = (IndexType) col_id - 1;
@@ -283,8 +287,6 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
             nnz_by_col_[col_idx]++;
             // 存一下分tile的信息
             if (tile_flag){
-                // t_rowidx = row_idx / t_num_RB;
-                // t_colidx = col_idx / t_num_CB;
                 t_rowidx = (row_idx < RB_threshold)? (row_idx / (t_num_RB+1)):(t_mod_RB + (row_idx - RB_threshold)/t_num_RB);
                 t_colidx = (col_idx < CB_threshold)? (col_idx / (t_num_CB+1)):(t_mod_CB + (col_idx - CB_threshold)/t_num_CB);
 
@@ -373,6 +375,8 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
 
 template bool MTX<int, float>::MtxLoad(const char* mat_path);
 template bool MTX<int, double>::MtxLoad(const char* mat_path);
+template bool MTX<long long, float>::MtxLoad(const char* mat_path);
+template bool MTX<long long, double>::MtxLoad(const char* mat_path);
 
 template <typename IndexType, typename ValueType>
 void P_ratioAndGini(const std::vector<IndexType> vec, const IndexType num_nnzs, ValueType &p_ratio, ValueType &Gini)
@@ -530,6 +534,8 @@ bool MTX<IndexType, ValueType>::CalculateFeatures()
 }
 template bool MTX<int, float>::CalculateFeatures();
 template bool MTX<int, double>::CalculateFeatures();
+template bool MTX<long long, float>::CalculateFeatures();
+template bool MTX<long long, double>::CalculateFeatures();
 
 template <typename IndexType, typename ValueType>
 bool MTX<IndexType, ValueType>::CalculateTilesFeatures()
@@ -598,6 +604,8 @@ bool MTX<IndexType, ValueType>::CalculateTilesFeatures()
 }
 template bool MTX<int, float>::CalculateTilesFeatures();
 template bool MTX<int, double>::CalculateTilesFeatures();
+template bool MTX<long long, float>::CalculateTilesFeatures();
+template bool MTX<long long, double>::CalculateTilesFeatures();
 
 // Finding the best Dim that make block_num closed to 2048
 template <typename IndexType>
@@ -621,6 +629,7 @@ IndexType BestDimForBSR( IndexType nums, IndexType target){
     return bestDim;
 }
 template int BestDimForBSR( int nums, int target);
+template long long BestDimForBSR( long long nums, long long target);
 
 template <typename IndexType, typename ValueType>
 void AnalyzeTile_Group(const ValueType* values, const IndexType blockDimRow, const IndexType blockDimCol, const IndexType GroupNum, IndexType& GrX_uniqRB, IndexType& GrX_uniqCB, bool flag_Row, bool flag_Col)
@@ -676,6 +685,8 @@ void AnalyzeTile_Group(const ValueType* values, const IndexType blockDimRow, con
 }
 template void AnalyzeTile_Group<int, float>(const float*, const int, const int, const int, int&, int&, bool, bool);
 template void AnalyzeTile_Group<int, double>(const double*, const int, const int, const int, int&, int&, bool, bool);
+template void AnalyzeTile_Group<long long, float>(const float*, const long long, const long long, const long long, long long&, long long&, bool, bool);
+template void AnalyzeTile_Group<long long, double>(const double*, const long long, const long long, const long long, long long&, long long&, bool, bool);
 
 
 template <typename IndexType, typename ValueType>
@@ -768,7 +779,8 @@ bool MTX<IndexType, ValueType>::CalculateTilesExtraFeatures(const char* mat_path
 }
 template bool MTX<int, float>::CalculateTilesExtraFeatures(const char* mat_path);
 template bool MTX<int, double>::CalculateTilesExtraFeatures(const char* mat_path);
-
+template bool MTX<long long, float>::CalculateTilesExtraFeatures(const char* mat_path);
+template bool MTX<long long, double>::CalculateTilesExtraFeatures(const char* mat_path);
 
 template <typename IndexType, typename ValueType>
 bool MTX<IndexType, ValueType>::PrintImage(std::string& outputpath){
@@ -787,6 +799,8 @@ bool MTX<IndexType, ValueType>::PrintImage(std::string& outputpath){
 
 template bool MTX<int, float>::PrintImage(std::string& outputpath);
 template bool MTX<int, double>::PrintImage(std::string& outputpath);
+template bool MTX<long long, float>::PrintImage(std::string& outputpath);
+template bool MTX<long long, double>::PrintImage(std::string& outputpath);
 
 template <typename IndexType, typename ValueType>
 bool MTX<IndexType, ValueType>::FeaturesWrite(const char* file_path)
@@ -802,29 +816,53 @@ bool MTX<IndexType, ValueType>::FeaturesWrite(const char* file_path)
         return false;
     }
 
-    fprintf(save_features, "%d %s ", matrixID_, matrixName.c_str());
-    fprintf(save_features, "%d %d ", num_rows, num_cols);
-    fprintf(save_features, "%d %lf ", num_nnzs, nnz_ratio_);
+    if constexpr(std::is_same<IndexType, int>::value) {
+        fprintf(save_features, "%d %s ", matrixID_, matrixName.c_str());
+        fprintf(save_features, "%d %d ", num_rows, num_cols);
+        fprintf(save_features, "%d %lf ", num_nnzs, nnz_ratio_);
 
-    fprintf(save_features, "%d %lf %lf ", is_symmetric_, pattern_symm_, value_symm_);
-    
-    fprintf(save_features, "%d %d %d ", nnz_lower_, nnz_upper_, nnz_diagonal_);
-    
-    // row statistic features
-    fprintf(save_features, "%.3f %d %d %lf %lf %lf %lf %lf ", nz_row_ratio_, min_nnz_each_row_, max_nnz_each_row_, ave_nnz_each_row_, var_nnz_each_row_, standard_dev_row_, P_ratio_row_, Gini_row_);
+        fprintf(save_features, "%d %lf %lf ", is_symmetric_, pattern_symm_, value_symm_);
+        
+        fprintf(save_features, "%d %d %d ", nnz_lower_, nnz_upper_, nnz_diagonal_);
+        
+        // row statistic features
+        fprintf(save_features, "%.3f %d %d %lf %lf %lf %lf %lf ", nz_row_ratio_, min_nnz_each_row_, max_nnz_each_row_, ave_nnz_each_row_, var_nnz_each_row_, standard_dev_row_, P_ratio_row_, Gini_row_);
 
-    // col statistic features
-    fprintf(save_features, "%.3f %d %d %lf %lf %lf %lf %lf ", nz_col_ratio_, min_nnz_each_col_, max_nnz_each_col_, ave_nnz_each_col_, var_nnz_each_col_, standard_dev_col_, P_ratio_col_, Gini_col_);
+        // col statistic features
+        fprintf(save_features, "%.3f %d %d %lf %lf %lf %lf %lf ", nz_col_ratio_, min_nnz_each_col_, max_nnz_each_col_, ave_nnz_each_col_, var_nnz_each_col_, standard_dev_col_, P_ratio_col_, Gini_col_);
 
-    // values features
-    fprintf(save_features, "%lg %lg ", max_value_offdiag_, max_value_diagonal_);
-    fprintf(save_features, "%lf ", diagonal_dominant_ratio_);
+        // values features
+        fprintf(save_features, "%lg %lg ", max_value_offdiag_, max_value_diagonal_);
+        fprintf(save_features, "%lf ", diagonal_dominant_ratio_);
 
-    fprintf(save_features, "%lf %lf \n", row_variability_, col_variability_);
+        fprintf(save_features, "%lf %lf \n", row_variability_, col_variability_);
+    } 
+    else if constexpr(std::is_same<IndexType, long long>::value) {
+        fprintf(save_features, "%lld %s ", matrixID_, matrixName.c_str());
+        fprintf(save_features, "%lld %lld ", num_rows, num_cols);
+        fprintf(save_features, "%lld %lf ", num_nnzs, nnz_ratio_);
 
-    fclose(save_features);
+        fprintf(save_features, "%d %lf %lf ", is_symmetric_, pattern_symm_, value_symm_);
+        
+        fprintf(save_features, "%lld %lld %lld ", nnz_lower_, nnz_upper_, nnz_diagonal_);
+        
+        // row statistic features
+        fprintf(save_features, "%.3f %lld %lld %lf %lf %lf %lf %lf ", nz_row_ratio_, min_nnz_each_row_, max_nnz_each_row_, ave_nnz_each_row_, var_nnz_each_row_, standard_dev_row_, P_ratio_row_, Gini_row_);
+
+        // col statistic features
+        fprintf(save_features, "%.3f %lld %lld %lf %lf %lf %lf %lf ", nz_col_ratio_, min_nnz_each_col_, max_nnz_each_col_, ave_nnz_each_col_, var_nnz_each_col_, standard_dev_col_, P_ratio_col_, Gini_col_);
+
+        // values features
+        fprintf(save_features, "%lg %lg ", max_value_offdiag_, max_value_diagonal_);
+        fprintf(save_features, "%lf ", diagonal_dominant_ratio_);
+
+        fprintf(save_features, "%lf %lf \n", row_variability_, col_variability_);
+    }
+        fclose(save_features);
     return true;
 }
 
 template bool MTX<int, float>::FeaturesWrite(const char* file_path);
 template bool MTX<int, double>::FeaturesWrite(const char* file_path);
+template bool MTX<long long, float>::FeaturesWrite(const char* file_path);
+template bool MTX<long long, double>::FeaturesWrite(const char* file_path);

@@ -81,7 +81,11 @@ COO_Matrix<IndexType,ValueType> read_coo_matrix(const char * mm_filename)
     if(mm_is_pattern(matcode)){
         for (IndexType i = 0; i < coo.num_nnzs; i++)
         {
-            assert(fscanf(fid,"%d %d\n", &(coo.row_index[i]), &(coo.col_index[i])) == 2);
+            if constexpr(std::is_same<IndexType, int>::value) {
+                assert(fscanf(fid,"%d %d\n", &(coo.row_index[i]), &(coo.col_index[i])) == 2);
+            } else if constexpr(std::is_same<IndexType, long long>::value) {
+                assert(fscanf(fid,"%lld %lld\n", &(coo.row_index[i]), &(coo.col_index[i])) == 2);
+            }
             // adjust from 1-based to 0-based indexing
             --coo.row_index[i];
             --coo.col_index[i];
@@ -91,8 +95,12 @@ COO_Matrix<IndexType,ValueType> read_coo_matrix(const char * mm_filename)
         for( IndexType i = 0; i < coo.num_nnzs; i++ ){
             IndexType row_id, col_id;
             double V; // read in double and convert to ValueType
-            
-            assert(fscanf(fid, "%d %d %lf\n", &row_id, &col_id, &V) == 3);
+
+            if constexpr(std::is_same<IndexType, int>::value) {
+                assert(fscanf(fid, "%d %d %lf\n", &row_id, &col_id, &V) == 3);
+            } else if constexpr(std::is_same<IndexType, long long>::value) {
+                assert(fscanf(fid, "%lld %lld %lf\n", &row_id, &col_id, &V) == 3);
+            }
 
             coo.row_index[i] = (IndexType) row_id - 1;
             coo.col_index[i] = (IndexType) col_id - 1;
@@ -156,6 +164,8 @@ COO_Matrix<IndexType,ValueType> read_coo_matrix(const char * mm_filename)
 
 template COO_Matrix<int, float> read_coo_matrix<int, float>(const char * mm_filename);
 template COO_Matrix<int, double> read_coo_matrix<int, double>(const char * mm_filename);
+template COO_Matrix<long long, float> read_coo_matrix<long long, float>(const char * mm_filename);
+template COO_Matrix<long long, double> read_coo_matrix<long long, double>(const char * mm_filename);
 
 /**
  * @brief Read sparse matrix in CSR format from ".mtx" format file.
@@ -195,6 +205,8 @@ CSR_Matrix<IndexType, ValueType> read_csr_matrix(const char * mm_filename, bool 
 
 template CSR_Matrix<int, float> read_csr_matrix<int, float>(const char * mm_filename, bool);
 template CSR_Matrix<int, double> read_csr_matrix<int, double>(const char * mm_filename, bool);
+template CSR_Matrix<long long, float> read_csr_matrix<long long, float>(const char * mm_filename, bool);
+template CSR_Matrix<long long, double> read_csr_matrix<long long, double>(const char * mm_filename, bool);
 
 
 template <class IndexType, class ValueType>
@@ -215,6 +227,8 @@ BSR_Matrix<IndexType, ValueType> read_bsr_matrix(const char * mm_filename, const
 }
 template BSR_Matrix<int, float> read_bsr_matrix<int, float>(const char * mm_filename, const int, const int);
 template BSR_Matrix<int, double> read_bsr_matrix<int, double>(const char * mm_filename, const int, const int);
+template BSR_Matrix<long long, float> read_bsr_matrix<long long, float>(const char * mm_filename, const long long, const long long);
+template BSR_Matrix<long long, double> read_bsr_matrix<long long, double>(const char * mm_filename, const long long, const long long);
 
 /**
  * @brief Read a sparse matrix in CSR5 format. Transform from CSR format.

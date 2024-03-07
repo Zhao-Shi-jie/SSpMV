@@ -10,7 +10,7 @@ set(CMAKE_CXX_FLAGS "-O3 -std=c++17")
 # set(CMAKE_CXX_FLAGS "-g ")
 if(CMAKE_CXX_COMPILER STREQUAL "icx")      # == 如果是intel编译器
   # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -qopt-zmm-usage=high -xHost")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -xHost -mavx512f -qopenmp")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -xHost -mavx512f -Wno-c++17-extensions -qopenmp")
 
   # 对于Intel编译器 使用 KMP_AFFINITY 设置线程亲和
   add_definitions(-DKMP_AFFINITY=compact,1,0,granularity=fine)

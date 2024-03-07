@@ -790,11 +790,6 @@ BSR_Matrix<IndexType, ValueType> csr_to_bsr(const CSR_Matrix<IndexType, ValueTyp
             bsr.block_colindex[i] = csr.col_index[i];
             bsr.block_data[i] = csr.values[i];
         }
-        // #pragma omp parallel for schedule(dynamic, 1024)
-        // for(size_t i = 0; i < csr.num_nnzs; i++)
-        // {
-        //     bsr.block_data[i] = csr.values[i];
-        // }
         return bsr;
     }
 
