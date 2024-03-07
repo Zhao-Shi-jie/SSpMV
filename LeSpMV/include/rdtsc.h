@@ -40,7 +40,15 @@ static __inline__ unsigned long long rdtsc(void)
 
   return(result);
 }
+#elif defined(__ARM_ARCH_ISA_A64)
 
+static __inline__ unsigned long long rdtsc(void) {
+    //Please note we read CNTVCT cpu system register which provides
+    //the accross-system consistent value of the virtual system counter.
+    uint64_t cntvct;
+    asm volatile ("mrs %0, cntvct_el0; " : "=r"(cntvct) :: "memory");
+    return cntvct;
+}
 #else
 
 #error "No tick counter is available!"
