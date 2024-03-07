@@ -216,3 +216,7 @@ void LeSpMV_bsr(const ValueType alpha, const BSR_Matrix<IndexType, ValueType>& b
 template void LeSpMV_bsr<int, float>(const float alpha, const BSR_Matrix<int, float>& bsr, const float *x, const float beta, float *y);
 
 template void LeSpMV_bsr<int, double>(const double alpha, const BSR_Matrix<int, double>& bsr, const double *x, const double beta, double *y);
+
+template void LeSpMV_bsr<long long, float>(const float alpha, const BSR_Matrix<long long, float>& bsr, const float *x, const float beta, float *y);
+
+template void LeSpMV_bsr<long long, double>(const double alpha, const BSR_Matrix<long long, double>& bsr, const double *x, const double beta, double *y);

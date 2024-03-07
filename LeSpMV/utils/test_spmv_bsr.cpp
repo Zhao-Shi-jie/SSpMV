@@ -19,8 +19,9 @@ int test_bsr_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
     BSR_Matrix<IndexType,ValueType> bsr;
 
     IndexType alignment = (SIMD_WIDTH/8/sizeof(ValueType));
-
-    bsr = csr_to_bsr(csr_ref, BSR_BlockDimRow, 1*alignment);
+    IndexType bsr_rowdim = BSR_BlockDimRow;
+    IndexType bsr_coldim = 1*alignment;
+    bsr = csr_to_bsr(csr_ref, bsr_rowdim, bsr_coldim);
 
     // 测试这个routine 要我们测的 kernel_tag
     bsr.kernel_flag = kernel_tag;
@@ -84,3 +85,7 @@ int test_bsr_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
 template int test_bsr_matrix_kernels<int,float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag, int sche);
 
 template int test_bsr_matrix_kernels<int,double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag, int sche);
+
+template int test_bsr_matrix_kernels<long long,float>(const CSR_Matrix<long long,float> &csr_ref, int kernel_tag, int sche);
+
+template int test_bsr_matrix_kernels<long long,double>(const CSR_Matrix<long long,double> &csr_ref, int kernel_tag, int sche);
