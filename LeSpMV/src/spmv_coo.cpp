@@ -148,3 +148,7 @@ void LeSpMV_coo(const ValueType alpha, const COO_Matrix<IndexType, ValueType>& c
 template void LeSpMV_coo<int, float>(const float, const COO_Matrix<int, float>&, const float* , const float, float*);
 
 template void LeSpMV_coo<int, double>(const double, const COO_Matrix<int, double>&, const double* , const double, double*);
+
+template void LeSpMV_coo<long long, float>(const float, const COO_Matrix<long long, float>&, const float* , const float, float*);
+
+template void LeSpMV_coo<long long, double>(const double, const COO_Matrix<long long, double>&, const double* , const double, double*);

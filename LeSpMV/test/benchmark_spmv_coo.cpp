@@ -18,8 +18,9 @@ void usage(int argc, char** argv)
     std::cout << "Usage:\n";
     std::cout << "\t" << argv[0] << " with following parameters:\n";
     std::cout << "\t" << " my_matrix.mtx\n";
-    std::cout << "\t" << " --precision=32(or 64)\n";
-    std::cout << "\t" << " --threads= define the num of omp threads\n";
+    std::cout << "\t" << " --Index     = 0 (int:default) or 1 (long long)\n";
+    std::cout << "\t" << " --precision = 32(or 64)\n";
+    std::cout << "\t" << " --threads   = define the num of omp threads\n";
     std::cout << "Note: my_matrix.mtx must be real-valued sparse matrix in the MatrixMarket file format.\n"; 
 }
 
@@ -41,7 +42,13 @@ void run_coo_kernels(int argc, char **argv)
     }
     CSR_Matrix <IndexType, ValueType> csr_ref;
     csr_ref = read_csr_matrix<IndexType, ValueType> (mm_filename);
-    printf("Using %d-by-%d matrix with %d nonzero values\n", csr_ref.num_rows, csr_ref.num_cols, csr_ref.num_nnzs); 
+
+    if constexpr(std::is_same<IndexType, int>::value) {
+        printf("Using %d-by-%d matrix with %d nonzero values\n", csr_ref.num_rows, csr_ref.num_cols, csr_ref.num_nnzs);
+    }
+    else if constexpr(std::is_same<IndexType, long long>::value) {
+        printf("Using %lld-by-%lld matrix with %lld nonzero values\n", csr_ref.num_rows, csr_ref.num_cols, csr_ref.num_nnzs);
+    }
 
     // fill matrix with random values: some matrices have extreme values, 他要替换稀疏矩阵的值，这里跳过
     // which makes correctness testing difficult, especially in single precision
@@ -88,15 +95,24 @@ int main(int argc, char** argv)
     if(threads_str != NULL)
         Le_set_thread_num(atoi(threads_str));
 
-    printf("\nUsing %d-bit floating point precision, threads = %d\n\n", precision, Le_get_thread_num());
+    int Index = 0;
+    char * Index_str = get_argval(argc, argv, "Index");
+    if(Index_str != NULL)
+        Index = atoi(Index_str);
 
-    if(precision ==  32){
-        // run_all_kernels<int, float>(argc,argv);
+    printf("\nUsing %d-bit floating point precision, %d-bit Index, threads = %d\n\n", precision, (Index+1)*32 , Le_get_thread_num());
+
+    if (Index == 0 && precision ==  32){
         run_coo_kernels<int, float>(argc,argv);
     }
-    else if(precision == 64){
-        // run_all_kernels<int, double>(argc,argv);
+    else if (Index == 0 && precision == 64){
         run_coo_kernels<int, double>(argc,argv);
+    }
+    else if (Index == 1 && precision ==  32){
+        run_coo_kernels<long long, float>(argc,argv);
+    }
+    else if (Index == 1 && precision == 64){
+        run_coo_kernels<long long, double>(argc,argv);
     }
     else{
         usage(argc, argv);

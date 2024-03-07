@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 template <typename IndexType>
-int lower_bound_int(const IndexType *t, IndexType l, IndexType r, IndexType value);
+IndexType lower_bound_int(const IndexType *t, IndexType l, IndexType r, IndexType value);
 
 /**
  * @brief Get a balanced partition of rows by nnzs 

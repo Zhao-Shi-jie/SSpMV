@@ -70,3 +70,7 @@ int test_coo_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
 template int test_coo_matrix_kernels<int,float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag);
 
 template int test_coo_matrix_kernels<int,double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag);
+
+template int test_coo_matrix_kernels<long long,float>(const CSR_Matrix<long long,float> &csr_ref, int kernel_tag);
+
+template int test_coo_matrix_kernels<long long,double>(const CSR_Matrix<long long,double> &csr_ref, int kernel_tag);

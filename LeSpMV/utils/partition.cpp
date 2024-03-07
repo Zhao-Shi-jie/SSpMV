@@ -26,7 +26,7 @@
  * @return int 
  */
 template <typename IndexType>
-int lower_bound_int(const IndexType *t, IndexType l, IndexType r, IndexType value)
+IndexType lower_bound_int(const IndexType *t, IndexType l, IndexType r, IndexType value)
 {
     while (r > l)
     {
@@ -43,6 +43,8 @@ int lower_bound_int(const IndexType *t, IndexType l, IndexType r, IndexType valu
     }
     return l;
 }
+template int lower_bound_int<int> (const int*, int, int, int);
+template long long lower_bound_int<long long> (const long long*, long long, long long, long long);
 
 /**
  * @brief Get a balanced partition of rows by nnzs 
@@ -67,12 +69,13 @@ void balanced_partition_row_by_nnz(const IndexType *row_ptr, IndexType rows, Ind
     #pragma omp parallel for num_threads(num_threads)
     for (IndexType i = 1; i < num_threads; i++)
     {
-        partition[i] = lower_bound_int(acc_sum_arr, 0, rows-1, (ave*i));
+        partition[i] = lower_bound_int(acc_sum_arr, (IndexType)0, rows-1, (ave*i));
     }
     partition[num_threads] = rows;
 }
 
 template void balanced_partition_row_by_nnz<int>(int const*, int, int, int*);
+template void balanced_partition_row_by_nnz<long long>(long long const*, long long, long long, long long*);
 
 /**
  * @brief Get a balanced partition of rows by nnzs 
@@ -128,3 +131,4 @@ void balanced_partition_row_by_nnz_ell(const IndexType *col_index, const IndexTy
 }
 
 template void balanced_partition_row_by_nnz_ell(const int*, const int, int, const int, int, int*);
+template void balanced_partition_row_by_nnz_ell(const long long*, const long long, long long, const long long, long long, long long*);

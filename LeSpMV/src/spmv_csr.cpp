@@ -177,3 +177,7 @@ void LeSpMV_csr(const ValueType alpha, const CSR_Matrix<IndexType, ValueType>& c
 template void LeSpMV_csr<int, float>(const float, const CSR_Matrix<int, float>&, const float* , const float, float*);
 
 template void LeSpMV_csr<int, double>(const double, const CSR_Matrix<int, double>&, const double* , const double, double*);
+
+template void LeSpMV_csr<long long, float>(const float, const CSR_Matrix<long long, float>&, const float* , const float, float*);
+
+template void LeSpMV_csr<long long, double>(const double, const CSR_Matrix<long long, double>&, const double* , const double, double*);

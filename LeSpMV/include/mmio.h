@@ -111,8 +111,8 @@ int mm_is_valid(MM_typecode matcode);		/* too complex for a macro */
 // int mm_read_mtx_crd_size(FILE *f, int *M, int *N, int *nz);
 template <typename IndexType>
 int mm_read_mtx_crd_size(FILE *f, IndexType *M, IndexType *N, IndexType *nz);
-int mm_read_mtx_array_size(FILE *f, int *M, int *N);
 
+int mm_read_mtx_array_size(FILE *f, int *M, int *N);
 
 int mm_write_mtx_crd_size(FILE *f, int M, int N, int nz);
 int mm_write_mtx_array_size(FILE *f, int M, int N);
