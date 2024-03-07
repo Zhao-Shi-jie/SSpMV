@@ -226,7 +226,8 @@ int mm_read_banner(FILE *f, MM_typecode *matcode)
     return 0;
 }
 
-int mm_read_mtx_crd_size(FILE *f, int *M, int *N, int *nz)
+template <typename IndexType>
+int mm_read_mtx_crd_size(FILE *f, IndexType *M, IndexType *N, IndexType *nz)
 {
     char line[MM_MAX_LINE_LENGTH];
     int num_items_read;
@@ -242,19 +243,45 @@ int mm_read_mtx_crd_size(FILE *f, int *M, int *N, int *nz)
     }while (line[0] == '%');
 
     /* line[] is either blank or has M,N, nz */
-    if (sscanf(line, "%d %d %d", M, N, nz) == 3)
-        return 0;
+    // if (sscanf(line, "%d %d %d", M, N, nz) == 3)
+    //     return 0;
 
-    else
-    do
-    {
-        num_items_read = fscanf(f, "%d %d %d", M, N, nz);
-        if (num_items_read == EOF) return MM_PREMATURE_EOF;
+    // else
+    // do
+    // {
+    //     num_items_read = fscanf(f, "%d %d %d", M, N, nz);
+    //     if (num_items_read == EOF) return MM_PREMATURE_EOF;
+    // }
+    // while (num_items_read != 3);
+
+    if constexpr(std::is_same<IndexType, int>::value) {
+        if (sscanf(line, "%d %d %d", M, N, nz) == 3)
+            return 0;
+        else
+        do
+        {
+            num_items_read = fscanf(f, "%d %d %d", M, N, nz);
+            if (num_items_read == EOF) return MM_PREMATURE_EOF;
+        }
+        while (num_items_read != 3);
+
     }
-    while (num_items_read != 3);
+    else if constexpr(std::is_same<IndexType, long long>::value) {
+        if (sscanf(line, "%lld %lld %lld", M, N, nz) == 3)
+            return 0;
+        else
+        do
+        {
+            num_items_read = fscanf(f, "%lld %lld %lld", M, N, nz);
+            if (num_items_read == EOF) return MM_PREMATURE_EOF;
+        }
+        while (num_items_read != 3);
+    }
 
     return 0;
 }
+template int mm_read_mtx_crd_size<int>(FILE*, int*, int* , int*);
+template int mm_read_mtx_crd_size<long long>(FILE*, long long*, long long*, long long*);
 
 int mm_read_mtx_array_size(FILE *f, int *M, int *N)
 {

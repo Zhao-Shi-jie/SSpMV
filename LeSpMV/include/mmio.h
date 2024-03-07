@@ -13,6 +13,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <type_traits>
 
 #define MM_MAX_LINE_LENGTH 1025
 #define MatrixMarketBanner "%%MatrixMarket"
@@ -107,7 +108,9 @@ char *mm_typecode_to_str(MM_typecode matcode);
 int mm_is_valid(MM_typecode matcode);		/* too complex for a macro */
 
 
-int mm_read_mtx_crd_size(FILE *f, int *M, int *N, int *nz);
+// int mm_read_mtx_crd_size(FILE *f, int *M, int *N, int *nz);
+template <typename IndexType>
+int mm_read_mtx_crd_size(FILE *f, IndexType *M, IndexType *N, IndexType *nz);
 int mm_read_mtx_array_size(FILE *f, int *M, int *N);
 
 
