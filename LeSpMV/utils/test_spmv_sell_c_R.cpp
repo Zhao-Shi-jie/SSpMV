@@ -47,7 +47,7 @@ int test_sell_c_R_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref,
         std::cout << "\n===  Compared SELL-c-R omp with csr default  ===" << std::endl;
         // 设置 omp 调度策略
         const IndexType thread_num = Le_get_thread_num();
-        const IndexType chunk_size = std::max(1, sell_c_R.validchunkNum/thread_num);
+        const IndexType chunk_size = std::max((IndexType)1, sell_c_R.validchunkNum/thread_num);
         set_omp_schedule(schedule_mod, chunk_size);
 
         // test correctness
@@ -81,3 +81,7 @@ int test_sell_c_R_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref,
 template int test_sell_c_R_matrix_kernels<int,float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag, int sche);
 
 template int test_sell_c_R_matrix_kernels<int,double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag, int sche);
+
+template int test_sell_c_R_matrix_kernels<long long,float>(const CSR_Matrix<long long,float> &csr_ref, int kernel_tag, int sche);
+
+template int test_sell_c_R_matrix_kernels<long long,double>(const CSR_Matrix<long long,double> &csr_ref, int kernel_tag, int sche);

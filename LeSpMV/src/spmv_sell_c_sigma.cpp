@@ -120,3 +120,7 @@ void LeSpMV_sell_c_sigma(const ValueType alpha, const SELL_C_Sigma_Matrix<IndexT
 template void LeSpMV_sell_c_sigma<int, float>(const float alpha, const SELL_C_Sigma_Matrix<int, float>& sell, const float * x, const float beta, float * y);
 
 template void LeSpMV_sell_c_sigma<int, double>(const double alpha, const SELL_C_Sigma_Matrix<int, double>& sell, const double * x, const double beta, double * y);
+
+template void LeSpMV_sell_c_sigma<long long, float>(const float alpha, const SELL_C_Sigma_Matrix<long long, float>& sell, const float * x, const float beta, float * y);
+
+template void LeSpMV_sell_c_sigma<long long, double>(const double alpha, const SELL_C_Sigma_Matrix<long long, double>& sell, const double * x, const double beta, double * y);

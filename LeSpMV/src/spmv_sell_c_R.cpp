@@ -120,3 +120,7 @@ void LeSpMV_sell_c_R(const ValueType alpha, const SELL_C_R_Matrix<IndexType, Val
 template void LeSpMV_sell_c_R<int, float>(const float alpha, const SELL_C_R_Matrix<int, float>& sell, const float * x, const float beta, float * y);
 
 template void LeSpMV_sell_c_R<int, double>(const double alpha, const SELL_C_R_Matrix<int, double>& sell, const double * x, const double beta, double * y);
+
+template void LeSpMV_sell_c_R<long long, float>(const float alpha, const SELL_C_R_Matrix<long long, float>& sell, const float * x, const float beta, float * y);
+
+template void LeSpMV_sell_c_R<long long, double>(const double alpha, const SELL_C_R_Matrix<long long, double>& sell, const double * x, const double beta, double * y);

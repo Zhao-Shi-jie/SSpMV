@@ -142,3 +142,7 @@ void LeSpMV_sell(const ValueType alpha, const S_ELL_Matrix<IndexType, ValueType>
 template void LeSpMV_sell<int, float>(const float alpha, const S_ELL_Matrix<int, float>& sell, const float * x, const float beta, float * y);
 
 template void LeSpMV_sell<int, double>(const double alpha, const S_ELL_Matrix<int, double>& sell, const double * x, const double beta, double * y);
+
+template void LeSpMV_sell<long long, float>(const float alpha, const S_ELL_Matrix<long long, float>& sell, const float * x, const float beta, float * y);
+
+template void LeSpMV_sell<long long, double>(const double alpha, const S_ELL_Matrix<long long, double>& sell, const double * x, const double beta, double * y);
