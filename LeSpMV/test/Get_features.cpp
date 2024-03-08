@@ -57,7 +57,6 @@ void test_features(int argc, char** argv)
         mtx.CalculateTilesExtraFeatures(mm_filename);
         mtx.ExtraFeaturesPrint();
     }
-
     
     mtx.FeaturesWrite(MAT_FEATURES);
 }

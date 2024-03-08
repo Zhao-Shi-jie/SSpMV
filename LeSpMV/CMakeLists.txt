@@ -7,7 +7,7 @@ if(NOT CMAKE_CXX_COMPILER)
 endif()
 
 set(CMAKE_CXX_FLAGS "-O3 -std=c++17")
-# set(CMAKE_CXX_FLAGS "-g ")
+# set(CMAKE_CXX_FLAGS "-O0 -g -std=c++17")
 if(CMAKE_CXX_COMPILER STREQUAL "icx")      # == 如果是intel编译器
   # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -qopt-zmm-usage=high -xHost")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -xHost -mavx512f -Wno-c++17-extensions -qopenmp")

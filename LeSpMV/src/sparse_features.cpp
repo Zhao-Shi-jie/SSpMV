@@ -697,22 +697,28 @@ bool MTX<IndexType, ValueType>::CalculateTilesExtraFeatures(const char* mat_path
     BSR_Matrix<IndexType, ValueType> bsr;
     IndexType tileDim_row = BestDimForBSR(num_rows, t_num_blocks);
     IndexType tileDim_col = BestDimForBSR(num_cols, t_num_blocks);
-    bool flag_GrX_uniqRB = (tileDim_row >= GrX);
-    bool flag_GrX_uniqCB = (tileDim_col >= GrX);
 
     bsr = read_bsr_matrix<IndexType, ValueType>(mat_path, tileDim_row, tileDim_col);
+
+    // tile的size 必须要比 Group 大，统计Grx_uniq才有意义
+    bool flag_GrX_uniqRB = (bsr.blockDim_r >= GrX);
+    bool flag_GrX_uniqCB = (bsr.blockDim_c >= GrX);
+    IndexType GrxRB_perT, GrxCB_perT;
 
     uniq_RB.resize(bsr.mb * bsr.nb, 0);  // number of total blocks in mat
     uniq_CB.resize(bsr.mb * bsr.nb, 0);
     
-    if( flag_GrX_uniqRB )
+    if( flag_GrX_uniqRB ) {
+        GrxRB_perT = (bsr.blockDim_r + GrX - 1)/GrX;
         GrX_uniqRB.resize(bsr.mb * bsr.nb, 0);
-    if( flag_GrX_uniqCB )
+        GrX_potReuseRB.resize(bsr.mb * GrxRB_perT, 0);
+    }
+    if( flag_GrX_uniqCB ) {
+        GrxCB_perT = (bsr.blockDim_c + GrX - 1)/GrX;
         GrX_uniqCB.resize(bsr.mb * bsr.nb, 0);
+        GrX_potReuseCB.resize(bsr.nb * GrxCB_perT, 0);
+    }
 
-    // // 每一个tile 内的 标记矩阵，用于统计改行 or 列 是否已经统计过
-    std::vector<bool> flag_R(bsr.blockDim_r, true);
-    std::vector<bool> flag_C(bsr.blockDim_c, true);
 
     IndexType threadNum = Le_get_thread_num();
 
@@ -729,12 +735,16 @@ bool MTX<IndexType, ValueType>::CalculateTilesExtraFeatures(const char* mat_path
             size_t block_col = bsr.block_colindex[j];
             // 存储在 uniq 中的 tile ID 位置
             size_t tileID = i * bsr.nb  + block_col;
+            // 存储在 GrX_potReuseRB 和 GrX_potReuseCB 中的 起始 行/列 位置
+            // size_t GrX_potRowID = i * GrxRB_perT;
+            // size_t GrX_potColID = block_col * GrxCB_perT;
 
             // 每一个tile 内的 标记矩阵，用于统计uniqR行 or uniqC列 是否已经统计过
-            std::fill(flag_R.begin(), flag_R.end(), true);
-            std::fill(flag_C.begin(), flag_C.end(), true);
-            // std::vector<bool> flag_R(bsr.blockDim_r, true);
-            // std::vector<bool> flag_C(bsr.blockDim_c, true);
+            std::vector<bool> flag_R(bsr.blockDim_r, true);
+            std::vector<bool> flag_C(bsr.blockDim_c, true);
+
+            std::vector<bool> flag_potGrXR(GrxRB_perT, true);
+            std::vector<bool> flag_potGrXC(GrxCB_perT, true);
 
             // 遍历块的内部
             for (size_t br = 0; br < bsr.blockDim_r; ++br) {
@@ -756,6 +766,16 @@ bool MTX<IndexType, ValueType>::CalculateTilesExtraFeatures(const char* mat_path
                            uniq_CB[tileID]++;
                            flag_C[bc] = false;  // convert to false
                         }
+                        if( flag_GrX_uniqRB && flag_potGrXR[br/GrX]){   // true: count the none zero tile in GrX_row
+                            #pragma omp atomic
+                            GrX_potReuseRB[i *  GrxRB_perT + br/GrX]++;
+                            flag_potGrXR[br/GrX] = false;
+                        }
+                        if( flag_GrX_uniqCB && flag_potGrXC[bc/GrX]){   // true: count the none zero tile in GrX_col
+                            #pragma omp atomic
+                            GrX_potReuseCB[block_col * GrxCB_perT + bc/GrX]++;
+                            flag_potGrXC[bc/GrX] = false;
+                        }
                     }
                 }
             }
@@ -770,10 +790,15 @@ bool MTX<IndexType, ValueType>::CalculateTilesExtraFeatures(const char* mat_path
     potReuseC = (ValueType) std::accumulate(uniq_CB.begin(), uniq_CB.end(), 0)/num_cols;
     
     if( flag_GrX_uniqRB )
+    {
         GrX_uniqR = (ValueType) std::accumulate(GrX_uniqRB.begin(), GrX_uniqRB.end(), 0) / num_nnzs;
+        GrX_potReuseR = (ValueType) std::accumulate(GrX_potReuseRB.begin(), GrX_potReuseRB.end(), 0) / GrX_potReuseRB.size();
+    }
     if( flag_GrX_uniqCB )
+    {
         GrX_uniqC = (ValueType) std::accumulate(GrX_uniqCB.begin(), GrX_uniqCB.end(), 0) / num_nnzs;
-
+        GrX_potReuseC = (ValueType) std::accumulate(GrX_potReuseCB.begin(), GrX_potReuseCB.end(), 0) / GrX_potReuseCB.size();
+    }
     delete_bsr_matrix(bsr);
     return true;
 }

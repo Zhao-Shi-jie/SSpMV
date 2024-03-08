@@ -130,6 +130,9 @@ class MTX{
 
             std::cout<< "potReuseR      = " << potReuseR << std::endl;
             std::cout<< "potReuseC      = " << potReuseC << std::endl<< std::endl;
+
+            std::cout<< "GrX_potReuseR  = " << GrX_potReuseR << std::endl;
+            std::cout<< "GrX_potReuseC  = " << GrX_potReuseC << std::endl<< std::endl;
         }
 
     private:
@@ -289,8 +292,8 @@ class MTX{
         // GrX_porReuse ; for data reuse in the LLC with more coarse granularity
         std::vector<IndexType> GrX_potReuseRB;  // size: num_GrXrows
         std::vector<IndexType> GrX_potReuseCB;  // size: num_GrXcols
-        ValueType GrX_potReuseR = 0.0;      // sum devide num of GrXrows
-        ValueType GrX_potReuseC = 0.0;      // sum devide num of GrXcols
+        ValueType GrX_potReuseR = -1.0;      // sum devide num of GrXrows
+        ValueType GrX_potReuseC = -1.0;     // sum devide num of GrXcols
 
 };
 
