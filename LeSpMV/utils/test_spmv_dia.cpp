@@ -48,7 +48,7 @@ int test_dia_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
         const IndexType thread_num = Le_get_thread_num();
         
         // IndexType chunk_size = OMP_ROWS_SIZE;
-        const IndexType chunk_size = std::max(1, dia.complete_ndiags/thread_num); // 对角线数目 除以线程数
+        const IndexType chunk_size = std::max((IndexType)1, dia.complete_ndiags/thread_num); // 对角线数目 除以线程数
 
         set_omp_schedule(schedule_mod, chunk_size);
 
@@ -70,3 +70,7 @@ int test_dia_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
 template int test_dia_matrix_kernels<int,float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag, int schedule_mod);
 
 template int test_dia_matrix_kernels<int,double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag, int schedule_mod);
+
+template int test_dia_matrix_kernels<long long,float>(const CSR_Matrix<long long,float> &csr_ref, int kernel_tag, int schedule_mod);
+
+template int test_dia_matrix_kernels<long long,double>(const CSR_Matrix<long long,double> &csr_ref, int kernel_tag, int schedule_mod);

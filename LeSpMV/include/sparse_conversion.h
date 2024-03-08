@@ -703,7 +703,12 @@ DIA_Matrix<IndexType, ValueType> csr_to_dia(const CSR_Matrix<IndexType, ValueTyp
 
     if(complete_ndiags > max_diags)
     {
-        printf("\tNumber of diagonals (%d) excedes limit (%d)\n", dia.complete_ndiags, max_diags);
+        if constexpr(std::is_same<IndexType, int>::value) {
+            printf("\tNumber of diagonals (%d) excedes limit (%d)\n", dia.complete_ndiags, max_diags);
+        }
+        else if constexpr(std::is_same<IndexType, long long>::value) {
+            printf("\tNumber of diagonals (%lld) excedes limit (%lld)\n", dia.complete_ndiags, max_diags);
+        }
         // dia.num_rows     = 0;
         // dia.num_cols     = 0;
         // dia.num_nnzs     = 0;

@@ -330,6 +330,8 @@ DIA_Matrix<IndexType, ValueType> read_dia_matrix(const char * mm_filename, const
 
 template DIA_Matrix<int, float> read_dia_matrix<int, float>(const char * mm_filename, const int max_diags, const int alignment);
 template DIA_Matrix<int, double> read_dia_matrix<int, double>(const char * mm_filename, const int max_diags, const int alignment);
+template DIA_Matrix<long long, float> read_dia_matrix<long long, float>(const char * mm_filename, const long long max_diags, const long long alignment);
+template DIA_Matrix<long long, double> read_dia_matrix<long long, double>(const char * mm_filename, const long long max_diags, const long long alignment);
 
 /**
  * @brief Read a sparse matrix in S-ELL format
@@ -361,6 +363,8 @@ S_ELL_Matrix<IndexType, ValueType> read_sell_matrix(const char * mm_filename, co
 
 template S_ELL_Matrix<int, float> read_sell_matrix<int, float>(const char * mm_filename, const int chunkwidth, const int alignment);
 template S_ELL_Matrix<int, double> read_sell_matrix<int, double>(const char * mm_filename, const int chunkwidth, const int alignment);
+template S_ELL_Matrix<long long, float> read_sell_matrix<long long, float>(const char * mm_filename, const int chunkwidth, const long long alignment);
+template S_ELL_Matrix<long long, double> read_sell_matrix<long long, double>(const char * mm_filename, const int chunkwidth, const long long alignment);
 
 template <class IndexType, class ValueType>
 SELL_C_Sigma_Matrix<IndexType, ValueType> read_sell_c_sigma_matrix(const char * mm_filename, const int slicewidth, const int chunkwidth, const IndexType alignment)
@@ -381,6 +385,8 @@ SELL_C_Sigma_Matrix<IndexType, ValueType> read_sell_c_sigma_matrix(const char * 
 
 template SELL_C_Sigma_Matrix<int, float> read_sell_c_sigma_matrix<int, float>(const char * mm_filename, const int slicewidth, const int chunkwidth, const int alignment);
 template SELL_C_Sigma_Matrix<int, double> read_sell_c_sigma_matrix<int, double>(const char * mm_filename, const int slicewidth, const int chunkwidth, const int alignment);
+template SELL_C_Sigma_Matrix<long long, float> read_sell_c_sigma_matrix<long long, float>(const char * mm_filename, const int slicewidth, const int chunkwidth, const long long alignment);
+template SELL_C_Sigma_Matrix<long long, double> read_sell_c_sigma_matrix<long long, double>(const char * mm_filename, const int slicewidth, const int chunkwidth, const long long alignment);
 
 
 template <class IndexType, class ValueType>
@@ -399,5 +405,8 @@ SELL_C_R_Matrix<IndexType, ValueType> read_sell_c_R_matrix(const char * mm_filen
 
     return mtx;
 }
-template SELL_C_R_Matrix<int,float> read_sell_c_R_matrix(const char * mm_filename, const int chunkwidth, const int alignment);
-template SELL_C_R_Matrix<int,double> read_sell_c_R_matrix(const char * mm_filename, const int chunkwidth, const int alignment);
+
+template SELL_C_R_Matrix<int,float> read_sell_c_R_matrix<int,float>(const char * mm_filename, const int chunkwidth, const int alignment);
+template SELL_C_R_Matrix<int,double> read_sell_c_R_matrix<int,double>(const char * mm_filename, const int chunkwidth, const int alignment);
+template SELL_C_R_Matrix<long long,float> read_sell_c_R_matrix<long long,float>(const char * mm_filename, const int chunkwidth, const long long alignment);
+template SELL_C_R_Matrix<long long,double> read_sell_c_R_matrix<long long,double>(const char * mm_filename, const int chunkwidth, const long long alignment);
