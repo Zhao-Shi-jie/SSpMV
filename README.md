@@ -75,9 +75,22 @@ Now the default TILEs number is 2048 * 2048, which means `RB num = 2048`, `CB nu
 7. P-ratio of nnzs in RB/CB/T; 
 8. Gini coefficient of nnzs in RB/CB/T;
 
-#### Some extra features from Tiles:
-- uniqR and uniqC : Count the sum of none zero Rows/Cols inside each tile, and then the sum is divided by total_nnz.
-![uniqR and uniqC](https://github.com/lsl036/SSpMV/tree/master/img-folder/uniqR-C.png)
+### Some extra features from Tiles
+- **uniqR and uniqC**: Count the sum of none zero Rows/Cols inside each tile, and then the sum divides by total nnz.
+
+![uniqR and uniqC](https://github.com/lsl036/SSpMV/blob/master/img-folder/uniqR-C.png)
+
+- **GrX_uniqR and GrX_uniqC**: Setting a group size *X*, then count the groups of *X* adjacent Rows/Cols with nonzeros inside each tile. Making these count results summarized, and divide by total nnz.
+
+![GrXuniqR and GrXuniqC](https://github.com/lsl036/SSpMV/blob/master/img-folder/GrX_uniqR-C.png)
+
+- **potReuseR and potReuseC**: For each row/column, count the number of tiles where the row/col has at least one none zero element. Then sum the row/column results and divide by number of rows/cols.
+
+![potReuseR and potReuseC](https://github.com/lsl036/SSpMV/blob/master/img-folder/potReuseR-C.png)
+
+- **GrX_potReuseR and GrX_potReuseC**: Setting a group size *X*, for each group of *X* consecutive rows/columns, count the number of tiles where the group of rows/cols has at least one none zero element. Then sum the group of *X* rows/columns results and divide by number of group of *X* rows/columns.
+
+![GrXpotReuseR and GrXpotReuseC](https://github.com/lsl036/SSpMV/blob/master/img-folder/GrX_potReuseR-C.png)
 
 ### Numerical stability features
 1. The max values on the matrix diagonal;
