@@ -77,7 +77,7 @@ Now the default TILEs number is 2048 * 2048, which means `RB num = 2048`, `CB nu
 
 #### Some extra features from Tiles:
 - uniqR and uniqC : Count the sum of none zero Rows/Cols inside each tile, and then the sum is divided by total_nnz.
-![uniqR and uniqC]()
+![uniqR and uniqC](https://github.com/lsl036/SSpMV/tree/master/img-folder/uniqR-C.png)
 
 ### Numerical stability features
 1. The max values on the matrix diagonal;
