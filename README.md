@@ -64,6 +64,21 @@ To adaptive select the optimal algorithm for different sparse matrices. We need 
 
 The number 7 and 8 features is learned from this [paper](https://dl.acm.org/doi/abs/10.1145/3572848.3577506).
 
+### RowBlock(RB)/ColBlock(CB)/Tiles(T) statistic features
+Now the default TILEs number is 2048 * 2048, which means `RB num = 2048`, `CB num = 2048`, `TILE num = 2048*2048`.
+1. The ratio of none empty RB/CB/T; (number of no empty RB/Block_num, no empty CB/Block_num, no empty Tiles/Tiles_num);
+2. The minimum number of nnzs in each RB/CB/T;
+3. The maximum number of nnzs in each RB/CB/T;
+4. The average number of nnzs in RB/CB/T;
+5. The variance of nnzs in RB/CB/T;
+6. The standard deviation of nnzs in RB/CB/T;
+7. P-ratio of nnzs in RB/CB/T; 
+8. Gini coefficient of nnzs in RB/CB/T;
+
+#### Some extra features from Tiles:
+- uniqR and uniqC : Count the sum of none zero Rows/Cols inside each tile, and then the sum is divided by total_nnz.
+![uniqR and uniqC]()
+
 ### Numerical stability features
 1. The max values on the matrix diagonal;
 2. The max values on the off-diagonal;

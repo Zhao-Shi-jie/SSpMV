@@ -270,15 +270,15 @@ class MTX{
         // uniq
         std::vector<IndexType> uniq_RB;  // 记录每个tiles的非零行数
         std::vector<IndexType> uniq_CB;  // 记录每个tiles的非零列数
-        ValueType uniqR = 0.0;           // sum devide nnz
-        ValueType uniqC = 0.0;           // sum devide nnz
+        ValueType uniqR = 0.0;           // sum divide nnz
+        ValueType uniqC = 0.0;           // sum divide nnz
 
         // GrX_uniq  ; for cacheline evaluate
         IndexType GrX = CACHE_LINE / sizeof(ValueType);
         std::vector<IndexType> GrX_uniqRB;
         std::vector<IndexType> GrX_uniqCB;
-        ValueType GrX_uniqR = -1.0;       // sum devide nnz
-        ValueType GrX_uniqC = -1.0;       // sum devide nnz
+        ValueType GrX_uniqR = -1.0;       // sum divide nnz
+        ValueType GrX_uniqC = -1.0;       // sum divide nnz
 
         // porReuse ; for data reuse in the LLC
         // 记录这一 行/列 中 有几个 tiles中的 行/列 非零
@@ -286,14 +286,14 @@ class MTX{
         // std::vector<IndexType> potReuseCB;  // size: num_cols
         // Note**: tile内的非零行数目，和一行中非零的tile数目 SUM是一样的,
         // 因此可以不需要额外的空间来统计信息
-        ValueType potReuseR = 0.0;      // sum devide num of rows
-        ValueType potReuseC = 0.0;      // sum devide num of cols
+        ValueType potReuseR = 0.0;      // sum divide num of rows
+        ValueType potReuseC = 0.0;      // sum divide num of cols
 
         // GrX_porReuse ; for data reuse in the LLC with more coarse granularity
         std::vector<IndexType> GrX_potReuseRB;  // size: num_GrXrows
         std::vector<IndexType> GrX_potReuseCB;  // size: num_GrXcols
-        ValueType GrX_potReuseR = -1.0;      // sum devide num of GrXrows
-        ValueType GrX_potReuseC = -1.0;     // sum devide num of GrXcols
+        ValueType GrX_potReuseR = -1.0;      // sum divide num of GrXrows
+        ValueType GrX_potReuseC = -1.0;     // sum divide num of GrXcols
 
 };
 
