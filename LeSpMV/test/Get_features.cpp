@@ -18,9 +18,10 @@ void usage(int argc, char** argv)
     std::cout << "Usage:\n";
     std::cout << "\t" << argv[0] << " with following parameters:\n";
     std::cout << "\t" << " my_matrix.mtx\n";
-    std::cout << "\t" << " --matID=m_num, giving the matrix ID number in dataset (default 0).\n";
-    std::cout << "\t" << " --precision=64(or 32), for counting features (default 64).\n";
-    std::cout << "\t" << " --threads=t_num, define the number of omp threads.\n";
+    std::cout << "\t" << " --matID     = m_num, giving the matrix ID number in dataset (default 0).\n";
+    std::cout << "\t" << " --Index     = 0 (int) or 1 (long long) (default 1).\n";
+    std::cout << "\t" << " --precision = 64(or 32), for counting features (default 64).\n";
+    std::cout << "\t" << " --threads   = t_num, define the number of omp threads.\n";
     std::cout << "Note: my_matrix.mtx must be real-valued sparse matrix in the MatrixMarket file format.\n"; 
 }
 
@@ -71,6 +72,11 @@ int main(int argc, char** argv) {
     char * precision_str = get_argval(argc, argv, "precision");
     if(precision_str != NULL)
         precision = atoi(precision_str);
+    
+    int Index = 1;
+    char * Index_str = get_argval(argc, argv, "Index");
+    if(Index_str != NULL)
+        Index = atoi(Index_str);
 
     // 包括超线程
     Le_set_thread_num(CPU_SOCKET * CPU_CORES_PER_SOC * CPU_HYPER_THREAD);
@@ -78,11 +84,23 @@ int main(int argc, char** argv) {
     if(threads_str != NULL)
         Le_set_thread_num(atoi(threads_str));
 
-    if(precision ==  32){
+    // if(precision ==  32){
+    //     test_features<int, float>(argc, argv);
+    // }
+    // else if(precision == 64){
+    //     test_features<int, double>(argc, argv);
+    // }
+    if (Index == 0 && precision ==  32){
         test_features<int, float>(argc, argv);
     }
-    else if(precision == 64){
+    else if (Index == 0 && precision == 64){
         test_features<int, double>(argc, argv);
+    }
+    else if (Index == 1 && precision ==  32){
+        test_features<long long, float>(argc, argv);
+    }
+    else if (Index == 1 && precision == 64){
+        test_features<long long, double>(argc, argv);
     }
     else{
         usage(argc, argv);

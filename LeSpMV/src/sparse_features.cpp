@@ -868,7 +868,7 @@ bool MTX<IndexType, ValueType>::FeaturesWrite(const char* file_path)
     if constexpr(std::is_same<IndexType, int>::value) {
         fprintf(save_features, "%d %s ", matrixID_, matrixName.c_str());
         fprintf(save_features, "%d %d ", num_rows, num_cols);
-        fprintf(save_features, "%d %lf ", num_nnzs, nnz_ratio_);
+        fprintf(save_features, "%d %lf %lf ", num_nnzs, nnz_ratio_, diag_close_ratio_);
 
         fprintf(save_features, "%d %lf %lf ", is_symmetric_, pattern_symm_, value_symm_);
         
@@ -881,10 +881,20 @@ bool MTX<IndexType, ValueType>::FeaturesWrite(const char* file_path)
         fprintf(save_features, "%.3f %d %d %lf %lf %lf %lf %lf ", nz_col_ratio_, min_nnz_each_col_, max_nnz_each_col_, ave_nnz_each_col_, var_nnz_each_col_, standard_dev_col_, P_ratio_col_, Gini_col_);
 
         // values features
-        fprintf(save_features, "%lg %lg ", max_value_offdiag_, max_value_diagonal_);
-        fprintf(save_features, "%lf ", diagonal_dominant_ratio_);
+        // fprintf(save_features, "%lg %lg ", max_value_offdiag_, max_value_diagonal_);
+        // fprintf(save_features, "%lf ", diagonal_dominant_ratio_);
 
-        fprintf(save_features, "%lf %lf \n", row_variability_, col_variability_);
+        // fprintf(save_features, "%lf %lf \n", row_variability_, col_variability_);
+
+        //  Tile features
+        fprintf(save_features, "%.3f %d %d %lf %lf %lf %lf %lf ", t_nz_ratio_tiles_, t_min_nnz_all_tiles_, t_max_nnz_all_tiles_, t_ave_nnz_all_tiles, t_var_nnz_all_tiles, t_standard_dev_all_tiles, t_P_ratio_all_tiles_, t_Gini_all_tiles_);
+
+        fprintf(save_features, "%.3f %d %d %lf %lf %lf %lf %lf ", t_nz_ratio_RB_, t_min_nnz_each_RB_, t_max_nnz_each_RB_, t_ave_nnz_RB, t_var_nnz_RB, t_standard_dev_RB, t_P_ratio_RB_, t_Gini_RB_);
+
+        fprintf(save_features, "%.3f %d %d %lf %lf %lf %lf %lf ", t_nz_ratio_CB_, t_min_nnz_each_CB_, t_max_nnz_each_CB_, t_ave_nnz_CB, t_var_nnz_CB, t_standard_dev_CB, t_P_ratio_CB_, t_Gini_CB_);
+
+        // Tile extra fetures
+        fprintf(save_features, "%lf %lf %lf %lf %lf %lf %lf %lf \n", uniqR, uniqC, GrX_uniqR, GrX_uniqC, potReuseR, potReuseC, GrX_potReuseR, GrX_potReuseC);
     } 
     else if constexpr(std::is_same<IndexType, long long>::value) {
         fprintf(save_features, "%lld %s ", matrixID_, matrixName.c_str());
@@ -902,10 +912,20 @@ bool MTX<IndexType, ValueType>::FeaturesWrite(const char* file_path)
         fprintf(save_features, "%.3f %lld %lld %lf %lf %lf %lf %lf ", nz_col_ratio_, min_nnz_each_col_, max_nnz_each_col_, ave_nnz_each_col_, var_nnz_each_col_, standard_dev_col_, P_ratio_col_, Gini_col_);
 
         // values features
-        fprintf(save_features, "%lg %lg ", max_value_offdiag_, max_value_diagonal_);
-        fprintf(save_features, "%lf ", diagonal_dominant_ratio_);
+        // fprintf(save_features, "%lg %lg ", max_value_offdiag_, max_value_diagonal_);
+        // fprintf(save_features, "%lf ", diagonal_dominant_ratio_);
+        // fprintf(save_features, "%lf %lf \n", row_variability_, col_variability_);
 
-        fprintf(save_features, "%lf %lf \n", row_variability_, col_variability_);
+        //  Tile features
+        fprintf(save_features, "%.3f %lld %lld %lf %lf %lf %lf %lf ", t_nz_ratio_tiles_, t_min_nnz_all_tiles_, t_max_nnz_all_tiles_, t_ave_nnz_all_tiles, t_var_nnz_all_tiles, t_standard_dev_all_tiles, t_P_ratio_all_tiles_, t_Gini_all_tiles_);
+
+        fprintf(save_features, "%.3f %lld %lld %lf %lf %lf %lf %lf ", t_nz_ratio_RB_, t_min_nnz_each_RB_, t_max_nnz_each_RB_, t_ave_nnz_RB, t_var_nnz_RB, t_standard_dev_RB, t_P_ratio_RB_, t_Gini_RB_);
+
+        fprintf(save_features, "%.3f %lld %lld %lf %lf %lf %lf %lf ", t_nz_ratio_CB_, t_min_nnz_each_CB_, t_max_nnz_each_CB_, t_ave_nnz_CB, t_var_nnz_CB, t_standard_dev_CB, t_P_ratio_CB_, t_Gini_CB_);
+
+        // Tile extra fetures
+        fprintf(save_features, "%lf %lf %lf %lf %lf %lf %lf %lf \n", uniqR, uniqC, GrX_uniqR, GrX_uniqC, potReuseR, potReuseC, GrX_potReuseR, GrX_potReuseC);
+
     }
         fclose(save_features);
     return true;

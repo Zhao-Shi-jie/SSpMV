@@ -40,7 +40,7 @@ class MTX{
 
         void FeaturesPrint()
         {
-            std::cout << "[" << matrixID_ << "]  " << matrixName << std::endl;
+            std::cout << "[" << matrixID_ << "]  " << matrixName << "counting by "<< 8*sizeof(IndexType)<< "-bit Index, " << 8*sizeof(ValueType)<< "-bit Value" << std::endl;
             std::cout << "is_symmetric " << is_symmetric_ << std::endl;
             std::cout << "pattern_symm " << pattern_symm_*100 << "%"<< std::endl;
             std::cout << "value_symm   " << value_symm_*100 << "%"<< std::endl<< std::endl;
@@ -225,19 +225,19 @@ class MTX{
         IndexType t_mod_CB = -1;        // 前 t_mod_CB 列的 t_num_CB+1
 
         // ave_nnz
-        ValueType t_ave_nnz_all_tiles = 0.0;
-        ValueType t_ave_nnz_RB = 0.0;   // row block
-        ValueType t_ave_nnz_CB = 0.0;   // col block
+        ValueType t_ave_nnz_all_tiles = -1.0;
+        ValueType t_ave_nnz_RB = -1.0;   // row block
+        ValueType t_ave_nnz_CB = -1.0;   // col block
 
         // var_nnz
-        ValueType t_var_nnz_all_tiles = 0.0;
-        ValueType t_var_nnz_RB = 0.0;
-        ValueType t_var_nnz_CB = 0.0;
+        ValueType t_var_nnz_all_tiles = -1.0;
+        ValueType t_var_nnz_RB = -1.0;
+        ValueType t_var_nnz_CB = -1.0;
 
         // standard diviation
-        ValueType t_standard_dev_all_tiles = 0.0;
-        ValueType t_standard_dev_RB = 0.0;
-        ValueType t_standard_dev_CB = 0.0;
+        ValueType t_standard_dev_all_tiles = -1.0;
+        ValueType t_standard_dev_RB = -1.0;
+        ValueType t_standard_dev_CB = -1.0;
     
     // Intermediate variables
         // Rowmajor 存 tiles 分块   (rowID/t_num_RB) * t_num_blocks + (colID/t_num_CB)
@@ -255,26 +255,26 @@ class MTX{
         IndexType t_max_nnz_each_CB_   = 0;
 
         // Gini index  [0, 1] -> [balanced ~ imbalanced]
-        ValueType t_Gini_all_tiles_ = 0.0;
-        ValueType t_Gini_RB_ = 0.0;          
-        ValueType t_Gini_CB_ = 0.0;
+        ValueType t_Gini_all_tiles_ = -1.0;
+        ValueType t_Gini_RB_ = -1.0;          
+        ValueType t_Gini_CB_ = -1.0;
 
         // p-ratio [0, 0.5] -> [imbalanced ~ balanced]
-        ValueType t_P_ratio_all_tiles_ = 0.0;
-        ValueType t_P_ratio_RB_ = 0.0;
-        ValueType t_P_ratio_CB_ = 0.0;
+        ValueType t_P_ratio_all_tiles_ = -1.0;
+        ValueType t_P_ratio_RB_ = -1.0;
+        ValueType t_P_ratio_CB_ = -1.0;
 
         // none zero ratio
-        ValueType t_nz_ratio_tiles_ = 0.0;
-        ValueType t_nz_ratio_RB_ = 0.0;
-        ValueType t_nz_ratio_CB_ = 0.0;
+        ValueType t_nz_ratio_tiles_ = -1.0;
+        ValueType t_nz_ratio_RB_ = -1.0;
+        ValueType t_nz_ratio_CB_ = -1.0;
 
     // Extra information
         // uniq
         std::vector<IndexType> uniq_RB;  // 记录每个tiles的非零行数
         std::vector<IndexType> uniq_CB;  // 记录每个tiles的非零列数
-        ValueType uniqR = 0.0;           // sum divide nnz
-        ValueType uniqC = 0.0;           // sum divide nnz
+        ValueType uniqR = -1.0;           // sum divide nnz
+        ValueType uniqC = -1.0;           // sum divide nnz
 
         // GrX_uniq  ; for cacheline evaluate
         IndexType GrX = CACHE_LINE / sizeof(ValueType);
@@ -289,8 +289,8 @@ class MTX{
         // std::vector<IndexType> potReuseCB;  // size: num_cols
         // Note**: tile内的非零行数目，和一行中非零的tile数目 SUM是一样的,
         // 因此可以不需要额外的空间来统计信息
-        ValueType potReuseR = 0.0;      // sum divide num of rows
-        ValueType potReuseC = 0.0;      // sum divide num of cols
+        ValueType potReuseR = -1.0;      // sum divide num of rows
+        ValueType potReuseC = -1.0;      // sum divide num of cols
 
         // GrX_porReuse ; for data reuse in the LLC with more coarse granularity
         std::vector<IndexType> GrX_potReuseRB;  // size: num_GrXrows
