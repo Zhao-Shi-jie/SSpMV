@@ -45,11 +45,12 @@ class MTX{
             std::cout << "pattern_symm " << pattern_symm_*100 << "%"<< std::endl;
             std::cout << "value_symm   " << value_symm_*100 << "%"<< std::endl<< std::endl;
 
-            std::cout<< "num_rows  = "<< num_rows << std::endl;
-            std::cout<< "num_cols  = "<< num_cols << std::endl;
-            std::cout<< "nnz_mtx   = " << nnz_mtx_ << std::endl;
-            std::cout<< "real_nnz  = "<< num_nnzs << std::endl;
-            std::cout<< "nnz_ratio = " << nnz_ratio_*100 << "%"<< std::endl<< std::endl;
+            std::cout<< "num_rows   = "<< num_rows << std::endl;
+            std::cout<< "num_cols   = "<< num_cols << std::endl;
+            std::cout<< "nnz_mtx    = " << nnz_mtx_ << std::endl;
+            std::cout<< "real_nnz   = "<< num_nnzs << std::endl;
+            std::cout<< "nnz_ratio  = " << nnz_ratio_*100 << "%"<< std::endl;
+            std::cout<< "diag_ratio = " << diag_close_ratio_*100 << "%"<< std::endl<< std::endl;
 
             std::cout<< "nnz_lower    : " << nnz_lower_ << std::endl;
             std::cout<< "nnz_upper    : " << nnz_upper_ << std::endl;
@@ -156,6 +157,7 @@ class MTX{
         ValueType pattern_symm_ = 0.0;      // 模式对称比例
         ValueType value_symm_   = 0.0;      // 数值对称比例
         ValueType nnz_ratio_ = 0.0;         // 稠密度， = 1 - 稀疏度
+        ValueType diag_close_ratio_ = 0.0;  // 靠近对角线nnz所占比例
 
         // nnzs skew statistic features
         ValueType nz_row_ratio_ = 0.0;
@@ -197,6 +199,7 @@ class MTX{
         std::vector<std::string> symm_pair_;
         std::unordered_map<std::string,std::string> m_;
         std::vector<std::vector<int> > image_;
+        std::unordered_map<IndexType, IndexType> diag_offset_;
 
     /*
 

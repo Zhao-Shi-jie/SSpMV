@@ -188,7 +188,7 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
         nnz_by_CB_.resize(t_num_blocks, 0);
     }
 
-    IndexType row_idx, col_idx;
+    IndexType row_idx, col_idx, diaoffset;
     IndexType t_rowidx, t_colidx;   // tiles 中的序号
     // rowidx < threshold  tile_size = (t_num_RB + 1); else tile_size = t_num_RB
     IndexType RB_threshold = t_mod_RB * (t_num_RB + 1);
@@ -210,11 +210,15 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
             // adjust from 1-based to 0-based indexing
             --row_idx;
             --col_idx;
+            diaoffset = col_idx - row_idx;
             value = 1.0;
             value_abs = 1.0;
             
             nnz_by_row_[row_idx]++; // 本行的 nnz 加一
             nnz_by_col_[col_idx]++; // 本列的 nnz 加一
+            // 记录对角距离的分布频率
+            diag_offset_[diaoffset]++;
+            
             // 存一下分tile的信息
             if (tile_flag){
                 t_rowidx = (row_idx < RB_threshold)? (row_idx / (t_num_RB+1)):(t_mod_RB + (row_idx - RB_threshold)/t_num_RB);
@@ -232,6 +236,9 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
                 } else{                     // 非对角线
                     nnz_by_row_[col_idx]++;     // 对称的情况，把列号所在的nnz也加进来
                     nnz_by_col_[row_idx]++;     // 对称的情况，把行号所在的nnz也加进来
+                    // 记录对角距离的分布频率
+                    diag_offset_[-diaoffset]++;
+
                     // 存一下 tile 的信息
                     if(tile_flag)
                     {
@@ -282,9 +289,13 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
             col_idx   = (IndexType) col_id - 1;
             value     = (ValueType) V;
             value_abs = std::abs(value);
+            diaoffset = col_idx - row_idx;
 
             nnz_by_row_[row_idx]++;
             nnz_by_col_[col_idx]++;
+            // 记录对角距离的分布频率
+            diag_offset_[diaoffset]++;
+
             // 存一下分tile的信息
             if (tile_flag){
                 t_rowidx = (row_idx < RB_threshold)? (row_idx / (t_num_RB+1)):(t_mod_RB + (row_idx - RB_threshold)/t_num_RB);
@@ -304,6 +315,8 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
                 } else{
                     nnz_by_row_[col_idx]++;
                     nnz_by_col_[row_idx]++;
+                    // 记录对角距离的分布频率
+                    diag_offset_[-diaoffset]++;
                     if(tile_flag)
                     {
                         nnz_by_Tiles_[t_colidx * t_num_blocks + t_rowidx]++;
@@ -413,6 +426,17 @@ template <typename IndexType, typename ValueType>
 bool MTX<IndexType, ValueType>::CalculateFeatures() 
 {
     IndexType nz_row_num = 0, nz_col_num = 0, dominance = 0;
+    IndexType diaglineNum = num_rows + num_cols - 1; // 矩阵的主对角线条数
+    IndexType close_threshold =  diaglineNum / 20; // 5% 比率靠近对角线作为阈值
+    IndexType close_nnz = 0;
+    // Calculate total NNZ and NNZ close to the diagonal
+    for (const auto& offset_count : diag_offset_) {
+        if (std::abs(offset_count.first) <= close_threshold) {
+            close_nnz += offset_count.second;
+        }
+    }
+    diag_close_ratio_ = (ValueType) close_nnz / num_nnzs;
+
     // 对于digital matrix， 这两个值不会变动，结果为 -1
     ValueType row_divide_max = -1.0;// 确保起始值足够低
     ValueType col_divide_max = -1.0;// 确保起始值足够低
