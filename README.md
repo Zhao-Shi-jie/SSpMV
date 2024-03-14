@@ -41,18 +41,19 @@ Then you will get some test routines of different SpMV algorithms. If some compi
 - SELL-c- $\sigma$ : Sliced ELL format with $\sigma$ slice for reordering. **Parameters: chunk width C, slice width $\sigma$**.
 - SELL-c-R : Here the $\sigma=R$, reorder the whole matrix rows without sliced tiles.
 
-## Matrix Features
+## Multimodal Sparse Matrix Features
 To adaptive select the optimal algorithm for different sparse matrices. We need to extract some representative features for our deep learning model. Here we list these features as a reference.
-### Basic matrix features
+### (1) Basic matrix features
 1. The number of rows (M);
 2. The number of columns (N);
 3. The number of none zeros (nnzs);
 4. The ratio of nnzs ($nnzs/M*N$);
-5. Whether the matrix is symmetric;
-6. The ratio of pattern symmetric ( a[i][j]!=0 && a[j][i]!=0 &check; );
-7. The ratio of numerical symmetric ( a[i][j] == a[j][i] &check; ).
+5. The ratio of nnzs that closed to the main diagonal( nearest 5% );
+6. Whether the matrix is symmetric;
+7. The ratio of pattern symmetric ( a[i][j]!=0 && a[j][i]!=0 &check; );
+8. The ratio of numerical symmetric ( a[i][j] == a[j][i] &check; ).
 
-### Rows/Cols statistic features
+### (2) Rows/Cols statistic features
 1. The ratio of no empty rows/cols; (number of no empty rows/M or cols/N);
 2. The minimum number of nnzs in each rows/cols;
 3. The maximum number of nnzs in each rows/cols;
@@ -64,7 +65,7 @@ To adaptive select the optimal algorithm for different sparse matrices. We need 
 
 The number 7 and 8 features is learned from this [paper](https://dl.acm.org/doi/abs/10.1145/3572848.3577506).
 
-### RowBlock(RB)/ColBlock(CB)/Tiles(T) statistic features
+### (3) RowBlock(RB)/ColBlock(CB)/Tiles(T) statistic features
 Now the default TILEs number is 2048 * 2048, which means `RB num = 2048`, `CB num = 2048`, `TILE num = 2048*2048`.
 1. The ratio of none empty RB/CB/T; (number of no empty RB/Block_num, no empty CB/Block_num, no empty Tiles/Tiles_num);
 2. The minimum number of nnzs in each RB/CB/T;
@@ -75,7 +76,7 @@ Now the default TILEs number is 2048 * 2048, which means `RB num = 2048`, `CB nu
 7. P-ratio of nnzs in RB/CB/T; 
 8. Gini coefficient of nnzs in RB/CB/T;
 
-### Some extra features from Tiles
+### (4) Some extra features from Tiles
 - **uniqR and uniqC**: Count the sum of none zero Rows/Cols inside each tile, and then the sum divides by total nnz.
 
 ![uniqR and uniqC](https://github.com/lsl036/SSpMV/blob/master/img-folder/uniqR-C.png)
@@ -92,7 +93,7 @@ Now the default TILEs number is 2048 * 2048, which means `RB num = 2048`, `CB nu
 
 ![GrXpotReuseR and GrXpotReuseC](https://github.com/lsl036/SSpMV/blob/master/img-folder/GrX_potReuseR-C.png)
 
-### Numerical stability features
+### (5) Numerical stability features
 1. The max values on the matrix diagonal;
 2. The max values on the off-diagonal;
 3. The diagonal dominance ratio;
