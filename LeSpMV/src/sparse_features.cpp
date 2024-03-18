@@ -434,6 +434,7 @@ bool MTX<IndexType, ValueType>::CalculateFeatures()
         if (std::abs(offset_count.first) <= close_threshold) {
             close_nnz += offset_count.second;
         }
+        complete_ndiags++;
     }
     diag_close_ratio_ = (ValueType) close_nnz / num_nnzs;
 
@@ -872,7 +873,7 @@ bool MTX<IndexType, ValueType>::FeaturesWrite(const char* file_path)
 
         fprintf(save_features, "%d %lf %lf ", is_symmetric_, pattern_symm_, value_symm_);
         
-        fprintf(save_features, "%d %d %d ", nnz_lower_, nnz_upper_, nnz_diagonal_);
+        fprintf(save_features, "%d %d %d %d ", nnz_lower_, nnz_upper_, nnz_diagonal_, complete_ndiags);
         
         // row statistic features
         fprintf(save_features, "%.3f %d %d %lf %lf %lf %lf %lf ", nz_row_ratio_, min_nnz_each_row_, max_nnz_each_row_, ave_nnz_each_row_, var_nnz_each_row_, standard_dev_row_, P_ratio_row_, Gini_row_);
@@ -903,7 +904,7 @@ bool MTX<IndexType, ValueType>::FeaturesWrite(const char* file_path)
 
         fprintf(save_features, "%d %lf %lf ", is_symmetric_, pattern_symm_, value_symm_);
         
-        fprintf(save_features, "%lld %lld %lld ", nnz_lower_, nnz_upper_, nnz_diagonal_);
+        fprintf(save_features, "%lld %lld %lld %lld ", nnz_lower_, nnz_upper_, nnz_diagonal_, complete_ndiags);
         
         // row statistic features
         fprintf(save_features, "%.3f %lld %lld %lf %lf %lf %lf %lf ", nz_row_ratio_, min_nnz_each_row_, max_nnz_each_row_, ave_nnz_each_row_, var_nnz_each_row_, standard_dev_row_, P_ratio_row_, Gini_row_);

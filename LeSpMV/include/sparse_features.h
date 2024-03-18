@@ -50,7 +50,8 @@ class MTX{
             std::cout<< "nnz_mtx    = " << nnz_mtx_ << std::endl;
             std::cout<< "real_nnz   = "<< num_nnzs << std::endl;
             std::cout<< "nnz_ratio  = " << nnz_ratio_*100 << "%"<< std::endl;
-            std::cout<< "diag_ratio = " << diag_close_ratio_*100 << "%"<< std::endl<< std::endl;
+            std::cout<< "num_of_diags  = " << complete_ndiags << std::endl;
+            std::cout<< "nnz_closed2diag_ratio = " << diag_close_ratio_*100 << "%"<< std::endl<< std::endl;
 
             std::cout<< "nnz_lower    : " << nnz_lower_ << std::endl;
             std::cout<< "nnz_upper    : " << nnz_upper_ << std::endl;
@@ -148,6 +149,7 @@ class MTX{
         IndexType nnz_lower_ = 0;       // 下三角 非零元的数目
         IndexType nnz_upper_ = 0;       // 上三角 非零元的数目
         IndexType nnz_diagonal_ = 0;    // 对角线上的 nnz 数目
+        IndexType complete_ndiags = 0;  // 在DIA格式中的对角线数目
         IndexType min_nnz_each_row_ = 100000000;    // 各行中最少的 nnz 数目
         IndexType max_nnz_each_row_ = 0;    // 各行中最大的 nnz 数目
         IndexType min_nnz_each_col_ = 100000000;    // 各列中最大的 nnz 数目
