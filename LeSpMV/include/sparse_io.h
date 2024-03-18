@@ -26,6 +26,8 @@
 #include "sparse_format.h"
 #include "sparse_conversion.h"
 
+std::string extractFileNameWithoutExtension(const std::string& filePath);
+
 /**
  * @brief Read sparse matrix in COO format from ".mtx" format file.
  * 

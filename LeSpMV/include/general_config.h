@@ -64,6 +64,7 @@
 //              3 = omp_set_schedule(omp_sched_guided, chunk_size);
 #define SCHE_MODE 1
 
-#define MAT_FEATURES "./features/mat_features.txt"
+#define MAT_FEATURES    "./features/mat_features.txt"
+#define MAT_PERFORMANCE "./performance/mat_perf.txt"
 
 #endif /* GENERAL_CONFIG_H */

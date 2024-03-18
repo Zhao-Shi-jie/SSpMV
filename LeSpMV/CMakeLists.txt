@@ -27,6 +27,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # make a directory named features for save matrix features
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/features)
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/performance)
 
 # Include directories for the library
 include_directories(include)
@@ -46,6 +47,15 @@ add_library(LeSPMV_shared SHARED ${LIB_SOURCES} ${LIB_UTILS})
 set_target_properties(LeSPMV_shared PROPERTIES OUTPUT_NAME LeSPMV)
 set_target_properties(LeSPMV_static PROPERTIES OUTPUT_NAME LeSPMV)
 
+# 定义源脚本目录和目标脚本目录变量
+set(SOURCE_SCRIPT_DIR ${CMAKE_SOURCE_DIR}/script)
+set(DESTINATION_SCRIPT_DIR ${CMAKE_BINARY_DIR})
+
+add_custom_command(TARGET LeSPMV_static POST_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy_directory
+                           ${SOURCE_SCRIPT_DIR} ${DESTINATION_SCRIPT_DIR}
+                   COMMENT "Copying scripts to build directory")
+
 # Gather the test sources
 file(GLOB TEST_SOURCES "test/*.cpp")
 
@@ -57,7 +67,7 @@ foreach(test_src ${TEST_SOURCES})
   get_filename_component(test_name ${test_src} NAME_WE)
   add_executable(${test_name} ${test_src})
   # Add compiler options here if they are specific to the test executables
-  target_compile_options(${test_name} PRIVATE -O2 -Wall)
+  target_compile_options(${test_name} PRIVATE -O3 -Wall)
 
   target_link_libraries(${test_name} LeSPMV_shared stdc++)
 endforeach(test_src)

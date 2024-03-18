@@ -12,8 +12,9 @@
 #include<iostream>
 
 template <typename IndexType, typename ValueType>
-int test_csr_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag, int schedule_mod)
+double test_csr_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag, int schedule_mod)
 {
+    double msec_per_iteration;
     std::cout << "=====  Testing CSR Kernels  =====" << std::endl;
 
     // csr_test 测试所有kernel， csr_ref 为 omp simple实现
@@ -39,7 +40,7 @@ int test_csr_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
 
         std::cout << "\n===  Performance of CSR serial simple  ===" << std::endl;
         // count performance of Gflops and Gbytes
-        benchmark_spmv_on_host(csr_test, LeSpMV_csr<IndexType, ValueType>, "csr_serial_simple");
+        msec_per_iteration = benchmark_spmv_on_host(csr_test, LeSpMV_csr<IndexType, ValueType>, "csr_serial_simple");
     }
     else if(1 == kernel_tag){
         std::cout << "\n===  Compared csr omp with csr default  ===" << std::endl;
@@ -59,7 +60,7 @@ int test_csr_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
 
         std::cout << "\n===  Performance of CSR omp simple  ===" << std::endl;
         // count performance of Gflops and Gbytes
-        benchmark_spmv_on_host(csr_test, LeSpMV_csr<IndexType, ValueType>, "csr_omp_simple");
+        msec_per_iteration = benchmark_spmv_on_host(csr_test, LeSpMV_csr<IndexType, ValueType>, "csr_omp_simple");
     }
     else if(2 == kernel_tag){
         std::cout << "\n===  Compared csr_lb_nnz with csr default  ===" << std::endl;
@@ -77,21 +78,18 @@ int test_csr_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
 
         std::cout << "\n===  Performance of CSR_lb_nnz  ===" << std::endl;
         // count performance of Gflops and Gbytes
-        benchmark_spmv_on_host(csr_test, LeSpMV_csr<IndexType, ValueType>, "csr_omp_lb_nnz");
+        msec_per_iteration = benchmark_spmv_on_host(csr_test, LeSpMV_csr<IndexType, ValueType>, "csr_omp_lb_nnz");
     
     }
 
-    // *gflops = csr.gflops;
-    // delete_csr_matrix<IndexType, ValueType>(csr);
-
     delete_csr_matrix(csr_test);
-    return 0;
+    return msec_per_iteration;
 }
 
-template int test_csr_matrix_kernels<int,float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag, int schedule_mod);
+template double test_csr_matrix_kernels<int,float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag, int schedule_mod);
 
-template int test_csr_matrix_kernels<int,double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag, int schedule_mod);
+template double test_csr_matrix_kernels<int,double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag, int schedule_mod);
 
-template int test_csr_matrix_kernels<long long,float>(const CSR_Matrix<long long,float> &csr_ref, int kernel_tag, int schedule_mod);
+template double test_csr_matrix_kernels<long long,float>(const CSR_Matrix<long long,float> &csr_ref, int kernel_tag, int schedule_mod);
 
-template int test_csr_matrix_kernels<long long,double>(const CSR_Matrix<long long,double> &csr_ref, int kernel_tag, int schedule_mod);
+template double test_csr_matrix_kernels<long long,double>(const CSR_Matrix<long long,double> &csr_ref, int kernel_tag, int schedule_mod);

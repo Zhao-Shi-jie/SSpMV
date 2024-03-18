@@ -210,7 +210,7 @@ double benchmark_spmv(SparseMatrix & sp_host, SpMV spmv, const int min_iteration
     sp_host.time = msec_per_iteration;
 
     const char * location = "cpu" ;
-    printf("\tbenchmarking %-20s [%s]: %8.4f ms ( %5.2f GFLOP/s %5.1f GB/s)\n", \
+    printf("\tbenchmarking %-20s [%s]: %8.4f ms ( %5.4f GFLOP/s %5.4f GB/s)\n", \
             method_name.c_str(), location, msec_per_iteration, GFLOPs, GBYTEs); 
 
     //deallocate buffers
@@ -218,6 +218,7 @@ double benchmark_spmv(SparseMatrix & sp_host, SpMV spmv, const int min_iteration
     delete_array(y_host);
 
     return msec_per_iteration;
+    // return GFLOPs;
 }
 
 template <typename SparseMatrix, typename SpMV>
