@@ -27,23 +27,23 @@ void __spmv_bsr_serial_simple(  const IndexType num_rows,
                                 const ValueType beta,
                                 ValueType *y)
 {
-    for (IndexType i = 0; i < mb; i++)
+    for (size_t i = 0; i < mb; i++)
     {
-        IndexType start = row_ptr[i];
-        IndexType end   = row_ptr[i+1];
+        size_t start = row_ptr[i];
+        size_t end   = row_ptr[i+1];
 
         std::vector<ValueType> tmp(blockDimRow,0);
 
-        for (IndexType j = start; j < end; j++)
+        for (size_t j = start; j < end; j++)
         {
             // 获取当前块的列索引
-            IndexType block_col = col_index[j];
+            size_t block_col = col_index[j];
 
             // 执行块与向量的乘法
-            for (IndexType br = 0; br < blockDimRow; ++br) {
-                for (IndexType bc = 0; bc < blockDimCol; ++bc) {
+            for (size_t br = 0; br < blockDimRow; ++br) {
+                for (size_t bc = 0; bc < blockDimCol; ++bc) {
                     // 计算输入向量x 的索引
-                    IndexType x_index = block_col * blockDimCol + bc;
+                    size_t x_index = block_col * blockDimCol + bc;
                     // 累加结果
                     // tmp[br] += alpha * values[j * blockDimRow * blockDimCol + br * blockDimCol + bc] * x[x_index];
                     tmp[br] += values[j * blockDimRow * blockDimCol + br * blockDimCol + bc] * x[x_index];
@@ -51,10 +51,10 @@ void __spmv_bsr_serial_simple(  const IndexType num_rows,
             }
         }
 
-        for (IndexType br = 0; br < blockDimRow; br++)
+        for (size_t br = 0; br < blockDimRow; br++)
         {
             // 计算输出向量的索引
-            IndexType y_index = i * blockDimRow + br;
+            size_t y_index = i * blockDimRow + br;
             if (y_index < num_rows)
             {
                 // 更新 y
@@ -78,37 +78,37 @@ void __spmv_bsr_omp_simple( const IndexType num_rows,
                             const ValueType beta,
                             ValueType *y)
 {
-    const IndexType thread_num = Le_get_thread_num();
+    const size_t thread_num = Le_get_thread_num();
 
     #pragma omp parallel for num_threads(thread_num)
-    for (IndexType i = 0; i < mb; i++)
+    for (size_t i = 0; i < mb; i++)
     {
-        IndexType start = row_ptr[i];
-        IndexType end   = row_ptr[i+1];
+        size_t start = row_ptr[i];
+        size_t end   = row_ptr[i+1];
 
         std::vector<ValueType> tmp(blockDimRow,0);
 
-        for (IndexType j = start; j < end; j++)
+        for (size_t j = start; j < end; j++)
         {
             // 获取当前块的列索引
-            IndexType block_col = col_index[j];
+            size_t block_col = col_index[j];
 
             // 执行块与向量的乘法
-            for (IndexType br = 0; br < blockDimRow; ++br) {
+            for (size_t br = 0; br < blockDimRow; ++br) {
                 #pragma omp simd
-                for (IndexType bc = 0; bc < blockDimCol; ++bc) {
+                for (size_t bc = 0; bc < blockDimCol; ++bc) {
                     // 计算输入向量x 的索引
-                    IndexType x_index = block_col * blockDimCol + bc;
+                    size_t x_index = block_col * blockDimCol + bc;
                     // 累加结果
                     tmp[br] += values[j * blockDimRow * blockDimCol + br * blockDimCol + bc] * x[x_index];
                 }
             }
         }
         // 更新 y
-        for (IndexType br = 0; br < blockDimRow; br++)
+        for (size_t br = 0; br < blockDimRow; br++)
         {
             // 计算输出向量的索引
-            IndexType y_index = i * blockDimRow + br;
+            size_t y_index = i * blockDimRow + br;
             if (y_index < num_rows)
             {
                 y[y_index] = alpha * tmp[br] + beta * y[y_index];
@@ -133,20 +133,20 @@ inline void __spmv_bsr_perthread(   const ValueType alpha,
                                     const IndexType lre)
 {
     // 这里 lrs ~ lre 代表要计算的 row_block 数目
-    IndexType task_rows = (lre - lrs) * blockDimRow;
+    size_t task_rows = (lre - lrs) * blockDimRow;
 
     // For matC, block_layout is defaulted as row_major
     std::vector<ValueType> tmp(task_rows,0);
 
     // Only support Rowmajor layout of BSR format
-    for (IndexType i = lrs, j = 0; i < lre; ++i, ++j)
+    for (size_t i = lrs, j = 0; i < lre; ++i, ++j)
     {
-        for(IndexType ai = row_ptr[i]; ai < row_ptr[i+1]; ++ai)
+        for(size_t ai = row_ptr[i]; ai < row_ptr[i+1]; ++ai)
         {
              // 执行块与向量的乘法
-            for (IndexType br = 0; br < blockDimRow; ++br) {
+            for (size_t br = 0; br < blockDimRow; ++br) {
                 #pragma omp simd
-                for (IndexType bc = 0; bc < blockDimCol; ++bc) {
+                for (size_t bc = 0; bc < blockDimCol; ++bc) {
                     // 累加结果
                     tmp[ j*blockDimRow + br] += values[ai*blockDimRow*blockDimCol + br*blockDimCol + bc] * x[col_index[ai]*blockDimCol + bc];
                 }
@@ -154,7 +154,7 @@ inline void __spmv_bsr_perthread(   const ValueType alpha,
         }
     }
     // m: row_idx;  m_t : row_block_idx
-    for (IndexType m = lrs * blockDimRow, m_t = 0; m < lre * blockDimRow; m++, m_t++)
+    for (size_t m = lrs * blockDimRow, m_t = 0; m < lre * blockDimRow; m++, m_t++)
 	{
         if (m < num_rows)
         y[m] = alpha * tmp[m_t] + beta * y[m];

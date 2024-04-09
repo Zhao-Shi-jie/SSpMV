@@ -13,8 +13,9 @@
 #include<iostream>
 
 template <typename IndexType, typename ValueType>
-int test_dia_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag, int schedule_mod)
+double test_dia_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag, int schedule_mod)
 {
+    double msec_per_iteration;
     std::cout << "=====  Testing DIA Kernels  =====" << std::endl;
 
     DIA_Matrix<IndexType,ValueType> dia;
@@ -38,7 +39,7 @@ int test_dia_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
 
         std::cout << "\n===  Performance of DIA serial simple  ===" << std::endl;
         // count performance of Gflops and Gbytes
-        benchmark_spmv_on_host(dia, LeSpMV_dia<IndexType, ValueType>,"dia_serial_simple");
+        msec_per_iteration = benchmark_spmv_on_host(dia, LeSpMV_dia<IndexType, ValueType>,"dia_serial_simple");
     }
     else if (1 == dia.kernel_flag)
     {
@@ -59,18 +60,18 @@ int test_dia_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
 
         std::cout << "\n===  Performance of DIA omp simple  ===" << std::endl;
         // count performance of Gflops and Gbytes
-        benchmark_spmv_on_host(dia, LeSpMV_dia<IndexType, ValueType>,"dia_omp_simple");
+        msec_per_iteration = benchmark_spmv_on_host(dia, LeSpMV_dia<IndexType, ValueType>,"dia_omp_simple");
           
     }
 
     delete_dia_matrix(dia);
-    return 0;
+    return msec_per_iteration;
 }
 
-template int test_dia_matrix_kernels<int,float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag, int schedule_mod);
+template double test_dia_matrix_kernels<int,float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag, int schedule_mod);
 
-template int test_dia_matrix_kernels<int,double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag, int schedule_mod);
+template double test_dia_matrix_kernels<int,double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag, int schedule_mod);
 
-template int test_dia_matrix_kernels<long long,float>(const CSR_Matrix<long long,float> &csr_ref, int kernel_tag, int schedule_mod);
+template double test_dia_matrix_kernels<long long,float>(const CSR_Matrix<long long,float> &csr_ref, int kernel_tag, int schedule_mod);
 
-template int test_dia_matrix_kernels<long long,double>(const CSR_Matrix<long long,double> &csr_ref, int kernel_tag, int schedule_mod);
+template double test_dia_matrix_kernels<long long,double>(const CSR_Matrix<long long,double> &csr_ref, int kernel_tag, int schedule_mod);

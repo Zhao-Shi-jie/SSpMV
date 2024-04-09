@@ -14,8 +14,9 @@
 
 // CSR5 只有一种实现方式，且 schedule mod 也不需要人为指定
 template <typename IndexType, typename UIndexType, typename ValueType>
-int test_csr5_matrix_kernels(const CSR_Matrix<IndexType, ValueType> &csr_ref, int kernel_tag, int schedule_mod)
+double test_csr5_matrix_kernels(const CSR_Matrix<IndexType, ValueType> &csr_ref, int kernel_tag, int schedule_mod)
 {
+    double msec_per_iteration;
     std::cout << "=====  Testing CSR5 Kernels  =====" << std::endl;
 
     CSR5_Matrix<IndexType, UIndexType, ValueType> csr5;
@@ -39,14 +40,15 @@ int test_csr5_matrix_kernels(const CSR_Matrix<IndexType, ValueType> &csr_ref, in
         std::cout << "\n===  Performance of csr5 (AVX512)  ===" << std::endl;
 
         // count performance of Gflops and Gbytes
-        benchmark_spmv_on_host(csr5, LeSpMV_csr5<IndexType, UIndexType, ValueType>, "csr5_AVX512");
+        msec_per_iteration = benchmark_spmv_on_host(csr5, LeSpMV_csr5<IndexType, UIndexType, ValueType>, "csr5_AVX512");
     }
     
     delete_csr5_matrix(csr5);
-    return 0;
+    // return 0;
+    return msec_per_iteration;
 }
 
 // template int test_csr5_matrix_kernels<int, uint32_t, float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag, int schedule_mod);
 
 // AVX512 只 制作了 double 精度的计算
-template int test_csr5_matrix_kernels<int, uint32_t, double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag, int schedule_mod);
+template double test_csr5_matrix_kernels<int, uint32_t, double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag, int schedule_mod);

@@ -12,8 +12,9 @@
 #include<iostream>
 
 template <typename IndexType, typename ValueType>
-int test_s_ell_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag, int schedule_mod)
+double test_s_ell_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag, int schedule_mod)
 {
+    double msec_per_iteration;
     std::cout << "=====  Testing S_ELL Kernels  =====" << std::endl;
 
     S_ELL_Matrix<IndexType,ValueType> sell;
@@ -38,7 +39,7 @@ int test_s_ell_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, in
 
         std::cout << "\n===  Performance of S_ELL serial simple  ===" << std::endl;
         // count performance of Gflops and Gbytes
-        benchmark_spmv_on_host(sell, LeSpMV_sell<IndexType, ValueType>,"sell_serial_simple");
+        msec_per_iteration = benchmark_spmv_on_host(sell, LeSpMV_sell<IndexType, ValueType>,"sell_serial_simple");
     }
     else if (1 == sell.kernel_flag)
     {
@@ -55,7 +56,7 @@ int test_s_ell_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, in
 
         std::cout << "\n===  Performance of S_ELL omp simple  ===" << std::endl;
         // count performance of Gflops and Gbytes
-        benchmark_spmv_on_host(sell, LeSpMV_sell<IndexType, ValueType>,"sell_omp_simple");     
+        msec_per_iteration = benchmark_spmv_on_host(sell, LeSpMV_sell<IndexType, ValueType>,"sell_omp_simple");     
     }
     else if (2 == sell.kernel_flag)
     {
@@ -67,17 +68,17 @@ int test_s_ell_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, in
 
         std::cout << "\n===  Performance of ELL omp Load-Balance  ===" << std::endl;
         // count performance of Gflops and Gbytes
-        benchmark_spmv_on_host(sell,LeSpMV_sell<IndexType, ValueType>,"sell_omp_ld");
+        msec_per_iteration = benchmark_spmv_on_host(sell,LeSpMV_sell<IndexType, ValueType>,"sell_omp_ld");
     }
 
     delete_s_ell_matrix(sell);
-    return 0;
+    return msec_per_iteration;
 }
 
-template int test_s_ell_matrix_kernels<int,float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag, int sche);
+template double test_s_ell_matrix_kernels<int,float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag, int sche);
 
-template int test_s_ell_matrix_kernels<int,double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag, int sche);
+template double test_s_ell_matrix_kernels<int,double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag, int sche);
 
-template int test_s_ell_matrix_kernels<long long,float>(const CSR_Matrix<long long,float> &csr_ref, int kernel_tag, int sche);
+template double test_s_ell_matrix_kernels<long long,float>(const CSR_Matrix<long long,float> &csr_ref, int kernel_tag, int sche);
 
-template int test_s_ell_matrix_kernels<long long,double>(const CSR_Matrix<long long,double> &csr_ref, int kernel_tag, int sche);
+template double test_s_ell_matrix_kernels<long long,double>(const CSR_Matrix<long long,double> &csr_ref, int kernel_tag, int sche);

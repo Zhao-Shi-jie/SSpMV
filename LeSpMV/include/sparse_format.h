@@ -216,7 +216,7 @@ struct S_ELL_Matrix : public Matrix_Features<IndexType>
     typedef IndexType index_type;
     typedef ValueType value_type;
     
-    IndexType sliceWidth;         // 代表一个 chunk 内的总行数， 默认设置为c
+    IndexType sliceWidth;         // 代表一个 chunk 内的总行数， 默认设置为c=CHUNK_SIZE
     IndexType chunk_num;          // chunk 的 总数目，按行切分后每个块内实现ELL
     IndexType alignment;          // 每个chunk 内对齐的长度
 

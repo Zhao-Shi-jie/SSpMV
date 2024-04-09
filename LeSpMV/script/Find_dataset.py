@@ -8,10 +8,10 @@ def read_full_dataset(excel_path):
     return full_dataset
 
 if __name__ == "__main__":
-    All_Suite_data = read_full_dataset("./NNZ low to High.xlsx")
+    All_Suite_data = read_full_dataset("./SuiteSparse_Matrix.xlsx")
     
     # 读取已测试数据集的Excel文件
-    tested_df = pd.read_excel('CSR Res.xlsx')
+    tested_df = pd.read_excel('CSR5 Res.xlsx')
     
     # 去除重复项，只保留唯一的ID和Name组合
     unique_tested_dataset = tested_df[['Id', 'Name']].drop_duplicates()

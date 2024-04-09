@@ -12,8 +12,9 @@
 #include<iostream>
 
 template <typename IndexType, typename ValueType>
-int test_sell_c_R_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag, int schedule_mod)
+double test_sell_c_R_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag, int schedule_mod)
 {
+    double msec_per_iteration;
     std::cout << "=====  Testing SELL-c-R Kernels  =====" << std::endl;
 
     SELL_C_R_Matrix<IndexType,ValueType> sell_c_R;
@@ -39,7 +40,7 @@ int test_sell_c_R_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref,
 
         std::cout << "\n===  Performance of SELL-c-R serial simple  ===" << std::endl;
         // count performance of Gflops and Gbytes
-        benchmark_spmv_on_host(sell_c_R, LeSpMV_sell_c_R<IndexType, ValueType>,"sell_c_R_serial_simple");
+        msec_per_iteration = benchmark_spmv_on_host(sell_c_R, LeSpMV_sell_c_R<IndexType, ValueType>,"sell_c_R_serial_simple");
 
     }
     else if ( 1 == sell_c_R.kernel_flag)
@@ -57,7 +58,7 @@ int test_sell_c_R_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref,
 
         std::cout << "\n===  Performance of SELL-c-R omp simple  ===" << std::endl;
         // count performance of Gflops and Gbytes
-        benchmark_spmv_on_host(sell_c_R, LeSpMV_sell_c_R<IndexType, ValueType>,"sell_c_R_omp_simple");
+        msec_per_iteration = benchmark_spmv_on_host(sell_c_R, LeSpMV_sell_c_R<IndexType, ValueType>,"sell_c_R_omp_simple");
         
     }
     else if ( 2 == sell_c_R.kernel_flag)
@@ -69,19 +70,19 @@ int test_sell_c_R_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref,
                          sell_c_R, LeSpMV_sell_c_R<IndexType, ValueType>,
                          "sell_c_R_omp_ld");
 
-        std::cout << "\n===  Performance of SELL-c-R omp simple  ===" << std::endl;
+        std::cout << "\n===  Performance of SELL-c-R Load-Balance  ===" << std::endl;
         // count performance of Gflops and Gbytes
-        benchmark_spmv_on_host(sell_c_R, LeSpMV_sell_c_R<IndexType, ValueType>,"sell_c_R_omp_ld");
+        msec_per_iteration = benchmark_spmv_on_host(sell_c_R, LeSpMV_sell_c_R<IndexType, ValueType>,"sell_c_R_omp_ld");
     }
 
     delete_host_matrix(sell_c_R);
-    return 0;
+    return msec_per_iteration;
 }
 
-template int test_sell_c_R_matrix_kernels<int,float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag, int sche);
+template double test_sell_c_R_matrix_kernels<int,float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag, int sche);
 
-template int test_sell_c_R_matrix_kernels<int,double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag, int sche);
+template double test_sell_c_R_matrix_kernels<int,double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag, int sche);
 
-template int test_sell_c_R_matrix_kernels<long long,float>(const CSR_Matrix<long long,float> &csr_ref, int kernel_tag, int sche);
+template double test_sell_c_R_matrix_kernels<long long,float>(const CSR_Matrix<long long,float> &csr_ref, int kernel_tag, int sche);
 
-template int test_sell_c_R_matrix_kernels<long long,double>(const CSR_Matrix<long long,double> &csr_ref, int kernel_tag, int sche);
+template double test_sell_c_R_matrix_kernels<long long,double>(const CSR_Matrix<long long,double> &csr_ref, int kernel_tag, int sche);

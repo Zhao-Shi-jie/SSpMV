@@ -19,6 +19,7 @@ void usage(int argc, char** argv)
     std::cout << "Usage:\n";
     std::cout << "\t" << argv[0] << " with following parameters:\n";
     std::cout << "\t" << " my_matrix.mtx\n";
+    std::cout << "\t" << " --matID     = m_num, giving the matrix ID number in dataset (default 0).\n";
     std::cout << "\t" << " --Index     = 0 (int:default) or 1 (long long)\n";
     std::cout << "\t" << " --precision = 32(or 64)\n";
     std::cout << "\t" << " --threads   = define the num of omp threads\n";
@@ -44,6 +45,15 @@ void run_dia_kernels(int argc, char **argv)
         return;
     }
 
+    std::string matrixName = extractFileNameWithoutExtension(mm_filename);
+
+    int matID = 0;
+    char * matID_str = get_argval(argc, argv, "matID");
+    if(matID_str != NULL)
+    {
+        matID = atoi(matID_str);
+    }
+
     // reference CSR kernel for dia test
     CSR_Matrix<IndexType, ValueType> csr;
     csr = read_csr_matrix<IndexType, ValueType> (mm_filename);
@@ -57,23 +67,41 @@ void run_dia_kernels(int argc, char **argv)
 
     fflush(stdout);
 
-    int sche_mode = 0;
-    char * schedule_str = get_argval(argc, argv, "sche");
-    if(schedule_str != NULL)
+    // 一次把四个sche_mode都跑完
+    // int sche_mode = 0;
+    // char * schedule_str = get_argval(argc, argv, "sche");
+    // if(schedule_str != NULL)
+    // {
+    //     sche_mode = atoi(schedule_str);
+    //     if (sche_mode!=0 && sche_mode!=1 && sche_mode!=2 && sche_mode!=3)
+    //     {
+    //         std::cout << "sche must be [0,1,2,3]. '--help see more details'" << std::endl;
+    //         return ;
+    //     }
+    // }
+
+    // 保存测试性能结果
+    FILE *save_perf = fopen(MAT_PERFORMANCE, "a");
+    if ( save_perf == nullptr)
     {
-        sche_mode = atoi(schedule_str);
-        if (sche_mode!=0 && sche_mode!=1 && sche_mode!=2 && sche_mode!=3)
-        {
-            std::cout << "sche must be [0,1,2,3]. '--help see more details'" << std::endl;
-            return ;
-        }
+        std::cout << "Unable to open perf-saved file: "<< MAT_PERFORMANCE << std::endl;
+        return ;
     }
 
-    for(IndexType methods = 0; methods < 2; ++methods){
-        test_dia_matrix_kernels(csr, methods, sche_mode);
+    double msec_per_iteration;
+    double sec_per_iteration;
+    // 0: 串行， 1：omp并行
+    for (int sche_mode = 0 ; sche_mode < 4; ++sche_mode){
+    for(int methods = 1; methods < 2; ++methods){
+        msec_per_iteration = test_dia_matrix_kernels(csr, methods, sche_mode);
         fflush(stdout);
+        sec_per_iteration = msec_per_iteration / 1000.0;
+        double GFLOPs = (sec_per_iteration == 0) ? 0 : (2.0 * (double) csr.num_nnzs / sec_per_iteration) / 1e9;
+        // 输出格式： 【Mat Format Method Schedule Time Performance】
+        fprintf(save_perf, "%d %s DIA %d %d %8.4f %5.4f \n", matID, matrixName.c_str(), methods, sche_mode, msec_per_iteration, GFLOPs);
     }
-
+    }
+    fclose(save_perf);
     delete_csr_matrix(csr);
 }
 

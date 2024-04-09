@@ -27,23 +27,23 @@ void __spmv_sell_cR_serial_simple( const IndexType *Reorder,
                                    const ValueType beta, 
                                    ValueType * y)
 {
-    for ( IndexType chunkID = 0; chunkID < total_chunk_num; ++chunkID)
+    for ( size_t chunkID = 0; chunkID < total_chunk_num; ++chunkID)
     {
-        IndexType chunk_width = max_row_width[chunkID];
-        IndexType chunk_start_row = chunkID * chunk_rowNum;
+        size_t chunk_width = max_row_width[chunkID];
+        size_t chunk_start_row = chunkID * chunk_rowNum;
 
-        for (IndexType row = 0; row < chunk_rowNum; row++)
+        for (size_t row = 0; row < chunk_rowNum; row++)
         {
-            IndexType global_row = chunk_start_row + row;
+            size_t global_row = chunk_start_row + row;
             if ( global_row >= num_rows) break; // 越界检查
             
-            IndexType sumPos = Reorder[global_row];
+            size_t sumPos = Reorder[global_row];
             ValueType sum    = 0;
 
-            for (IndexType i = 0; i < chunk_width; i++)
+            for (size_t i = 0; i < chunk_width; i++)
             {
-                IndexType col_index_pos = row * chunk_width + i;
-                IndexType col = col_index[chunkID][col_index_pos];
+                size_t col_index_pos = row * chunk_width + i;
+                size_t col = col_index[chunkID][col_index_pos];
 
                 if (col >= 0) { // 检查是否为填充的空位
                     sum += values[chunkID][col_index_pos] * x[col];
@@ -68,27 +68,27 @@ void __spmv_sell_cR_omp_simple( const IndexType * Reorder,
                                 const ValueType beta, 
                                 ValueType * y)
 {
-    const IndexType thread_num = Le_get_thread_num();
+    const size_t thread_num = Le_get_thread_num();
 
     #pragma omp parallel for num_threads(thread_num)
-    for ( IndexType chunkID = 0; chunkID < total_chunk_num; ++chunkID)
+    for ( size_t chunkID = 0; chunkID < total_chunk_num; ++chunkID)
     {
-        IndexType chunk_width = max_row_width[chunkID];
-        IndexType chunk_start_row = chunkID * chunk_rowNum;
+        size_t chunk_width = max_row_width[chunkID];
+        size_t chunk_start_row = chunkID * chunk_rowNum;
 
-        for (IndexType row = 0; row < chunk_rowNum; row++)
+        for (size_t row = 0; row < chunk_rowNum; row++)
         {
-            IndexType global_row = chunk_start_row + row;
+            size_t global_row = chunk_start_row + row;
             if ( global_row >= num_rows) break; // 越界检查
             
-            IndexType sumPos = Reorder[global_row];
+            size_t sumPos = Reorder[global_row];
             ValueType sum    = 0;
 
             #pragma omp simd reduction(+:sum)
-            for (IndexType i = 0; i < chunk_width; i++)
+            for (size_t i = 0; i < chunk_width; i++)
             {
-                IndexType col_index_pos = row * chunk_width + i;
-                IndexType col = col_index[chunkID][col_index_pos];
+                size_t col_index_pos = row * chunk_width + i;
+                size_t col = col_index[chunkID][col_index_pos];
 
                 if (col >= 0) { // 检查是否为填充的空位
                     sum += values[chunkID][col_index_pos] * x[col];

@@ -12,8 +12,9 @@
 #include<iostream>
 
 template <typename IndexType, typename ValueType>
-int test_bsr_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag, int schedule_mod)
+double test_bsr_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag, int schedule_mod)
 {
+    double msec_per_iteration;
     std::cout << "=====  Testing BSR Kernels  =====" << std::endl;
 
     BSR_Matrix<IndexType,ValueType> bsr;
@@ -35,7 +36,7 @@ int test_bsr_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
 
         std::cout << "\n===  Performance of BSR serial simple  ===" << std::endl;
         // count performance of Gflops and Gbytes
-        benchmark_spmv_on_host(bsr, LeSpMV_bsr<IndexType, ValueType>,"bsr_serial_simple");
+        msec_per_iteration = benchmark_spmv_on_host(bsr, LeSpMV_bsr<IndexType, ValueType>,"bsr_serial_simple");
     }
     else if (1 == bsr.kernel_flag)
     {
@@ -57,7 +58,7 @@ int test_bsr_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
 
         std::cout << "\n===  Performance of BSR omp simple  ===" << std::endl;
         // count performance of Gflops and Gbytes
-        benchmark_spmv_on_host(bsr, LeSpMV_bsr<IndexType, ValueType>,"bsr_omp_simple");
+        msec_per_iteration = benchmark_spmv_on_host(bsr, LeSpMV_bsr<IndexType, ValueType>,"bsr_omp_simple");
     }
     else if(2 == kernel_tag){
         std::cout << "\n===  Compared bsr_lb_nnz with csr default  ===" << std::endl;
@@ -75,17 +76,17 @@ int test_bsr_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
 
         std::cout << "\n===  Performance of BSR_lb_nnz  ===" << std::endl;
         // count performance of Gflops and Gbytes
-        benchmark_spmv_on_host(bsr, LeSpMV_bsr<IndexType, ValueType>, "bsr_omp_lb_nnz");
+        msec_per_iteration = benchmark_spmv_on_host(bsr, LeSpMV_bsr<IndexType, ValueType>, "bsr_omp_lb_nnz");
     }
 
     delete_host_matrix(bsr);
-    return 0;
+    return msec_per_iteration;
 }
 
-template int test_bsr_matrix_kernels<int,float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag, int sche);
+template double test_bsr_matrix_kernels<int,float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag, int sche);
 
-template int test_bsr_matrix_kernels<int,double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag, int sche);
+template double test_bsr_matrix_kernels<int,double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag, int sche);
 
-template int test_bsr_matrix_kernels<long long,float>(const CSR_Matrix<long long,float> &csr_ref, int kernel_tag, int sche);
+template double test_bsr_matrix_kernels<long long,float>(const CSR_Matrix<long long,float> &csr_ref, int kernel_tag, int sche);
 
-template int test_bsr_matrix_kernels<long long,double>(const CSR_Matrix<long long,double> &csr_ref, int kernel_tag, int sche);
+template double test_bsr_matrix_kernels<long long,double>(const CSR_Matrix<long long,double> &csr_ref, int kernel_tag, int sche);
