@@ -72,6 +72,7 @@ void run_csr5_kernels(int argc, char **argv)
     
     // for(IndexType methods = 0; methods <= 2; ++methods){
         // not even need the kernel_tag=0 & schedulemod=0
+    // Our: only one implementation
         msec_per_iteration = test_csr5_matrix_kernels<IndexType, UIndexType, ValueType>(csr, 0, 0);
         fflush(stdout);
 

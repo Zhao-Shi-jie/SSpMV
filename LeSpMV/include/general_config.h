@@ -15,7 +15,7 @@
 
 // hyperpramaters for SpMV algorithms
 #define SELL_SIGMA 512   // (2^9), 4096 (2^12) , and 16384 (2^14)
-#define CHUNK_SIZE 8
+#define CHUNK_SIZE 8     // 4 or 8  vactor widths
 #define NTRATIO (0.6)
 
 //  general setting in Liu weifeng's library

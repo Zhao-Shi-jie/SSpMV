@@ -95,6 +95,7 @@ void run_bsr_kernels(int argc, char **argv)
     double sec_per_iteration;
 
     // 0: 串行， 1：omp并行， 2：omp load balanced
+    // Our : {St,(==)StCont, Dyn, guided} x {omp, lb}
     for(int methods = 1; methods < 3; ++methods){
         msec_per_iteration = test_bsr_matrix_kernels(csr, methods, sche_mode);
         fflush(stdout);

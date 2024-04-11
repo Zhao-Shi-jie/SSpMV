@@ -104,6 +104,7 @@ void run_csr_kernels(int argc, char **argv)
     double msec_per_iteration;
     double sec_per_iteration;
     // 0: 串行， 1：omp并行， 2：omp load balanced
+    // Our : {St, StCont, Dyn, guided} x {omp, lb}
     for(int methods = 1; methods <= 2; ++methods){
         msec_per_iteration = test_csr_matrix_kernels(csr_ref, methods, sche_mode);
         fflush(stdout);

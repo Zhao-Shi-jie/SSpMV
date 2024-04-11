@@ -67,6 +67,8 @@ void run_s_ell_kernels(int argc, char **argv)
 
     fflush(stdout);
 
+    // 一次把四个sche_mode都跑完
+    /*
     int sche_mode = SCHE_MODE;
     // 此时 0 == 1 都是 StCont 方式，因为按照本身的chunk划分
     char * schedule_str = get_argval(argc, argv, "sche");
@@ -79,6 +81,7 @@ void run_s_ell_kernels(int argc, char **argv)
             return ;
         }
     }
+    */
 
     // 保存测试性能结果
     FILE *save_perf = fopen(MAT_PERFORMANCE, "a");
@@ -94,6 +97,9 @@ void run_s_ell_kernels(int argc, char **argv)
     double sec_per_iteration;
     // 0: 串行， 1：omp并行
     // Paper: {StCont, Dyn} x {c}
+    //                        {4,8}
+    // Our : {St,(==)StCont, Dyn, guided} x {c} x {omp}
+    for (int sche_mode = 0 ; sche_mode < 4; ++sche_mode){
     for(int methods = 1; methods < 2; ++methods){
         msec_per_iteration = test_s_ell_matrix_kernels(csr, methods, sche_mode);
         fflush(stdout);
@@ -101,6 +107,7 @@ void run_s_ell_kernels(int argc, char **argv)
         double GFLOPs = (sec_per_iteration == 0) ? 0 : (2.0 * (double) csr.num_nnzs / sec_per_iteration) / 1e9;
         // 输出格式： 【Mat Format Method Schedule c Time Performance】
         fprintf(save_perf, "%d %s S-ELL %d %d %d %8.4f %5.4f \n", matID, matrixName.c_str(), methods, sche_mode, CHUNK_SIZE, msec_per_iteration, GFLOPs);
+    }
     }
     fclose(save_perf);
     delete_csr_matrix(csr);
