@@ -214,6 +214,7 @@ ELL_Matrix<IndexType, ValueType> csr_to_ell(const CSR_Matrix<IndexType, ValueTyp
     if (ColMajor == ld)
     {
         // 给ELL格式的两个数组进行赋值, col-major
+        #pragma omp parallel for
         for (size_t rowId = 0; rowId < ell.num_rows; ++rowId)
         {
             size_t ellIndex = rowId;
@@ -229,6 +230,7 @@ ELL_Matrix<IndexType, ValueType> csr_to_ell(const CSR_Matrix<IndexType, ValueTyp
     else if (RowMajor == ld)
     {
         // 给ELL格式的两个数组进行赋值, row-major
+        #pragma omp parallel for
         for (size_t rowId = 0; rowId < ell.num_rows; ++rowId)
         {
             size_t ellIndex = rowId * ell.max_row_width;
@@ -273,6 +275,7 @@ S_ELL_Matrix<IndexType, ValueType> csr_to_sell(const CSR_Matrix<IndexType, Value
     CHECK_ALLOC(sell.row_width);
     memset(sell.row_width, 0 , sell.chunk_num * sizeof(IndexType));
 
+    #pragma omp parallel for
     for (IndexType row = 0; row < csr.num_rows; ++row) {
         IndexType chunk_id = row / sell.sliceWidth;
         IndexType row_nnz = csr.row_offset[row + 1] - csr.row_offset[row];
@@ -282,6 +285,7 @@ S_ELL_Matrix<IndexType, ValueType> csr_to_sell(const CSR_Matrix<IndexType, Value
     // for (IndexType& width : sell.row_width) {
     //     width = ((width + sell.alignment - 1) / sell.alignment) * sell.alignment;
     // }
+    #pragma omp parallel for
     for (IndexType i = 0; i < sell.chunk_num; i++)
     {
         sell.row_width[i] = ((sell.row_width[i] + sell.alignment - 1) / sell.alignment) * sell.alignment;
@@ -306,6 +310,7 @@ S_ELL_Matrix<IndexType, ValueType> csr_to_sell(const CSR_Matrix<IndexType, Value
 
 
     //转换 CSR 到 S-ELL
+    #pragma omp parallel for
     for (IndexType row = 0; row < csr.num_rows; ++row)
     {
         IndexType chunk_id         = row / sell.sliceWidth;    // 所属的 chunk 号
@@ -368,11 +373,13 @@ SELL_C_Sigma_Matrix<IndexType, ValueType> csr_to_sell_c_sigma(const CSR_Matrix<I
     std::vector<std::pair<IndexType, IndexType>> nnz_count(csr.num_rows);
 
     // Count the non-zeros for each row
+    #pragma omp parallel for
     for (IndexType i = 0; i < csr.num_rows; ++i) {
         nnz_count[i].first = csr.row_offset[i + 1] - csr.row_offset[i]; // Number of non-zeros
         nnz_count[i].second = i; // Original row index
     }
 
+    #pragma omp parallel for
     for (IndexType slice = 0; slice < sell_c_sigma.sliceNum; slice++)
     {
         // Calculate the start and end row of the current slice
@@ -400,6 +407,7 @@ SELL_C_Sigma_Matrix<IndexType, ValueType> csr_to_sell_c_sigma(const CSR_Matrix<I
     std::fill_n(sell_c_sigma.chunk_len, sell_c_sigma.validchunkNum, 0);
 
     // Iterate through each row, now using the reorder mapping
+    #pragma omp parallel for
     for (IndexType row = 0; row < csr.num_rows; ++row){
         // get the real_rowID in Reorder array
         IndexType real_rowID = sell_c_sigma.reorder[row];
@@ -417,6 +425,7 @@ SELL_C_Sigma_Matrix<IndexType, ValueType> csr_to_sell_c_sigma(const CSR_Matrix<I
     }
     
     // alignment for chunk_len
+    #pragma omp parallel for
     for (IndexType i = 0; i < sell_c_sigma.validchunkNum; i++)
     {
         sell_c_sigma.chunk_len[i] = ((sell_c_sigma.chunk_len[i] + sell_c_sigma.alignment - 1)/ sell_c_sigma.alignment) * sell_c_sigma.alignment;
@@ -442,6 +451,7 @@ SELL_C_Sigma_Matrix<IndexType, ValueType> csr_to_sell_c_sigma(const CSR_Matrix<I
     }
 
     //转换 CSR 到 S-ELL-c-sigma
+    #pragma omp parallel for
     for (IndexType row = 0; row < csr.num_rows; row++)
     {
         // get the row index with Reorder array
@@ -493,6 +503,7 @@ SELL_C_R_Matrix<IndexType, ValueType> csr_to_sell_c_R(const CSR_Matrix<IndexType
     std::vector<std::pair<IndexType, IndexType>> nnz_count(csr.num_rows);
 
     // Count the non-zeros for each row
+    #pragma omp parallel for
     for (IndexType i = 0; i < csr.num_rows; ++i) {
         nnz_count[i].first = csr.row_offset[i + 1] - csr.row_offset[i]; // Number of non-zeros
         nnz_count[i].second = i; // Original row index
@@ -503,6 +514,7 @@ SELL_C_R_Matrix<IndexType, ValueType> csr_to_sell_c_R(const CSR_Matrix<IndexType
         std::greater<std::pair<IndexType, IndexType>>());
 
     // Fill the sell_c_sigma.reorder array with the new order of the rows
+    #pragma omp parallel for
     for (IndexType i = 0; i < csr.num_rows; ++i) {
         // reorder[i] 保存放置在 重序后第 i 行的 原始行号是多少
         // SpMV时, 累加到y的原始行 y[reorder[i]] += A[i][column_id]*x[column_id]
@@ -518,6 +530,7 @@ SELL_C_R_Matrix<IndexType, ValueType> csr_to_sell_c_R(const CSR_Matrix<IndexType
     std::fill_n(sell_c_R.chunk_len, sell_c_R.validchunkNum, 0);
 
     // Iterate through each row, now using the reorder mapping
+    #pragma omp parallel for
     for (IndexType row = 0; row < csr.num_rows; ++row){
         // get the real_rowID in Reorder array
         IndexType real_rowID = sell_c_R.reorder[row];
@@ -531,6 +544,7 @@ SELL_C_R_Matrix<IndexType, ValueType> csr_to_sell_c_R(const CSR_Matrix<IndexType
     }
     
     // alignment for chunk_len
+    #pragma omp parallel for
     for (IndexType i = 0; i < sell_c_R.validchunkNum; i++)
     {
         sell_c_R.chunk_len[i] = ((sell_c_R.chunk_len[i] + sell_c_R.alignment - 1)/ sell_c_R.alignment) * sell_c_R.alignment;
@@ -556,6 +570,7 @@ SELL_C_R_Matrix<IndexType, ValueType> csr_to_sell_c_R(const CSR_Matrix<IndexType
     }
 
     //转换 CSR 到 S-ELL-c-R
+    #pragma omp parallel for
     for (IndexType row = 0; row < csr.num_rows; row++)
     {
         // get the row index with Reorder array
@@ -869,6 +884,7 @@ BSR_Matrix<IndexType, ValueType> csr_to_bsr(const CSR_Matrix<IndexType, ValueTyp
     }
 
     // get bsr block values array.
+    #pragma omp parallel for
     for (IndexType i = 0; i < bsr.num_rows; i++)
     {
         IndexType blockRow = i / blockDimRow;

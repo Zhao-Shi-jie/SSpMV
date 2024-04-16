@@ -8,7 +8,7 @@
 #define MAT_TILE_SIZE 2048   // split matrix into 2048*2048 tiles
 #define MAX_DIAG_NUM 10240
 #define MAX_ITER 1000
-#define MIN_ITER 100 
+#define MIN_ITER 20 
 
 #define TIME_LIMIT 20.0  
 #define NUM_FORMATS 7

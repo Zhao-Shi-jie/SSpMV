@@ -33,4 +33,7 @@ void balanced_partition_row_by_nnz(const IndexType *row_ptr, IndexType rows, Ind
 template <typename IndexType>
 void balanced_partition_row_by_nnz_ell(const IndexType *col_index, const IndexType num_nnzs, IndexType num_rows, const IndexType max_width, IndexType num_threads, IndexType *partition);
 
+template <typename IndexType>
+void balanced_partition_row_by_nnz_ell_n2(const IndexType *col_index, const IndexType num_nnzs, IndexType num_rows, const IndexType max_width, IndexType num_threads, IndexType *partition);
+
 #endif /* SPARSE_PARTITION_H */

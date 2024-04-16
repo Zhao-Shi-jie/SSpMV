@@ -76,7 +76,8 @@ double test_ell_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, i
         const IndexType thread_num = Le_get_thread_num();
         ell.partition = new_array<IndexType>(thread_num + 1);
 
-        balanced_partition_row_by_nnz_ell(ell.col_index, ell.num_nnzs, ell.num_rows, ell.max_row_width, thread_num, ell.partition);
+        // balanced_partition_row_by_nnz_ell(ell.col_index, ell.num_nnzs, ell.num_rows, ell.max_row_width, thread_num, ell.partition);
+        balanced_partition_row_by_nnz_ell_n2(ell.col_index, ell.num_nnzs, ell.num_rows, ell.max_row_width, thread_num, ell.partition);
 
         // test correctness
         test_spmv_kernel(csr_ref, LeSpMV_csr<IndexType, ValueType>,

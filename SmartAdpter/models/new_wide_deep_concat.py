@@ -18,29 +18,39 @@ from utils.data_setting import *
 from compute_metrics import get_acc
 from compute_metrics import get_precision
 
-
+"""
+Self defined wide model: should be FFNN : Feed-Forward Neural Network
+The standard FFNN is a multi-layer feedforward network with an input, a hidden, and an output layer. 
+It can be used to learn and store a large number of mappings between the input and output layers.
+"""
 class NewWide(Model):
   def __init__(self):
     super(NewWide, self).__init__()
-    self.input1 = InputLayer(input_shape=(18,))
+    self.input1 = InputLayer(input_shape=(18,))   # human designed features size
     self.bn = BatchNormalization()
     self.dense1 = Dense(512, activation='relu')
-    self.dense2 = Dense(num_of_labels)
-    self.dense3 = Dense(1024, activation='relu')
+    self.dense2 = Dense(1024, activation='relu')
+    self.dense3 = Dense(num_of_labels)            # should be the number of algorithms
 
   def call(self, x):
     x = self.bn(x)
     x = self.input1(x)
     x = self.dense1(x)
-    x = self.dense3(x)
     x = self.dense2(x)
+    x = self.dense3(x)
     return x
 
+
+"""
+Self defined deep model: should be CNN : Convolutional Neural Network
+Block count is related to non-zero elements on the matrix, 
+and normalization restricts their number to within a reasonable range (0 ~255).
+"""
 class DeepModel(Model):
   def __init__(self):
     super(DeepModel, self).__init__()
-    self.input1 = InputLayer(input_shape=(128, 128, 1))
-    self.conv1 = Conv2D(16, (3, 3), activation='tanh')
+    self.input1 = InputLayer(input_shape=(128, 128, 1))     # Input shape: maybe redefined by 2048*2048 ?
+    self.conv1 = Conv2D(16, (3, 3), activation='tanh')      # 16 filters with (3,3) shape
     self.conv2 = Conv2D(16, (5, 5), strides=(2, 2), padding='same',  activation='tanh')
     self.maxpool1 = MaxPooling2D(2, 2)
     self.flatten = Flatten()
@@ -53,7 +63,7 @@ class DeepModel(Model):
     x = self.conv2(x)
     x = self.maxpool1(x)
     x = self.flatten(x)
-    x = self.dense(x)
+    x = self.dense(x)       # 2-layer CNN and flatten, outputsize: should be the number of algorithms
     return x
 
 
@@ -70,10 +80,8 @@ class NewWideAndDeepConcat(Model):
     x0 = self.wide(x[0])
     x1 = self.deep(x[1]) 
     x =  tf.keras.layers.Concatenate()([x0, x1])
-    x = self.dense(x)
+    x = self.dense(x)         # concat size: x0 + x1  --> output size: the number of algorithms 
     return x
-
-
 
 def train_new_model_concat(model_path,image_array,feat_array,label_array):
   combined_model = NewWideAndDeepConcat()

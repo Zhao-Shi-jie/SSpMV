@@ -153,7 +153,8 @@ def train_and_get_res_ten_fold():
     get_precision(testing_list, label_data, res_path, num_of_labels, metric_path)
 
 if __name__ == "__main__":
-  train_and_get_res_ten_fold()
+  # train_and_get_res_ten_fold()
+  train_and_get_res()
 
  
 

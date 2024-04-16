@@ -11,12 +11,13 @@ feat_file_suffix = ".features"
 
 def read_images(data_list_path, image_array_path):
   file_list = []
-  with open(data_list_path, "r") as f:
+  with open(data_list_path, "r") as f:   #开存有文件名字的data_list_path
     lines = f.readlines()
     for line in lines:
       file_list.append(line.strip())
-  image_array = []
-  for file_ in file_list:
+
+  image_array = []    
+  for file_ in file_list:           # 按照 image_dim 维度将image_data内存的数据存成2维张量
     image_tmp = []
     image_path = os.path.join(image_array_path, file_ + image_file_suffix)
     with open(image_path, "r") as f_read:
@@ -70,7 +71,7 @@ def read_labels(data_list_path, label_array_path, label_file_suffix):
 
 
 def get_train_data(data_list, image_data, feat_data, label_data, label_file_suffix):
-  image_array = read_images(data_list, image_data)
+  image_array = read_images(data_list, image_data)    # data list name, image data path
   feat_array = read_features(data_list, feat_data)
   label_array = read_labels(data_list, label_data, label_file_suffix)
   feat_array = st.fit_transform(feat_array)
