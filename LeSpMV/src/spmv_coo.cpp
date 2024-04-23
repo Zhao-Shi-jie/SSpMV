@@ -46,7 +46,8 @@ void __spmv_coo_omp_simple (const IndexType num_rows,
 {
     const IndexType thread_num = Le_get_thread_num();
     if (beta){
-        #pragma omp parallel for schedule(static) num_threads(thread_num)
+        // #pragma omp parallel for schedule(static) num_threads(thread_num)
+        #pragma omp parallel for num_threads(thread_num)
         for (IndexType i = 0; i < num_rows; ++i) {
             y[i] *= beta;
         }
@@ -55,7 +56,8 @@ void __spmv_coo_omp_simple (const IndexType num_rows,
     if ( 1 == alpha)
     {
         // omp automatic parallel but not using SIMD
-        #pragma omp parallel for schedule(static) num_threads(thread_num)
+        // #pragma omp parallel for schedule(static) num_threads(thread_num)
+        #pragma omp parallel for num_threads(thread_num)
         for (IndexType i = 0; i < num_nnzs; ++i) {
             // OpenMP的reduction机制确保线程安全地更新y向量
             #pragma omp atomic
@@ -64,7 +66,8 @@ void __spmv_coo_omp_simple (const IndexType num_rows,
     }
     else{
         // omp automatic parallel but not using SIMD
-        #pragma omp parallel for schedule(static) num_threads(thread_num)
+        // #pragma omp parallel for schedule(static) num_threads(thread_num)
+        #pragma omp parallel for num_threads(thread_num)
         for (IndexType i = 0; i < num_nnzs; ++i) {
             // OpenMP的reduction机制确保线程安全地更新y向量
             #pragma omp atomic
@@ -97,19 +100,36 @@ void __spmv_coo_omp_lb (    const IndexType num_rows,
     }
 
 // 计算 alpha * A * x
-    #pragma omp parallel for num_threads(thread_num)
-    for (IndexType i = 0; i < num_nnzs; i++)
-	{
-		const IndexType threadId = Le_get_thread_id();
-		const IndexType rowId = Ai[i];
-		const IndexType colId = Aj[i];
-		ValueType v;
-        // alpha_mul(v, A->values[i], x[c]);
-		v = Ax[i] * x[colId];
-		// alpha_madde(tmp[threadId][rowId], alpha, v);
-        // #pragma omp atomic
-        tmp[threadId][rowId] += alpha*v;
-	}
+    if ( 1 == alpha){
+        #pragma omp parallel for num_threads(thread_num)
+        for (IndexType i = 0; i < num_nnzs; i++)
+        {
+            const IndexType threadId = Le_get_thread_id();
+            const IndexType rowId = Ai[i];
+            const IndexType colId = Aj[i];
+            ValueType v;
+            // alpha_mul(v, A->values[i], x[c]);
+            v = Ax[i] * x[colId];
+            // alpha_madde(tmp[threadId][rowId], alpha, v);
+            // #pragma omp atomic
+            tmp[threadId][rowId] += v;
+        }
+    }
+    else{
+        #pragma omp parallel for num_threads(thread_num)
+        for (IndexType i = 0; i < num_nnzs; i++)
+        {
+            const IndexType threadId = Le_get_thread_id();
+            const IndexType rowId = Ai[i];
+            const IndexType colId = Aj[i];
+            ValueType v;
+            // alpha_mul(v, A->values[i], x[c]);
+            v = Ax[i] * x[colId];
+            // alpha_madde(tmp[threadId][rowId], alpha, v);
+            // #pragma omp atomic
+            tmp[threadId][rowId] += alpha*v;
+        }
+    }
 
 // 计算beta
     #pragma omp parallel for num_threads(thread_num)

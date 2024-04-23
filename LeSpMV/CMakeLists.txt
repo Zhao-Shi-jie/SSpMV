@@ -69,7 +69,18 @@ foreach(test_src ${TEST_SOURCES})
   # Add compiler options here if they are specific to the test executables
   target_compile_options(${test_name} PRIVATE -O3 -Wall)
 
-  target_link_libraries(${test_name} LeSPMV_shared stdc++)
+  # target_link_libraries(${test_name} LeSPMV_shared stdc++)
+  
+  # Check if the current source file is the baseline MKL test
+  if(${test_name} STREQUAL "baseline_mkl_csr")
+    # Link with MKL. The method to link may depend on your setup.
+    # This example assumes you're using the Intel Compiler or you have MKL setup to integrate with CMake.
+    find_package(MKL CONFIG REQUIRED)
+    target_link_libraries(${test_name} MKL::MKL LeSPMV_shared stdc++)
+  else()
+    target_link_libraries(${test_name} LeSPMV_shared stdc++)
+  endif()
+
 endforeach(test_src)
 
 # Message to print out the compiler being used

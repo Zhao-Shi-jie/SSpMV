@@ -12,8 +12,9 @@
 #include<iostream>
 
 template <typename IndexType, typename ValueType>
-int test_coo_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag)
+double test_coo_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag, int schedule_mod)
 {
+    double msec_per_iteration;
     std::cout << "=====  Testing COO Kernels  =====" << std::endl;
 
     // coo_test 和 CSR的默认实现对比一下
@@ -34,10 +35,19 @@ int test_coo_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
 
         std::cout << "\n===  Performance of COO serial simple ===" << std::endl;
         // count performance of Gflops and Gbytes
-        benchmark_spmv_on_host(coo_test,LeSpMV_coo<IndexType, ValueType>,"coo_serial_simple");
+        msec_per_iteration = benchmark_spmv_on_host(coo_test,LeSpMV_coo<IndexType, ValueType>,"coo_serial_simple");
     }
     else if(1 == kernel_tag){
         std::cout << "\n===  Compared coo omp with csr default  ===" << std::endl;
+
+        // 设置 omp 调度策略
+        const IndexType thread_num = Le_get_thread_num();
+        
+        // IndexType chunk_size = OMP_ROWS_SIZE;
+        IndexType chunk_size = 512;
+        chunk_size = std::max(chunk_size, coo_test.num_nnzs/thread_num);
+
+        set_omp_schedule(schedule_mod, chunk_size);
 
         // test correctness
         test_spmv_kernel(csr_ref,  LeSpMV_csr<IndexType, ValueType>,
@@ -46,7 +56,7 @@ int test_coo_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
 
         std::cout << "\n===  Performance of COO omp simple  ===" << std::endl;
         // count performance of Gflops and Gbytes
-        benchmark_spmv_on_host(coo_test,LeSpMV_coo<IndexType, ValueType>,"coo_omp_simple");
+        msec_per_iteration = benchmark_spmv_on_host(coo_test,LeSpMV_coo<IndexType, ValueType>,"coo_omp_simple");
     }
     else if(2 == kernel_tag){
         std::cout << "\n===  Compared coo alpha implementation with csr default ===" << std::endl;
@@ -58,19 +68,20 @@ int test_coo_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int 
 
         std::cout << "\n===  Performance of coo alpha implementation  ===" << std::endl;
         // count performance of Gflops and Gbytes
-        benchmark_spmv_on_host( coo_test, LeSpMV_coo<IndexType, ValueType>,"coo_omp_lb");
+        msec_per_iteration = benchmark_spmv_on_host( coo_test, LeSpMV_coo<IndexType, ValueType>,"coo_omp_lb");
     }
 
     // *gflops = coo.gflops;
     // delete_coo_matrix(coo);
     delete_host_matrix(coo_test);
-    return 0;
+    // return 0;
+    return msec_per_iteration;
 }
 
-template int test_coo_matrix_kernels<int,float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag);
+template double test_coo_matrix_kernels<int,float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag, int schedule_mod);
 
-template int test_coo_matrix_kernels<int,double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag);
+template double test_coo_matrix_kernels<int,double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag, int schedule_mod);
 
-template int test_coo_matrix_kernels<long long,float>(const CSR_Matrix<long long,float> &csr_ref, int kernel_tag);
+template double test_coo_matrix_kernels<long long,float>(const CSR_Matrix<long long,float> &csr_ref, int kernel_tag, int schedule_mod);
 
-template int test_coo_matrix_kernels<long long,double>(const CSR_Matrix<long long,double> &csr_ref, int kernel_tag);
+template double test_coo_matrix_kernels<long long,double>(const CSR_Matrix<long long,double> &csr_ref, int kernel_tag, int schedule_mod);

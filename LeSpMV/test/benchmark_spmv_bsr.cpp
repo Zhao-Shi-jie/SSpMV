@@ -67,19 +67,19 @@ void run_bsr_kernels(int argc, char **argv)
 
     fflush(stdout);
 
-    int sche_mode = SCHE_MODE;
+    // int sche_mode = SCHE_MODE;
 
     // 此时 0 == 1 都是 StCont 方式，因为按照本身的chunk划分
-    char * schedule_str = get_argval(argc, argv, "sche");
-    if(schedule_str != NULL)
-    {
-        sche_mode = atoi(schedule_str);
-        if (sche_mode!=0 && sche_mode!=1 && sche_mode!=2 && sche_mode!=3)
-        {
-            std::cout << "sche must be [0,1,2,3]. '--help see more details'" << std::endl;
-            return ;
-        }
-    }
+    // char * schedule_str = get_argval(argc, argv, "sche");
+    // if(schedule_str != NULL)
+    // {
+    //     sche_mode = atoi(schedule_str);
+    //     if (sche_mode!=0 && sche_mode!=1 && sche_mode!=2 && sche_mode!=3)
+    //     {
+    //         std::cout << "sche must be [0,1,2,3]. '--help see more details'" << std::endl;
+    //         return ;
+    //     }
+    // }
 
     std::cout << " , BSR matrix only support store in *Blocked RowMajor*" << std::endl;
 
@@ -96,6 +96,7 @@ void run_bsr_kernels(int argc, char **argv)
 
     // 0: 串行， 1：omp并行， 2：omp load balanced
     // Our : {St,(==)StCont, Dyn, guided} x {omp, lb}
+    for (int sche_mode = 0 ; sche_mode < 4; ++sche_mode){
     for(int methods = 1; methods < 3; ++methods){
         msec_per_iteration = test_bsr_matrix_kernels(csr, methods, sche_mode);
         fflush(stdout);
@@ -104,6 +105,7 @@ void run_bsr_kernels(int argc, char **argv)
         double GFLOPs = (sec_per_iteration == 0) ? 0 : (2.0 * (double) csr.num_nnzs / sec_per_iteration) / 1e9;
         // 输出格式： 【Mat Format Method Schedule Time Performance】
         fprintf(save_perf, "%d %s BSR %d %d %8.4f %5.4f \n", matID, matrixName.c_str(), methods, sche_mode, msec_per_iteration, GFLOPs);
+    }
     }
     fclose(save_perf);
     delete_csr_matrix(csr);

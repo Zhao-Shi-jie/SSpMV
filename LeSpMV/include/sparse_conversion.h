@@ -182,6 +182,7 @@ COO_Matrix<IndexType, ValueType> csr_to_coo( const CSR_Matrix<IndexType, ValueTy
  * @param csr 
  * @return ELL_Matrix<IndexType, ValueType> 
  */
+// 可以在特征分析中加入 引入多少非零元
 template <class IndexType, class ValueType>
 ELL_Matrix<IndexType, ValueType> csr_to_ell(const CSR_Matrix<IndexType, ValueType> &csr, const LeadingDimension ld = RowMajor)
 {
@@ -275,7 +276,7 @@ S_ELL_Matrix<IndexType, ValueType> csr_to_sell(const CSR_Matrix<IndexType, Value
     CHECK_ALLOC(sell.row_width);
     memset(sell.row_width, 0 , sell.chunk_num * sizeof(IndexType));
 
-    #pragma omp parallel for
+    // #pragma omp parallel for
     for (IndexType row = 0; row < csr.num_rows; ++row) {
         IndexType chunk_id = row / sell.sliceWidth;
         IndexType row_nnz = csr.row_offset[row + 1] - csr.row_offset[row];
@@ -407,7 +408,7 @@ SELL_C_Sigma_Matrix<IndexType, ValueType> csr_to_sell_c_sigma(const CSR_Matrix<I
     std::fill_n(sell_c_sigma.chunk_len, sell_c_sigma.validchunkNum, 0);
 
     // Iterate through each row, now using the reorder mapping
-    #pragma omp parallel for
+    // #pragma omp parallel for
     for (IndexType row = 0; row < csr.num_rows; ++row){
         // get the real_rowID in Reorder array
         IndexType real_rowID = sell_c_sigma.reorder[row];
@@ -530,7 +531,7 @@ SELL_C_R_Matrix<IndexType, ValueType> csr_to_sell_c_R(const CSR_Matrix<IndexType
     std::fill_n(sell_c_R.chunk_len, sell_c_R.validchunkNum, 0);
 
     // Iterate through each row, now using the reorder mapping
-    #pragma omp parallel for
+    // #pragma omp parallel for
     for (IndexType row = 0; row < csr.num_rows; ++row){
         // get the real_rowID in Reorder array
         IndexType real_rowID = sell_c_R.reorder[row];

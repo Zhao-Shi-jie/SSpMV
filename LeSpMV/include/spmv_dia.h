@@ -39,4 +39,14 @@ void __spmv_dia_omp_simple(  const ValueType alpha,
                                 const ValueType * x,
                                 const ValueType beta, ValueType * y);
 
+template <typename IndexType, typename ValueType>
+void __spmv_dia_alpha(  const ValueType alpha, 
+                        const IndexType num_rows,
+                        const IndexType stride,
+                        const IndexType complete_ndiags,
+                        const long int  * dia_offset,
+                        const ValueType * dia_data,
+                        const ValueType * x,
+                        const ValueType beta, ValueType * y);                                
+
 #endif /* SPMV_DIA_H */

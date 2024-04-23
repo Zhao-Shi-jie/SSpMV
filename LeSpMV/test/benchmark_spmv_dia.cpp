@@ -68,7 +68,7 @@ void run_dia_kernels(int argc, char **argv)
     fflush(stdout);
 
     // 一次把四个sche_mode都跑完
-    // int sche_mode = 0;
+    int sche_mode = 0;
     // char * schedule_str = get_argval(argc, argv, "sche");
     // if(schedule_str != NULL)
     // {
@@ -90,10 +90,10 @@ void run_dia_kernels(int argc, char **argv)
 
     double msec_per_iteration;
     double sec_per_iteration;
-    // 0: 串行， 1：omp并行
+    // 0: 串行， 1：omp并行, 2: alphasparse implementation 太慢
     // Our : {St,(==)StCont, Dyn, guided} x {omp}
-    for (int sche_mode = 0 ; sche_mode < 4; ++sche_mode){
-    for(int methods = 1; methods < 2; ++methods){
+    // for (int sche_mode = 0 ; sche_mode < 4; ++sche_mode){
+    for(int methods = 0; methods < 1; ++methods){
         msec_per_iteration = test_dia_matrix_kernels(csr, methods, sche_mode);
         fflush(stdout);
         sec_per_iteration = msec_per_iteration / 1000.0;
@@ -101,7 +101,7 @@ void run_dia_kernels(int argc, char **argv)
         // 输出格式： 【Mat Format Method Schedule Time Performance】
         fprintf(save_perf, "%d %s DIA %d %d %8.4f %5.4f \n", matID, matrixName.c_str(), methods, sche_mode, msec_per_iteration, GFLOPs);
     }
-    }
+    // }
     fclose(save_perf);
     delete_csr_matrix(csr);
 }
