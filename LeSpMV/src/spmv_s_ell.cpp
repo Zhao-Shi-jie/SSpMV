@@ -118,6 +118,88 @@ void __spmv_sell_omp_simple(const IndexType num_rows,
 }
 
 template <typename IndexType, typename ValueType>
+inline void __spmv_sell_perthread(  const ValueType alpha, 
+                                    const IndexType * const *col_index,
+                                    const ValueType * const *values,
+                                    const ValueType * x, 
+                                    const ValueType beta, 
+                                    ValueType * y, 
+                                    const IndexType chunk_lrs, 
+                                    const IndexType chunk_lre, 
+                                    const IndexType num_rows, 
+                                    const IndexType *max_row_width, 
+                                    const IndexType chunk_size)
+{
+    for (size_t chunkID = chunk_lrs; chunkID < chunk_lre; chunkID++)
+    {
+        size_t chunk_width = max_row_width[chunkID];
+        size_t chunk_start_row = chunkID * chunk_size;
+
+        for (size_t row = 0; row < chunk_size; ++row)
+        {
+            ValueType sum = 0.0;
+            size_t global_row = chunk_start_row + row;
+            if (global_row >= num_rows) break; // 越界检查
+
+            if (beta)
+            {
+                y[global_row] = beta * y[global_row];
+            }
+
+            // #pragma omp simd reduction(+:sum)
+            for (size_t i = 0; i < chunk_width; ++i) 
+            {
+                size_t col_index_pos = row * chunk_width + i;
+                size_t col = col_index[chunkID][col_index_pos];
+
+                if (col >= 0) { // 检查是否为填充的空位
+                    sum += values[chunkID][col_index_pos] * x[col];
+                }
+            }
+            // Scale the sum by alpha and add to the y vector scaled by beta
+            if(alpha == 1)
+            {
+                y[global_row] += sum;
+            }
+            else {
+                // y[global_row] = alpha * sum + beta * y[global_row];
+                y[global_row] += alpha * sum;
+            }
+        }
+    }
+}
+
+template <typename IndexType, typename ValueType>
+void __spmv_sell_omp_lb_row(const IndexType num_rows,
+                            const IndexType row_num_perC,
+                            const IndexType total_chunk_num,
+                            const IndexType num_nnzs, 
+                            const ValueType alpha, 
+                            const IndexType *max_row_width,
+                            const IndexType * const *col_index,
+                            const ValueType * const *values,
+                            const ValueType * x, 
+                            const ValueType beta, 
+                            ValueType * y,
+                            IndexType *partition)
+{
+    const IndexType thread_num = Le_get_thread_num();
+    
+    if(partition == nullptr)
+    {
+        partition = new_array<IndexType>(thread_num + 1);
+        balanced_partition_row_by_nnz_sell(col_index, num_nnzs, row_num_perC, total_chunk_num, max_row_width, thread_num, partition);
+    }
+    #pragma omp parallel num_threads(thread_num)
+    {
+        IndexType tid = Le_get_thread_id();
+        IndexType local_chunk_start = partition[tid];
+        IndexType local_chunk_end   = partition[tid + 1];
+        __spmv_sell_perthread(alpha, col_index, values, x, beta, y, local_chunk_start, local_chunk_end, num_rows, max_row_width, row_num_perC);
+    }
+}
+
+template <typename IndexType, typename ValueType>
 void LeSpMV_sell(const ValueType alpha, const S_ELL_Matrix<IndexType, ValueType>& sell, const ValueType * x, const ValueType beta, ValueType * y){
     if (0 == sell.kernel_flag)
     {
@@ -131,7 +213,9 @@ void LeSpMV_sell(const ValueType alpha, const S_ELL_Matrix<IndexType, ValueType>
     }
     else if(2 == sell.kernel_flag)
     {
-        // load balanced ? maybe no need for sell
+        // call the load balanced by nnz of chunks in omp
+        // just consider RowMajor
+        __spmv_sell_omp_lb_row( sell.num_rows, sell.sliceWidth, sell.chunk_num, sell.num_nnzs, alpha, sell.row_width, sell.col_index, sell.values, x, beta, y, sell.partition);
     }
     else{
         //DEFAULT: omp simple implementation

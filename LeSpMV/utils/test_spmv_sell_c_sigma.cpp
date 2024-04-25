@@ -67,12 +67,18 @@ double test_sell_c_sigma_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &c
         // just the same as omp simple now
         std::cout << "\n===  Compared SELL-c-sigma Load-Balance with csr default  ===" << std::endl;
 
+        // Pre- partition by numer of nnz per row balanced
+        const IndexType thread_num = Le_get_thread_num();
+        sell_c_sigma.partition = new_array<IndexType>(thread_num + 1);
+
+        balanced_partition_row_by_nnz_sell(sell_c_sigma.col_index, sell_c_sigma.num_nnzs, sell_c_sigma.chunkWidth_C, sell_c_sigma.validchunkNum, sell_c_sigma.chunk_len, thread_num, sell_c_sigma.partition);
+
         // test correctness
         test_spmv_kernel(csr_ref, LeSpMV_csr<IndexType, ValueType>,
                          sell_c_sigma, LeSpMV_sell_c_sigma<IndexType, ValueType>,
                          "sell_c_sigma_omp_ld");
 
-        std::cout << "\n===  Performance of SELL-c-sigma omp simple  ===" << std::endl;
+        std::cout << "\n===  Performance of SELL-c-sigma Load-Balance  ===" << std::endl;
         // count performance of Gflops and Gbytes
         msec_per_iteration = benchmark_spmv_on_host(sell_c_sigma, LeSpMV_sell_c_sigma<IndexType, ValueType>,"sell_c_sigma_omp_ld");
     }

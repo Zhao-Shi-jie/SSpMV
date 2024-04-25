@@ -61,12 +61,19 @@ double test_s_ell_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref,
     else if (2 == sell.kernel_flag)
     {
         std::cout << "\n===  Compared S_ELL Load-Balance with csr default  ===" << std::endl;
+
+        // Pre- partition by numer of nnz per row balanced
+        const IndexType thread_num = Le_get_thread_num();
+        sell.partition = new_array<IndexType>(thread_num + 1);
+
+        balanced_partition_row_by_nnz_sell(sell.col_index, sell.num_nnzs, sell.sliceWidth, sell.chunk_num, sell.row_width, thread_num, sell.partition);
+
         // test correctness
         test_spmv_kernel(csr_ref, LeSpMV_csr<IndexType, ValueType>,
                          sell, LeSpMV_sell<IndexType, ValueType>,
                          "sell_omp_ld");
 
-        std::cout << "\n===  Performance of ELL omp Load-Balance  ===" << std::endl;
+        std::cout << "\n===  Performance of SELL omp Load-Balance  ===" << std::endl;
         // count performance of Gflops and Gbytes
         msec_per_iteration = benchmark_spmv_on_host(sell,LeSpMV_sell<IndexType, ValueType>,"sell_omp_ld");
     }

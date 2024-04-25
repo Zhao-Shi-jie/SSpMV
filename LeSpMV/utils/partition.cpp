@@ -164,3 +164,41 @@ void balanced_partition_row_by_nnz_ell_n2(const IndexType *col_index, const Inde
 }
 template void balanced_partition_row_by_nnz_ell_n2(const int*, const int, int, const int, int, int*);
 template void balanced_partition_row_by_nnz_ell_n2(const long long*, const long long, long long, const long long, long long, long long*);
+
+template <typename IndexType>
+void balanced_partition_row_by_nnz_sell(const IndexType * const *col_index, const IndexType num_nnzs, IndexType chunk_size, IndexType chunk_num, const IndexType *row_width, IndexType num_threads, IndexType *partition)
+{
+    // 初始化每个线程的分区指针
+    partition[0] = 0;
+    for (IndexType i = 1; i <= num_threads; ++i) {
+        partition[i] = chunk_num;
+    }
+
+    // 计算每 CHUNK 的非零元素数并累积总和
+    std::vector<IndexType> nnz_cumulative(chunk_num + 1, 0);
+    for (IndexType chunkID = 0; chunkID < chunk_num; ++chunkID) {
+        IndexType nnz_this_chunk = 0;
+        IndexType max_width = row_width[chunkID];
+        for (IndexType rowID = 0; rowID < chunk_size; rowID++)
+        {
+            for (IndexType j = 0; j < max_width; ++j) {
+                if (col_index[chunkID][j + rowID * max_width] >= 0)
+                    ++nnz_this_chunk;
+                else
+                    break;
+            }
+        } 
+        nnz_cumulative[chunkID + 1] = nnz_cumulative[chunkID] + nnz_this_chunk;
+    }
+
+    // 使用二分搜索为每个线程找到平衡点
+    IndexType target_nnz_per_thread = num_nnzs / num_threads;
+    for (IndexType thread_id = 1; thread_id < num_threads; ++thread_id) {
+        IndexType target_nnz = thread_id * target_nnz_per_thread;
+        auto it = std::lower_bound(nnz_cumulative.begin(), nnz_cumulative.end(), target_nnz);
+        partition[thread_id] = std::distance(nnz_cumulative.begin(), it);
+    }
+}
+
+template void balanced_partition_row_by_nnz_sell(const int * const *, const int , int , int , const int *, int , int *);
+template void balanced_partition_row_by_nnz_sell(const long long * const *, const long long , long long , long long , const long long *, long long , long long *);

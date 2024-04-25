@@ -65,6 +65,12 @@ double test_sell_c_R_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_r
     {
         std::cout << "\n===  Compared SELL-c-R Load-Balance with csr default  ===" << std::endl;
 
+        // Pre- partition by numer of nnz per row balanced
+        const IndexType thread_num = Le_get_thread_num();
+        sell_c_R.partition = new_array<IndexType>(thread_num + 1);
+
+        balanced_partition_row_by_nnz_sell(sell_c_R.col_index, sell_c_R.num_nnzs, sell_c_R.chunkWidth_C, sell_c_R.validchunkNum, sell_c_R.chunk_len, thread_num, sell_c_R.partition);
+
         // test correctness
         test_spmv_kernel(csr_ref, LeSpMV_csr<IndexType, ValueType>,
                          sell_c_R, LeSpMV_sell_c_R<IndexType, ValueType>,

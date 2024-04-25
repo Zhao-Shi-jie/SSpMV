@@ -9,8 +9,8 @@ void __spmv_sell_serial_simple(const IndexType num_rows,
                             const IndexType total_chunk_num,
                             const ValueType alpha,
                             const IndexType *max_row_width,
-                            const IndexType **col_index,
-                            const ValueType **values,
+                            const IndexType * const *col_index,
+                            const ValueType * const *values,
                             const ValueType * x, 
                             const ValueType beta, 
                             ValueType * y);
@@ -21,11 +21,25 @@ void __spmv_sell_omp_simple(const IndexType num_rows,
                             const IndexType total_chunk_num,
                             const ValueType alpha,
                             const IndexType *max_row_width,
-                            const IndexType **col_index,
-                            const ValueType **values,
+                            const IndexType * const *col_index,
+                            const ValueType * const *values,
                             const ValueType * x, 
                             const ValueType beta, 
                             ValueType * y);
+
+template <typename IndexType, typename ValueType>
+void __spmv_sell_omp_lb_row(const IndexType num_rows,
+                            const IndexType row_num_perC,
+                            const IndexType total_chunk_num,
+                            const IndexType num_nnzs, 
+                            const ValueType alpha, 
+                            const IndexType *max_row_width,
+                            const IndexType * const *col_index,
+                            const ValueType * const *values,
+                            const ValueType * x, 
+                            const ValueType beta, 
+                            ValueType * y,
+                            IndexType *partition);
 
 /**
  * @brief Compute y += alpha * A * x + beta * y for a sparse matrix

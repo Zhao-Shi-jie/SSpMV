@@ -101,7 +101,7 @@ void run_sell_c_sigma_kernels(int argc, char **argv)
     //                        {4,8} x {2^9, 2^12, 2^14}
     // Our : {St,(==)StCont, Dyn, guided} x {c} x {sigma} x {omp}
     for (int sche_mode = 0 ; sche_mode < 4; ++sche_mode){
-    for(int methods = 1; methods < 2; ++methods){
+    for(int methods = 1; methods <= 2; ++methods){
         msec_per_iteration = test_sell_c_sigma_matrix_kernels(csr, methods, sche_mode);
         fflush(stdout);
         sec_per_iteration = msec_per_iteration / 1000.0;

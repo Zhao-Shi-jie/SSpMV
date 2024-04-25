@@ -29,6 +29,21 @@ void __spmv_sell_cs_omp_simple( const IndexType * Reorder,
                                 const ValueType beta, 
                                 ValueType * y);
 
+template <typename IndexType, typename ValueType>
+void __spmv_sell_cs_omp_lb_row( const IndexType * Reorder,
+                                const IndexType num_rows,
+                                const IndexType row_num_perC,
+                                const IndexType total_chunk_num,
+                                const IndexType num_nnzs, 
+                                const ValueType alpha, 
+                                const IndexType *max_row_width,
+                                const IndexType * const *col_index,
+                                const ValueType * const *values,
+                                const ValueType * x, 
+                                const ValueType beta, 
+                                ValueType * y,
+                                IndexType *partition);
+
 /**
  * @brief Compute y += alpha * A * x + beta * y for a sparse matrix
  *        Matrix Format: SELL-c-sigma
