@@ -860,7 +860,8 @@ BSR_Matrix<IndexType, ValueType> csr_to_bsr(const CSR_Matrix<IndexType, ValueTyp
     memset(bsr.block_data, 0, ((size_t) bsr.nnzb * blockDimRow * blockDimCol) * sizeof(ValueType));
 
     IndexType colIndex = 0;
-
+    
+    #pragma omp parallel for 
     for (IndexType i = 0; i < bsr.mb; i++)
     {
         IndexType start = csr.row_offset[i*blockDimRow];

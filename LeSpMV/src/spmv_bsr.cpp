@@ -153,12 +153,31 @@ inline void __spmv_bsr_perthread(   const ValueType alpha,
             }
         }
     }
-    // m: row_idx;  m_t : row_block_idx
-    for (size_t m = lrs * blockDimRow, m_t = 0; m < lre * blockDimRow; m++, m_t++)
-	{
-        if (m < num_rows)
-        y[m] = alpha * tmp[m_t] + beta * y[m];
-	}
+
+    if ( alpha == 1 && beta ==0)
+    {
+        for (size_t m = lrs * blockDimRow, m_t = 0; m < lre * blockDimRow; m++, m_t++)
+        {
+            if (m < num_rows)
+            y[m] = tmp[m_t];
+        }
+    }
+    else if (beta == 0)
+    {
+        for (size_t m = lrs * blockDimRow, m_t = 0; m < lre * blockDimRow; m++, m_t++)
+        {
+            if (m < num_rows)
+            y[m] = alpha * tmp[m_t];
+        }
+    }
+    else {
+        // m: row_idx;  m_t : row_block_idx
+        for (size_t m = lrs * blockDimRow, m_t = 0; m < lre * blockDimRow; m++, m_t++)
+        {
+            if (m < num_rows)
+            y[m] = alpha * tmp[m_t] + beta * y[m];
+        }
+    }
 }
 
 template <typename IndexType, typename ValueType>

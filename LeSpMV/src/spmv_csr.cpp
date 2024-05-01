@@ -52,7 +52,12 @@ inline void  __spmv_csr_perthread(  const ValueType alpha,
             sum += Ax[col_id] * x[Aj[col_id]];
         }
         // 更新y向量
-        y[row] = alpha * sum + beta * y[row];
+        if ( alpha == 1 && beta ==0){
+            y[row] = sum;
+        }
+        else{
+            y[row] = alpha * sum + beta * y[row];
+        }
     }
 }
 
@@ -75,7 +80,12 @@ void __spmv_csr_serial_simple(  const IndexType num_rows,
             sum += Ax[jj] * x[Aj[jj]];
         }
         // 更新y向量
-        y[row] = alpha * sum + beta * y[row];
+        if ( alpha == 1 && beta ==0){
+            y[row] = sum;
+        }
+        else{
+            y[row] = alpha * sum + beta * y[row];
+        }
     }
 }
 

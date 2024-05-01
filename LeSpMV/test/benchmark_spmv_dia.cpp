@@ -93,7 +93,7 @@ void run_dia_kernels(int argc, char **argv)
     // 0: 串行， 1：omp并行, 2: alphasparse implementation 太慢
     // Our : {St,(==)StCont, Dyn, guided} x {omp}
     // for (int sche_mode = 0 ; sche_mode < 4; ++sche_mode){
-    for(int methods = 0; methods < 1; ++methods){
+    for(int methods = 0; methods <= 1; ++methods){
         msec_per_iteration = test_dia_matrix_kernels(csr, methods, sche_mode);
         fflush(stdout);
         sec_per_iteration = msec_per_iteration / 1000.0;
