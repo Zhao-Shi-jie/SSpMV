@@ -51,7 +51,8 @@ class MTX{
             std::cout<< "real_nnz   = "<< num_nnzs << std::endl;
             std::cout<< "nnz_ratio  = " << nnz_ratio_*100 << "%"<< std::endl;
             std::cout<< "num_of_diags  = " << complete_ndiags << std::endl;
-            std::cout<< "nnz_closed2diag_ratio = " << diag_close_ratio_*100 << "%"<< std::endl<< std::endl;
+            std::cout<< "nnz_closed2diag_ratio = " << diag_close_ratio_*100 << "%"<< std::endl << std::endl;
+            // std::cout<< "ave_distance_= " << distance_per_row_ << std::endl<< std::endl;
 
             std::cout<< "nnz_lower    : " << nnz_lower_ << std::endl;
             std::cout<< "nnz_upper    : " << nnz_upper_ << std::endl;
@@ -135,6 +136,8 @@ class MTX{
 
             std::cout<< "GrX_potReuseR  = " << GrX_potReuseR << std::endl;
             std::cout<< "GrX_potReuseC  = " << GrX_potReuseC << std::endl<< std::endl;
+
+            std::cout<< "ave_distance_= " << distance_per_row_ << std::endl<< std::endl;
         }
 
     private:
@@ -160,6 +163,7 @@ class MTX{
         ValueType value_symm_   = 0.0;      // 数值对称比例
         ValueType nnz_ratio_ = 0.0;         // 稠密度， = 1 - 稀疏度
         ValueType diag_close_ratio_ = 0.0;  // 靠近对角线nnz所占比例
+        ValueType distance_per_row_ = 0.0;  // 每行内非零元之间距离求和的平均值
 
         // nnzs skew statistic features
         ValueType nz_row_ratio_ = 0.0;

@@ -74,12 +74,24 @@ void __spmv_coo_omp_simple (const IndexType num_rows,
             y[Ai[i]] += alpha * Ax[i] * x[Aj[i]];
         }
     }
+}
 
+template <typename IndexType, typename ValueType>
+void __spmv_coo_omp_lb (    const IndexType num_rows,
+                            const IndexType num_nnzs, 
+                            const ValueType alpha, 
+                            const IndexType *Ai,
+                            const IndexType *Aj,
+                            const ValueType *Ax,
+                            const ValueType * x, 
+                            const ValueType beta, ValueType * y)
+{
+    // omp is enough for nnz load balanced
 }
 
 //openmp load balanced in alphasparse
 template <typename IndexType, typename ValueType>
-void __spmv_coo_omp_lb (    const IndexType num_rows,
+void __spmv_coo_omp_alpha (    const IndexType num_rows,
                             const IndexType num_nnzs, 
                             const ValueType alpha, 
                             const IndexType *Ai,
@@ -157,6 +169,10 @@ void LeSpMV_coo(const ValueType alpha, const COO_Matrix<IndexType, ValueType>& c
     else if (2 == coo.kernel_flag){
     
         __spmv_coo_omp_lb(coo.num_rows, coo.num_nnzs, alpha, coo.row_index, coo.col_index, coo.values, x, beta, y);
+    }
+    else if (3 == coo.kernel_flag){
+    
+        __spmv_coo_omp_alpha(coo.num_rows, coo.num_nnzs, alpha, coo.row_index, coo.col_index, coo.values, x, beta, y);
     }
     else
     {

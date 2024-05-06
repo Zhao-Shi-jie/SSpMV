@@ -427,7 +427,7 @@ bool MTX<IndexType, ValueType>::CalculateFeatures()
 {
     IndexType nz_row_num = 0, nz_col_num = 0, dominance = 0;
     IndexType diaglineNum = num_rows + num_cols - 1; // 矩阵的主对角线条数
-    IndexType close_threshold =  diaglineNum / 20; // 5% 比率靠近对角线作为阈值
+    IndexType close_threshold =  diaglineNum / 20; // 5% 比率靠近对角线作为阈值 - locality
     IndexType close_nnz = 0;
     // Calculate total NNZ and NNZ close to the diagonal
     for (const auto& offset_count : diag_offset_) {
@@ -723,12 +723,43 @@ bool MTX<IndexType, ValueType>::CalculateTilesExtraFeatures(const char* mat_path
     IndexType tileDim_row = BestDimForBSR(num_rows, t_num_blocks);
     IndexType tileDim_col = BestDimForBSR(num_cols, t_num_blocks);
 
-    bsr = read_bsr_matrix<IndexType, ValueType>(mat_path, tileDim_row, tileDim_col);
+    CSR_Matrix<IndexType, ValueType> csr;
+    csr = read_csr_matrix<IndexType, ValueType>(mat_path);
+
+    // 计算每行 nnz的 distance
+    std::vector<IndexType> dis_row_nnz_(csr.num_rows, 0);
+    for (size_t i = 0; i < csr.num_rows; i++)
+    {
+        IndexType start = csr.row_offset[i];
+        IndexType end   = csr.row_offset[i+1];
+        if (end - start <= 1)
+            continue;
+        for (size_t j = start; j < end - 1; j++)
+        {
+            dis_row_nnz_[i] += csr.col_index[j+1] - csr.col_index[j];
+        }
+    }
+    for (size_t i = 0; i < csr.num_rows; i++)
+    {
+        if (csr.row_offset[i+1] - csr.row_offset[i])
+        {
+        distance_per_row_ += (ValueType) dis_row_nnz_[i] / 
+                                (csr.row_offset[i+1] - csr.row_offset[i]);
+        }
+    }
+    distance_per_row_ = distance_per_row_ / csr.num_rows;
+
+#ifdef BSR_ANA
+    bsr = csr_to_bsr<IndexType, ValueType>(csr, tileDim_row, tileDim_col);
+    std::cout << "- Finish BSR convertion -" << std::endl;
+#endif // BSR_ANA
+    delete_csr_matrix(csr);
 
     // tile的size 必须要比 Group 大，统计Grx_uniq才有意义
+#ifdef BSR_ANA
     bool flag_GrX_uniqRB = (bsr.blockDim_r >= GrX);
     bool flag_GrX_uniqCB = (bsr.blockDim_c >= GrX);
-    IndexType GrxRB_perT, GrxCB_perT;
+    IndexType GrxRB_perT = 0, GrxCB_perT = 0;
 
     uniq_RB.resize(bsr.mb * bsr.nb, 0);  // number of total blocks in mat
     uniq_CB.resize(bsr.mb * bsr.nb, 0);
@@ -770,6 +801,12 @@ bool MTX<IndexType, ValueType>::CalculateTilesExtraFeatures(const char* mat_path
 
             std::vector<bool> flag_potGrXR(GrxRB_perT, true);
             std::vector<bool> flag_potGrXC(GrxCB_perT, true);
+            // if( flag_GrX_uniqRB ) {
+            // std::vector<bool> flag_potGrXR(GrxRB_perT, true);
+            // }
+            // if( flag_GrX_uniqCB ) {
+            // std::vector<bool> flag_potGrXC(GrxCB_perT, true);
+            // }
 
             // 遍历块的内部
             for (size_t br = 0; br < bsr.blockDim_r; ++br) {
@@ -825,6 +862,7 @@ bool MTX<IndexType, ValueType>::CalculateTilesExtraFeatures(const char* mat_path
         GrX_potReuseC = (ValueType) std::accumulate(GrX_potReuseCB.begin(), GrX_potReuseCB.end(), 0) / GrX_potReuseCB.size();
     }
     delete_bsr_matrix(bsr);
+#endif // BSR_ANA
     return true;
 }
 template bool MTX<int, float>::CalculateTilesExtraFeatures(const char* mat_path);
@@ -870,7 +908,7 @@ bool MTX<IndexType, ValueType>::FeaturesWrite(const char* file_path)
         fprintf(save_features, "%d %s ", matrixID_, matrixName.c_str());
         fprintf(save_features, "%d %d ", num_rows, num_cols);
         fprintf(save_features, "%d %lf %lf ", num_nnzs, nnz_ratio_, diag_close_ratio_);
-
+        
         fprintf(save_features, "%d %lf %lf ", is_symmetric_, pattern_symm_, value_symm_);
         
         fprintf(save_features, "%d %d %d %d ", nnz_lower_, nnz_upper_, nnz_diagonal_, complete_ndiags);
@@ -880,13 +918,13 @@ bool MTX<IndexType, ValueType>::FeaturesWrite(const char* file_path)
 
         // col statistic features
         fprintf(save_features, "%.3f %d %d %lf %lf %lf %lf %lf ", nz_col_ratio_, min_nnz_each_col_, max_nnz_each_col_, ave_nnz_each_col_, var_nnz_each_col_, standard_dev_col_, P_ratio_col_, Gini_col_);
-
         // values features
         // fprintf(save_features, "%lg %lg ", max_value_offdiag_, max_value_diagonal_);
         // fprintf(save_features, "%lf ", diagonal_dominant_ratio_);
 
         // fprintf(save_features, "%lf %lf \n", row_variability_, col_variability_);
 
+#ifdef BSR_ANA
         //  Tile features
         fprintf(save_features, "%.3f %d %d %lf %lf %lf %lf %lf ", t_nz_ratio_tiles_, t_min_nnz_all_tiles_, t_max_nnz_all_tiles_, t_ave_nnz_all_tiles, t_var_nnz_all_tiles, t_standard_dev_all_tiles, t_P_ratio_all_tiles_, t_Gini_all_tiles_);
 
@@ -895,12 +933,14 @@ bool MTX<IndexType, ValueType>::FeaturesWrite(const char* file_path)
         fprintf(save_features, "%.3f %d %d %lf %lf %lf %lf %lf ", t_nz_ratio_CB_, t_min_nnz_each_CB_, t_max_nnz_each_CB_, t_ave_nnz_CB, t_var_nnz_CB, t_standard_dev_CB, t_P_ratio_CB_, t_Gini_CB_);
 
         // Tile extra fetures
-        fprintf(save_features, "%lf %lf %lf %lf %lf %lf %lf %lf \n", uniqR, uniqC, GrX_uniqR, GrX_uniqC, potReuseR, potReuseC, GrX_potReuseR, GrX_potReuseC);
+        fprintf(save_features, "%lf %lf %lf %lf %lf %lf %lf %lf %lf\n", uniqR, uniqC, GrX_uniqR, GrX_uniqC, potReuseR, potReuseC, GrX_potReuseR, GrX_potReuseC, distance_per_row_);
+#endif // BSR_ANA
+        fprintf(save_features,"%lf\n", distance_per_row_);
     } 
     else if constexpr(std::is_same<IndexType, long long>::value) {
         fprintf(save_features, "%lld %s ", matrixID_, matrixName.c_str());
         fprintf(save_features, "%lld %lld ", num_rows, num_cols);
-        fprintf(save_features, "%lld %lf ", num_nnzs, nnz_ratio_);
+        fprintf(save_features, "%lld %lf %lf ", num_nnzs, nnz_ratio_, diag_close_ratio_);
 
         fprintf(save_features, "%d %lf %lf ", is_symmetric_, pattern_symm_, value_symm_);
         
@@ -916,7 +956,7 @@ bool MTX<IndexType, ValueType>::FeaturesWrite(const char* file_path)
         // fprintf(save_features, "%lg %lg ", max_value_offdiag_, max_value_diagonal_);
         // fprintf(save_features, "%lf ", diagonal_dominant_ratio_);
         // fprintf(save_features, "%lf %lf \n", row_variability_, col_variability_);
-
+#ifdef BSR_ANA
         //  Tile features
         fprintf(save_features, "%.3f %lld %lld %lf %lf %lf %lf %lf ", t_nz_ratio_tiles_, t_min_nnz_all_tiles_, t_max_nnz_all_tiles_, t_ave_nnz_all_tiles, t_var_nnz_all_tiles, t_standard_dev_all_tiles, t_P_ratio_all_tiles_, t_Gini_all_tiles_);
 
@@ -925,8 +965,9 @@ bool MTX<IndexType, ValueType>::FeaturesWrite(const char* file_path)
         fprintf(save_features, "%.3f %lld %lld %lf %lf %lf %lf %lf ", t_nz_ratio_CB_, t_min_nnz_each_CB_, t_max_nnz_each_CB_, t_ave_nnz_CB, t_var_nnz_CB, t_standard_dev_CB, t_P_ratio_CB_, t_Gini_CB_);
 
         // Tile extra fetures
-        fprintf(save_features, "%lf %lf %lf %lf %lf %lf %lf %lf \n", uniqR, uniqC, GrX_uniqR, GrX_uniqC, potReuseR, potReuseC, GrX_potReuseR, GrX_potReuseC);
-
+        fprintf(save_features, "%lf %lf %lf %lf %lf %lf %lf %lf %lf\n", uniqR, uniqC, GrX_uniqR, GrX_uniqC, potReuseR, potReuseC, GrX_potReuseR, GrX_potReuseC, distance_per_row_);
+#endif // BSR_ANA
+        fprintf(save_features,"%lf\n", distance_per_row_);
     }
         fclose(save_features);
     return true;

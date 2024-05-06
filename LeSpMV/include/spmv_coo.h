@@ -54,4 +54,14 @@ void __spmv_coo_omp_lb (    const IndexType num_rows,
                             const ValueType * x, 
                             const ValueType beta, ValueType * y);
 
+template <typename IndexType, typename ValueType>
+void __spmv_coo_omp_alpha (    const IndexType num_rows,
+                                const IndexType num_nnzs, 
+                                const ValueType alpha, 
+                                const IndexType *Ai,
+                                const IndexType *Aj,
+                                const ValueType *Ax,
+                                const ValueType * x, 
+                                const ValueType beta, ValueType * y);
+
 #endif /* SPMV_COO_H */
