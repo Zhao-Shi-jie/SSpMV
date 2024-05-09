@@ -180,17 +180,26 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
     
     //  可以存 tile features
     if (tile_flag){
-        // 为避免空块，只能向下取整； 多出的元素均匀分给 0 ~ t_mod_RB-1 行，和 0 ~ t_mod_CB-1 列
+        // 为避免空块，只能向下取整； 多出的元素均匀分给 前t_mod_RB 行，和 前t_mod_CB-1 列
         t_num_RB = num_rows / t_num_blocks; t_mod_RB = num_rows % t_num_blocks;
         t_num_CB = num_cols / t_num_blocks; t_mod_CB = num_cols % t_num_blocks;
         nnz_by_Tiles_.resize(t_num_blocks * t_num_blocks, 0);
         nnz_by_RB_.resize(t_num_blocks, 0);
         nnz_by_CB_.resize(t_num_blocks, 0);
+
+        uniq_RB.resize(t_num_blocks * t_num_blocks, 0);// 记录每个tiles的非零行数
+        uniq_CB.resize(t_num_blocks * t_num_blocks, 0);// 记录每个tiles的非零列数
+
+        // Rows_flag[rowidx][t_col_idx] 表示第 rowidx 行是否已经被统计到列块 ID 为 t_col_idx 的 tiles中了, false表示统计过了.
+        std::vector<std::vector<bool>> Rows_flag(num_rows, std::vector<bool>(t_num_blocks, true));
+        // Cols_flag[colidx][t_row_idx] 表示第 colidx 列是否已经被统计到行块 ID 为 Cols_flag 的 tiles中了, false表示统计过了.
+        std::vector<std::vector<bool>> Cols_flag(num_cols, std::vector<bool>(t_num_blocks, true));
     }
 
     IndexType row_idx, col_idx, diaoffset;
-    IndexType t_rowidx, t_colidx;   // tiles 中的序号
+    IndexType t_rowidx, t_colidx, t_tileID;   // tiles 中的序号
     // rowidx < threshold  tile_size = (t_num_RB + 1); else tile_size = t_num_RB
+    // 前 threshold 的 RB 和 CB 包含的 行数和列数要多 1
     IndexType RB_threshold = t_mod_RB * (t_num_RB + 1);
     IndexType CB_threshold = t_mod_CB * (t_num_CB + 1);
     ValueType value;
@@ -223,9 +232,24 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
             if (tile_flag){
                 t_rowidx = (row_idx < RB_threshold)? (row_idx / (t_num_RB+1)):(t_mod_RB + (row_idx - RB_threshold)/t_num_RB);
                 t_colidx = (col_idx < CB_threshold)? (col_idx / (t_num_CB+1)):(t_mod_CB + (col_idx - CB_threshold)/t_num_CB);
-                nnz_by_Tiles_[t_rowidx * t_num_blocks + t_colidx]++;
+                // tile 按 行优先存储
+                t_tileID = t_rowidx * t_num_blocks + t_colidx;
+
+                nnz_by_Tiles_[t_tileID]++;
                 nnz_by_RB_[t_rowidx]++;
                 nnz_by_CB_[t_colidx]++;
+
+                if(Rows_flag[row_idx][t_colidx])
+                {
+                    uniq_RB[t_tileID]++;
+                    Rows_flag[row_idx][t_colidx] = false;
+                }
+
+                if(Cols_flag[col_idx][t_rowidx])
+                {
+                    uniq_CB[t_tileID]++;
+                    Cols_flag[col_idx][t_rowidx] = false;
+                }
             }
 
             if(is_symmetric_){              // 对称矩阵情况
@@ -242,9 +266,23 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
                     // 存一下 tile 的信息
                     if(tile_flag)
                     {
-                        nnz_by_Tiles_[t_colidx * t_num_blocks + t_rowidx]++;
+                        // 此时为对称的 tileID 位置, t_colidx 是其行号，t_rowidx 是其列号
+                        t_tileID = t_colidx * t_num_blocks + t_rowidx;
+                        nnz_by_Tiles_[t_tileID]++;
                         nnz_by_RB_[t_colidx]++;
                         nnz_by_CB_[t_rowidx]++;
+
+                        if(Rows_flag[col_idx][t_rowidx])
+                        {
+                            uniq_RB[t_tileID]++;
+                            Rows_flag[col_idx][t_rowidx] = false;
+                        }
+
+                        if(Cols_flag[row_idx][t_colidx])
+                        {
+                            uniq_CB[t_tileID]++;
+                            Cols_flag[row_idx][t_colidx] = false;
+                        }
                     }
                     nnz_lower_ ++;
                     nnz_upper_ ++;
@@ -300,10 +338,25 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
             if (tile_flag){
                 t_rowidx = (row_idx < RB_threshold)? (row_idx / (t_num_RB+1)):(t_mod_RB + (row_idx - RB_threshold)/t_num_RB);
                 t_colidx = (col_idx < CB_threshold)? (col_idx / (t_num_CB+1)):(t_mod_CB + (col_idx - CB_threshold)/t_num_CB);
+                
+                // tile 按 行优先存储
+                t_tileID = t_rowidx * t_num_blocks + t_colidx;
 
-                nnz_by_Tiles_[t_rowidx * t_num_blocks + t_colidx]++;
+                nnz_by_Tiles_[t_tileID]++;
                 nnz_by_RB_[t_rowidx]++;
                 nnz_by_CB_[t_colidx]++;
+
+                if(Rows_flag[row_idx][t_colidx])
+                {
+                    uniq_RB[t_tileID]++;
+                    Rows_flag[row_idx][t_colidx] = false;
+                }
+
+                if(Cols_flag[col_idx][t_rowidx])
+                {
+                    uniq_CB[t_tileID]++;
+                    Cols_flag[col_idx][t_rowidx] = false;
+                }
             }
 
             if(is_symmetric_){
@@ -319,9 +372,23 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
                     diag_offset_[-diaoffset]++;
                     if(tile_flag)
                     {
-                        nnz_by_Tiles_[t_colidx * t_num_blocks + t_rowidx]++;
+                        // 此时为对称的 tileID 位置, t_colidx 是其行号，t_rowidx 是其列号
+                        t_tileID = t_colidx * t_num_blocks + t_rowidx;
+                        nnz_by_Tiles_[t_tileID]++;
                         nnz_by_RB_[t_colidx]++;
                         nnz_by_CB_[t_rowidx]++;
+
+                        if(Rows_flag[col_idx][t_rowidx])
+                        {
+                            uniq_RB[t_tileID]++;
+                            Rows_flag[col_idx][t_rowidx] = false;
+                        }
+
+                        if(Cols_flag[row_idx][t_colidx])
+                        {
+                            uniq_CB[t_tileID]++;
+                            Cols_flag[row_idx][t_colidx] = false;
+                        }
                     }
                     nnz_lower_ ++;
                     nnz_upper_ ++;
@@ -624,6 +691,13 @@ bool MTX<IndexType, ValueType>::CalculateTilesFeatures()
 
     // calculate CB's P-ratio and Gini index
     P_ratioAndGini(nnz_by_CB_, num_nnzs, t_P_ratio_CB_, t_Gini_CB_);
+
+
+    // Extra Tile Features
+    uniqR = (ValueType) std::accumulate(uniq_RB.begin(), uniq_RB.end(), 0)/num_nnzs;
+    uniqC = (ValueType) std::accumulate(uniq_CB.begin(), uniq_CB.end(), 0)/num_nnzs;
+    potReuseR = (ValueType) std::accumulate(uniq_RB.begin(), uniq_RB.end(), 0)/num_rows;
+    potReuseC = (ValueType) std::accumulate(uniq_CB.begin(), uniq_CB.end(), 0)/num_cols;
 
     return true;
 }

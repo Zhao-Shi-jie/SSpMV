@@ -247,6 +247,7 @@ class MTX{
     
     // Intermediate variables
         // Rowmajor 存 tiles 分块   (rowID/t_num_RB) * t_num_blocks + (colID/t_num_CB)
+        // 这3个vector 是均衡的 block 统计 各块 nnz
         std::vector<IndexType> nnz_by_Tiles_;  // 保存每个tiles的 nnz 数目
         // RB 和 CB 的分块
         std::vector<IndexType> nnz_by_RB_;     // 保存每个行块的 nnz 数目
