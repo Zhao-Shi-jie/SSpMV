@@ -227,8 +227,8 @@ class MTX{
         IndexType t_num_blocks = MAT_TILE_SIZE;
         IndexType t_num_RB = -1;        // tiles 内的行数目 (小)
         IndexType t_num_CB = -1;        // tiles 内的列数目 (小)
-        IndexType t_mod_RB = -1;        // 前 t_mod_RB 行的 t_num_RB+1
-        IndexType t_mod_CB = -1;        // 前 t_mod_CB 列的 t_num_CB+1
+        IndexType t_mod_RB = -1;        // 前 t_mod_RB 行块的 t_num_RB+1
+        IndexType t_mod_CB = -1;        // 前 t_mod_CB 列块的 t_num_CB+1
 
         // ave_nnz
         ValueType t_ave_nnz_all_tiles = -1.0;
@@ -252,6 +252,10 @@ class MTX{
         // RB 和 CB 的分块
         std::vector<IndexType> nnz_by_RB_;     // 保存每个行块的 nnz 数目
         std::vector<IndexType> nnz_by_CB_;     // 保存每个列块的 nnz 数目
+
+        std::vector<IndexType> max_rownnz_per_tile_;
+        std::vector<ValueType> ave_rownnz_per_tile_;
+        std::vector<ValueType> std_rownnz_per_tile_;
 
         // min and max nnz for each 
         IndexType t_min_nnz_all_tiles_ = 100000000;

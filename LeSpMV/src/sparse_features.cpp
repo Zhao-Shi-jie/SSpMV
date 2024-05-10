@@ -15,6 +15,9 @@
 #include"../include/sparse_partition.h"
 #include"../include/thread.h"
 
+
+#include <filesystem>
+
 #include <cassert>
 #include <cmath>
 #include <fstream>
@@ -180,7 +183,7 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
     
     //  可以存 tile features
     if (tile_flag){
-        // 为避免空块，只能向下取整； 多出的元素均匀分给 前t_mod_RB 行，和 前t_mod_CB-1 列
+        // 为避免空块，只能向下取整； 多出的元素均匀分给 前t_mod_RB 行，和 前 t_mod_CB 列 
         t_num_RB = num_rows / t_num_blocks; t_mod_RB = num_rows % t_num_blocks;
         t_num_CB = num_cols / t_num_blocks; t_mod_CB = num_cols % t_num_blocks;
         nnz_by_Tiles_.resize(t_num_blocks * t_num_blocks, 0);
@@ -189,12 +192,12 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
 
         uniq_RB.resize(t_num_blocks * t_num_blocks, 0);// 记录每个tiles的非零行数
         uniq_CB.resize(t_num_blocks * t_num_blocks, 0);// 记录每个tiles的非零列数
-
-        // Rows_flag[rowidx][t_col_idx] 表示第 rowidx 行是否已经被统计到列块 ID 为 t_col_idx 的 tiles中了, false表示统计过了.
-        std::vector<std::vector<bool>> Rows_flag(num_rows, std::vector<bool>(t_num_blocks, true));
-        // Cols_flag[colidx][t_row_idx] 表示第 colidx 列是否已经被统计到行块 ID 为 Cols_flag 的 tiles中了, false表示统计过了.
-        std::vector<std::vector<bool>> Cols_flag(num_cols, std::vector<bool>(t_num_blocks, true));
     }
+
+    // Rows_flag[rowidx][t_col_idx] 表示第 rowidx 行是否已经被统计到列块 ID 为 t_col_idx 的 tiles中了, false表示统计过了.
+    std::vector<std::vector<IndexType>> Rows_flag(num_rows, std::vector<IndexType>(t_num_blocks, 0));
+    // Cols_flag[colidx][t_row_idx] 表示第 colidx 列是否已经被统计到行块 ID 为 Cols_flag 的 tiles中了, false表示统计过了.
+    std::vector<std::vector<IndexType>> Cols_flag(num_cols, std::vector<IndexType>(t_num_blocks, 0));
 
     IndexType row_idx, col_idx, diaoffset;
     IndexType t_rowidx, t_colidx, t_tileID;   // tiles 中的序号
@@ -239,17 +242,19 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
                 nnz_by_RB_[t_rowidx]++;
                 nnz_by_CB_[t_colidx]++;
 
-                if(Rows_flag[row_idx][t_colidx])
+                if(!Rows_flag[row_idx][t_colidx])
                 {
                     uniq_RB[t_tileID]++;
-                    Rows_flag[row_idx][t_colidx] = false;
+                    // Rows_flag[row_idx][t_colidx] = false;
                 }
+                Rows_flag[row_idx][t_colidx]++;
 
-                if(Cols_flag[col_idx][t_rowidx])
+                if(!Cols_flag[col_idx][t_rowidx])
                 {
                     uniq_CB[t_tileID]++;
-                    Cols_flag[col_idx][t_rowidx] = false;
+                    // Cols_flag[col_idx][t_rowidx] = false;
                 }
+                Cols_flag[col_idx][t_rowidx]++;
             }
 
             if(is_symmetric_){              // 对称矩阵情况
@@ -272,17 +277,19 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
                         nnz_by_RB_[t_colidx]++;
                         nnz_by_CB_[t_rowidx]++;
 
-                        if(Rows_flag[col_idx][t_rowidx])
+                        if(!Rows_flag[col_idx][t_rowidx])
                         {
                             uniq_RB[t_tileID]++;
-                            Rows_flag[col_idx][t_rowidx] = false;
+                            // Rows_flag[col_idx][t_rowidx] = false;
                         }
+                        Rows_flag[col_idx][t_rowidx]++;
 
-                        if(Cols_flag[row_idx][t_colidx])
+                        if(!Cols_flag[row_idx][t_colidx])
                         {
                             uniq_CB[t_tileID]++;
-                            Cols_flag[row_idx][t_colidx] = false;
+                            // Cols_flag[row_idx][t_colidx] = false;
                         }
+                        Cols_flag[row_idx][t_colidx]++;
                     }
                     nnz_lower_ ++;
                     nnz_upper_ ++;
@@ -346,17 +353,19 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
                 nnz_by_RB_[t_rowidx]++;
                 nnz_by_CB_[t_colidx]++;
 
-                if(Rows_flag[row_idx][t_colidx])
+                if(!Rows_flag[row_idx][t_colidx])
                 {
                     uniq_RB[t_tileID]++;
-                    Rows_flag[row_idx][t_colidx] = false;
+                    // Rows_flag[row_idx][t_colidx] = false;
                 }
+                Rows_flag[row_idx][t_colidx]++;
 
-                if(Cols_flag[col_idx][t_rowidx])
+                if(!Cols_flag[col_idx][t_rowidx])
                 {
                     uniq_CB[t_tileID]++;
-                    Cols_flag[col_idx][t_rowidx] = false;
+                    // Cols_flag[col_idx][t_rowidx] = false;
                 }
+                Cols_flag[col_idx][t_rowidx]++;
             }
 
             if(is_symmetric_){
@@ -378,17 +387,19 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
                         nnz_by_RB_[t_colidx]++;
                         nnz_by_CB_[t_rowidx]++;
 
-                        if(Rows_flag[col_idx][t_rowidx])
+                        if(!Rows_flag[col_idx][t_rowidx])
                         {
                             uniq_RB[t_tileID]++;
-                            Rows_flag[col_idx][t_rowidx] = false;
+                            // Rows_flag[col_idx][t_rowidx] = false;
                         }
+                        Rows_flag[col_idx][t_rowidx]++;
 
-                        if(Cols_flag[row_idx][t_colidx])
+                        if(!Cols_flag[row_idx][t_colidx])
                         {
                             uniq_CB[t_tileID]++;
-                            Cols_flag[row_idx][t_colidx] = false;
+                            // Cols_flag[row_idx][t_colidx] = false;
                         }
+                        Cols_flag[row_idx][t_colidx]++;
                     }
                     nnz_lower_ ++;
                     nnz_upper_ ++;
@@ -447,6 +458,44 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
         num_nnzs = nnz_lower_*2 + nnz_diagonal_;
     }else{
         num_nnzs = nnz_mtx_;
+    }
+
+    // 把 tile 内的一些特征 计算了
+    max_rownnz_per_tile_.resize(t_num_blocks * t_num_blocks, 0);
+    ave_rownnz_per_tile_.resize(t_num_blocks * t_num_blocks, 0);
+    std_rownnz_per_tile_.resize(t_num_blocks * t_num_blocks, 0);
+
+    for (size_t i = 0; i < t_num_blocks * t_num_blocks; i++){
+        if (i < t_mod_RB * t_num_blocks) // 前 t_mod_RB 行块多一行
+            ave_rownnz_per_tile_[i] = (ValueType) nnz_by_Tiles_[i] / (t_num_RB + 1);
+        else
+            ave_rownnz_per_tile_[i] = (ValueType) nnz_by_Tiles_[i] / t_num_RB;
+    }
+
+    for (size_t i = 0; i < num_rows; i++)
+    {
+        size_t t_rowID = i / t_num_RB;
+        if (i < RB_threshold)
+        {
+            t_rowID = i / (t_num_RB + 1);
+        }
+
+        for (size_t t_colID = 0; t_colID < t_num_blocks; t_colID++)
+        {
+            size_t tileID = t_rowID * t_num_blocks + t_colID;
+
+            max_rownnz_per_tile_[tileID] = std::max(max_rownnz_per_tile_[tileID], Rows_flag[i][t_colID]);
+            ValueType diff = Rows_flag[i][t_colID] - ave_rownnz_per_tile_[tileID];
+            std_rownnz_per_tile_[tileID] += diff * diff;
+        }
+    }
+
+    for (size_t i = 0; i < t_num_blocks * t_num_blocks; i++){
+        if (i < t_mod_RB * t_num_blocks) // 前 t_mod_RB 行块多一行
+            std_rownnz_per_tile_[i] = (ValueType) std_rownnz_per_tile_[i] / (t_num_RB + 1);
+        else
+            std_rownnz_per_tile_[i] = (ValueType) std_rownnz_per_tile_[i] / t_num_RB;
+        std_rownnz_per_tile_[i] = std::sqrt(std_rownnz_per_tile_[i]);
     }
 
     fclose(mtx_file);
@@ -1043,8 +1092,37 @@ bool MTX<IndexType, ValueType>::FeaturesWrite(const char* file_path)
 #endif // BSR_ANA
         fprintf(save_features,"%lf\n", distance_per_row_);
     }
-        fclose(save_features);
-    return true;
+    fclose(save_features);
+
+    // 写特征矩阵到文件， 新建目录和文件
+    std::string NnzSuffix = ".nnz";
+    std::string MaxSuffix = ".max";              // 文件后缀
+    std::string StdSuffix = ".std"; 
+    std::string rootDir = "./features";           // 根目录
+     // 使用 std::filesystem 创建目录
+    std::filesystem::path dirPath = std::filesystem::path{rootDir} / matrixName;
+    std::filesystem::create_directories(dirPath); // 创建目录，包括所有必要的父目录
+
+    // 构造文件名和路径
+    std::filesystem::path MaxfilePath = dirPath / (matrixName + MaxSuffix);
+    // 创建并写入文件
+    std::ofstream Maxfile(MaxfilePath);
+    if (Maxfile.is_open()) {
+        // Maxfile << "Matrix data here" << std::endl;
+        for (size_t i = 0; i < t_num_blocks * t_num_blocks; i++)
+        {
+            Maxfile << max_rownnz_per_tile_[i] << std::endl;
+        }
+        
+        Maxfile.close();
+        std::cout << "File " << MaxfilePath << " has been created successfully." << std::endl;
+    } else {
+        std::cerr << "Failed to open file for writing." << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
+
 }
 
 template bool MTX<int, float>::FeaturesWrite(const char* file_path);
