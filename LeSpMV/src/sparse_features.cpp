@@ -194,10 +194,15 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
         uniq_CB.resize(t_num_blocks * t_num_blocks, 0);// 记录每个tiles的非零列数
     }
 
-    // Rows_flag[rowidx][t_col_idx] 表示第 rowidx 行是否已经被统计到列块 ID 为 t_col_idx 的 tiles中了, false表示统计过了.
-    std::vector<std::vector<IndexType>> Rows_flag(num_rows, std::vector<IndexType>(t_num_blocks, 0));
+    // Rows_flag[rowidx][t_col_idx] 用于统计 rowidx 在 t_col_idx 的 Tile 中的行非零元数目
+    Rows_cnt.resize(num_rows, std::vector<IndexType>(t_num_blocks, 0));
     // Cols_flag[colidx][t_row_idx] 表示第 colidx 列是否已经被统计到行块 ID 为 Cols_flag 的 tiles中了, false表示统计过了.
-    std::vector<std::vector<IndexType>> Cols_flag(num_cols, std::vector<IndexType>(t_num_blocks, 0));
+    Cols_cnt.resize(num_cols, std::vector<IndexType>(t_num_blocks, 0));
+
+    // Rows_flag[rowidx][t_col_idx] 表示第 rowidx 行是否已经被统计到列块 ID 为 t_col_idx 的 tiles中了, false表示统计过了.
+    std::vector<std::vector<bool>> Rows_flag(num_rows, std::vector<bool>(t_num_blocks, true));
+    // Cols_flag[colidx][t_row_idx] 表示第 colidx 列是否已经被统计到行块 ID 为 Cols_flag 的 tiles中了, false表示统计过了.
+    std::vector<std::vector<bool>> Cols_flag(num_cols, std::vector<bool>(t_num_blocks, true));
 
     IndexType row_idx, col_idx, diaoffset;
     IndexType t_rowidx, t_colidx, t_tileID;   // tiles 中的序号
@@ -241,20 +246,23 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
                 nnz_by_Tiles_[t_tileID]++;
                 nnz_by_RB_[t_rowidx]++;
                 nnz_by_CB_[t_colidx]++;
+                
+                Rows_cnt[row_idx][t_colidx]++;
+                Cols_cnt[col_idx][t_rowidx]++;
 
-                if(!Rows_flag[row_idx][t_colidx])
+                if(Rows_flag[row_idx][t_colidx])
                 {
                     uniq_RB[t_tileID]++;
-                    // Rows_flag[row_idx][t_colidx] = false;
+                    Rows_flag[row_idx][t_colidx] = false;
                 }
-                Rows_flag[row_idx][t_colidx]++;
+                // 
 
-                if(!Cols_flag[col_idx][t_rowidx])
+                if(Cols_flag[col_idx][t_rowidx])
                 {
                     uniq_CB[t_tileID]++;
-                    // Cols_flag[col_idx][t_rowidx] = false;
+                    Cols_flag[col_idx][t_rowidx] = false;
                 }
-                Cols_flag[col_idx][t_rowidx]++;
+                // 
             }
 
             if(is_symmetric_){              // 对称矩阵情况
@@ -277,19 +285,22 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
                         nnz_by_RB_[t_colidx]++;
                         nnz_by_CB_[t_rowidx]++;
 
-                        if(!Rows_flag[col_idx][t_rowidx])
+                        Rows_cnt[col_idx][t_rowidx]++;
+                        Cols_cnt[row_idx][t_colidx]++;
+
+                        if(Rows_flag[col_idx][t_rowidx])
                         {
                             uniq_RB[t_tileID]++;
-                            // Rows_flag[col_idx][t_rowidx] = false;
+                            Rows_flag[col_idx][t_rowidx] = false;
                         }
-                        Rows_flag[col_idx][t_rowidx]++;
+                        // 
 
-                        if(!Cols_flag[row_idx][t_colidx])
+                        if(Cols_flag[row_idx][t_colidx])
                         {
                             uniq_CB[t_tileID]++;
-                            // Cols_flag[row_idx][t_colidx] = false;
+                            Cols_flag[row_idx][t_colidx] = false;
                         }
-                        Cols_flag[row_idx][t_colidx]++;
+                        // 
                     }
                     nnz_lower_ ++;
                     nnz_upper_ ++;
@@ -336,117 +347,125 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
             value_abs = std::abs(value);
             diaoffset = col_idx - row_idx;
 
-            nnz_by_row_[row_idx]++;
-            nnz_by_col_[col_idx]++;
-            // 记录对角距离的分布频率
-            diag_offset_[diaoffset]++;
+            if(value){ // value 非零才记录
+                nnz_by_row_[row_idx]++;
+                nnz_by_col_[col_idx]++;
+                // 记录对角距离的分布频率
+                diag_offset_[diaoffset]++;
 
-            // 存一下分tile的信息
-            if (tile_flag){
-                t_rowidx = (row_idx < RB_threshold)? (row_idx / (t_num_RB+1)):(t_mod_RB + (row_idx - RB_threshold)/t_num_RB);
-                t_colidx = (col_idx < CB_threshold)? (col_idx / (t_num_CB+1)):(t_mod_CB + (col_idx - CB_threshold)/t_num_CB);
-                
-                // tile 按 行优先存储
-                t_tileID = t_rowidx * t_num_blocks + t_colidx;
+                // 存一下分tile的信息
+                if (tile_flag){
+                    t_rowidx = (row_idx < RB_threshold)? (row_idx / (t_num_RB+1)):(t_mod_RB + (row_idx - RB_threshold)/t_num_RB);
+                    t_colidx = (col_idx < CB_threshold)? (col_idx / (t_num_CB+1)):(t_mod_CB + (col_idx - CB_threshold)/t_num_CB);
+                    
+                    // tile 按 行优先存储
+                    t_tileID = t_rowidx * t_num_blocks + t_colidx;
 
-                nnz_by_Tiles_[t_tileID]++;
-                nnz_by_RB_[t_rowidx]++;
-                nnz_by_CB_[t_colidx]++;
+                    nnz_by_Tiles_[t_tileID]++;
+                    nnz_by_RB_[t_rowidx]++;
+                    nnz_by_CB_[t_colidx]++;
 
-                if(!Rows_flag[row_idx][t_colidx])
-                {
-                    uniq_RB[t_tileID]++;
-                    // Rows_flag[row_idx][t_colidx] = false;
-                }
-                Rows_flag[row_idx][t_colidx]++;
+                    Rows_cnt[row_idx][t_colidx]++;
+                    Cols_cnt[col_idx][t_rowidx]++;
 
-                if(!Cols_flag[col_idx][t_rowidx])
-                {
-                    uniq_CB[t_tileID]++;
-                    // Cols_flag[col_idx][t_rowidx] = false;
-                }
-                Cols_flag[col_idx][t_rowidx]++;
-            }
-
-            if(is_symmetric_){
-                if(row_idx == col_idx){
-                    nnz_diagonal_ ++;
-                    Diag_Dom[row_idx] += value_abs;
-                    max_value_diagonal_ = max_value_diagonal_ > value_abs ? max_value_diagonal_ : value_abs;
-
-                } else{
-                    nnz_by_row_[col_idx]++;
-                    nnz_by_col_[row_idx]++;
-                    // 记录对角距离的分布频率
-                    diag_offset_[-diaoffset]++;
-                    if(tile_flag)
+                    if(Rows_flag[row_idx][t_colidx])
                     {
-                        // 此时为对称的 tileID 位置, t_colidx 是其行号，t_rowidx 是其列号
-                        t_tileID = t_colidx * t_num_blocks + t_rowidx;
-                        nnz_by_Tiles_[t_tileID]++;
-                        nnz_by_RB_[t_colidx]++;
-                        nnz_by_CB_[t_rowidx]++;
-
-                        if(!Rows_flag[col_idx][t_rowidx])
-                        {
-                            uniq_RB[t_tileID]++;
-                            // Rows_flag[col_idx][t_rowidx] = false;
-                        }
-                        Rows_flag[col_idx][t_rowidx]++;
-
-                        if(!Cols_flag[row_idx][t_colidx])
-                        {
-                            uniq_CB[t_tileID]++;
-                            // Cols_flag[row_idx][t_colidx] = false;
-                        }
-                        Cols_flag[row_idx][t_colidx]++;
+                        uniq_RB[t_tileID]++;
+                        Rows_flag[row_idx][t_colidx] = false;
                     }
-                    nnz_lower_ ++;
-                    nnz_upper_ ++;
-                    Diag_Dom[row_idx] -= value_abs;
-                    Diag_Dom[col_idx] -= value_abs;
-                    max_value_offdiag_ = max_value_offdiag_ > value_abs ? max_value_offdiag_ : value_abs;
-                }
-                // 记录row-variability 和 col-variability : log10(max/min)
-                if(max_each_row_[row_idx] < log10(value_abs)) { max_each_row_[row_idx] = log10(value_abs); }
-                if(max_each_row_[col_idx] < log10(value_abs)) { max_each_row_[col_idx] = log10(value_abs); }
-                if(value_abs > 0.0 && min_each_row_[row_idx] > log10(value_abs)) { min_each_row_[row_idx] = log10(value_abs); }
-                if(value_abs > 0.0 && min_each_row_[col_idx] > log10(value_abs)) { min_each_row_[col_idx] = log10(value_abs); }
+                    // 
 
-                if(max_each_col_[col_idx] < log10(value_abs)) { max_each_col_[col_idx] = log10(value_abs); }
-                if(max_each_col_[row_idx] < log10(value_abs)) { max_each_col_[row_idx] = log10(value_abs); }
-                if(value_abs > 0.0 && min_each_col_[col_idx] > log10(value_abs)) { min_each_col_[col_idx] = log10(value_abs); }
-                if(value_abs > 0.0 && min_each_col_[row_idx] > log10(value_abs)) { min_each_col_[row_idx] = log10(value_abs); }
-            }
-            else { // 非对称矩阵
-                if (row_idx == col_idx)  // 行 == 列， 对角线
-                {
-                    nnz_diagonal_ ++;
-                    max_value_diagonal_ = max_value_diagonal_ > value_abs ? max_value_diagonal_ : value_abs;
-                    Diag_Dom[row_idx] += value_abs;
-                } else {                    // 非对角线情况
-                    if (row_idx > col_idx) { // 行 > 列，元素在下三角
+                    if(Cols_flag[col_idx][t_rowidx])
+                    {
+                        uniq_CB[t_tileID]++;
+                        Cols_flag[col_idx][t_rowidx] = false;
+                    }
+                    // 
+                }
+            
+                if(is_symmetric_){
+                    if(row_idx == col_idx){
+                        nnz_diagonal_ ++;
+                        Diag_Dom[row_idx] += value_abs;
+                        max_value_diagonal_ = max_value_diagonal_ > value_abs ? max_value_diagonal_ : value_abs;
+
+                    } else{
+                        nnz_by_row_[col_idx]++;
+                        nnz_by_col_[row_idx]++;
+                        // 记录对角距离的分布频率
+                        diag_offset_[-diaoffset]++;
+                        if(tile_flag)
+                        {
+                            // 此时为对称的 tileID 位置, t_colidx 是其行号，t_rowidx 是其列号
+                            t_tileID = t_colidx * t_num_blocks + t_rowidx;
+                            nnz_by_Tiles_[t_tileID]++;
+                            nnz_by_RB_[t_colidx]++;
+                            nnz_by_CB_[t_rowidx]++;
+
+                            Rows_cnt[col_idx][t_rowidx]++;
+                            Cols_cnt[row_idx][t_colidx]++;
+
+                            if(Rows_flag[col_idx][t_rowidx])
+                            {
+                                uniq_RB[t_tileID]++;
+                                Rows_flag[col_idx][t_rowidx] = false;
+                            }
+                            // 
+
+                            if(Cols_flag[row_idx][t_colidx])
+                            {
+                                uniq_CB[t_tileID]++;
+                                Cols_flag[row_idx][t_colidx] = false;
+                            }
+                            // 
+                        }
                         nnz_lower_ ++;
-                    } else{                  // 行 < 列，元素在上三角
                         nnz_upper_ ++;
+                        Diag_Dom[row_idx] -= value_abs;
+                        Diag_Dom[col_idx] -= value_abs;
+                        max_value_offdiag_ = max_value_offdiag_ > value_abs ? max_value_offdiag_ : value_abs;
                     }
-                    max_value_offdiag_ = max_value_offdiag_ > value_abs ? max_value_offdiag_ : value_abs;
-                    Diag_Dom[row_idx] -= value_abs;
+                    // 记录row-variability 和 col-variability : log10(max/min)
+                    if(max_each_row_[row_idx] < log10(value_abs)) { max_each_row_[row_idx] = log10(value_abs); }
+                    if(max_each_row_[col_idx] < log10(value_abs)) { max_each_row_[col_idx] = log10(value_abs); }
+                    if(value_abs > 0.0 && min_each_row_[row_idx] > log10(value_abs)) { min_each_row_[row_idx] = log10(value_abs); }
+                    if(value_abs > 0.0 && min_each_row_[col_idx] > log10(value_abs)) { min_each_row_[col_idx] = log10(value_abs); }
+
+                    if(max_each_col_[col_idx] < log10(value_abs)) { max_each_col_[col_idx] = log10(value_abs); }
+                    if(max_each_col_[row_idx] < log10(value_abs)) { max_each_col_[row_idx] = log10(value_abs); }
+                    if(value_abs > 0.0 && min_each_col_[col_idx] > log10(value_abs)) { min_each_col_[col_idx] = log10(value_abs); }
+                    if(value_abs > 0.0 && min_each_col_[row_idx] > log10(value_abs)) { min_each_col_[row_idx] = log10(value_abs); }
                 }
+                else { // 非对称矩阵
+                    if (row_idx == col_idx)  // 行 == 列， 对角线
+                    {
+                        nnz_diagonal_ ++;
+                        max_value_diagonal_ = max_value_diagonal_ > value_abs ? max_value_diagonal_ : value_abs;
+                        Diag_Dom[row_idx] += value_abs;
+                    } else {                    // 非对角线情况
+                        if (row_idx > col_idx) { // 行 > 列，元素在下三角
+                            nnz_lower_ ++;
+                        } else{                  // 行 < 列，元素在上三角
+                            nnz_upper_ ++;
+                        }
+                        max_value_offdiag_ = max_value_offdiag_ > value_abs ? max_value_offdiag_ : value_abs;
+                        Diag_Dom[row_idx] -= value_abs;
+                    }
 
-                char buffer[100];
-                sprintf(buffer, "%lf", value);
-                std::string str_value  = buffer;
-                std::string str_insert = my_to_String(row_idx) + "_" + my_to_String(col_idx);
-                m_.insert(std::make_pair(str_insert, str_value));
-                symm_pair_.push_back(str_insert);
+                    char buffer[100];
+                    sprintf(buffer, "%lf", value);
+                    std::string str_value  = buffer;
+                    std::string str_insert = my_to_String(row_idx) + "_" + my_to_String(col_idx);
+                    m_.insert(std::make_pair(str_insert, str_value));
+                    symm_pair_.push_back(str_insert);
 
-                // 记录row-variability 和 col-variability : log10(max/min)
-                if(max_each_row_[row_idx] < log10(value_abs)) { max_each_row_[row_idx] = log10(value_abs); }
-                if(value_abs > 0.0 && min_each_row_[row_idx] > log10(value_abs)) { min_each_row_[row_idx] = log10(value_abs); }
+                    // 记录row-variability 和 col-variability : log10(max/min)
+                    if(max_each_row_[row_idx] < log10(value_abs)) { max_each_row_[row_idx] = log10(value_abs); }
+                    if(value_abs > 0.0 && min_each_row_[row_idx] > log10(value_abs)) { min_each_row_[row_idx] = log10(value_abs); }
 
-                if(max_each_col_[col_idx] < log10(value_abs)) { max_each_col_[col_idx] = log10(value_abs); }
-                if(value_abs > 0.0 && min_each_col_[col_idx] > log10(value_abs)) { min_each_col_[col_idx] = log10(value_abs); }
+                    if(max_each_col_[col_idx] < log10(value_abs)) { max_each_col_[col_idx] = log10(value_abs); }
+                    if(value_abs > 0.0 && min_each_col_[col_idx] > log10(value_abs)) { min_each_col_[col_idx] = log10(value_abs); }
+                }
             }
         }
     }else{
@@ -459,7 +478,7 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
     }else{
         num_nnzs = nnz_mtx_;
     }
-
+    
     // 把 tile 内的一些特征 计算了
     max_rownnz_per_tile_.resize(t_num_blocks * t_num_blocks, 0);
     ave_rownnz_per_tile_.resize(t_num_blocks * t_num_blocks, 0);
@@ -471,21 +490,20 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
         else
             ave_rownnz_per_tile_[i] = (ValueType) nnz_by_Tiles_[i] / t_num_RB;
     }
-
-    for (size_t i = 0; i < num_rows; i++)
+    
+    for (size_t row_idx = 0; row_idx < num_rows; row_idx++)
     {
-        size_t t_rowID = i / t_num_RB;
-        if (i < RB_threshold)
-        {
-            t_rowID = i / (t_num_RB + 1);
-        }
+        if (row_idx < RB_threshold)
+            t_rowidx = row_idx / (t_num_RB + 1);
+        else
+            t_rowidx = t_mod_RB + (row_idx - RB_threshold)/t_num_RB; // 之前就是这里写错越界了
 
         for (size_t t_colID = 0; t_colID < t_num_blocks; t_colID++)
         {
-            size_t tileID = t_rowID * t_num_blocks + t_colID;
+            size_t tileID = t_rowidx * t_num_blocks + t_colID;
 
-            max_rownnz_per_tile_[tileID] = std::max(max_rownnz_per_tile_[tileID], Rows_flag[i][t_colID]);
-            ValueType diff = Rows_flag[i][t_colID] - ave_rownnz_per_tile_[tileID];
+            max_rownnz_per_tile_[tileID] = std::max(max_rownnz_per_tile_[tileID], Rows_cnt[row_idx][t_colID]);
+            ValueType diff = Rows_cnt[row_idx][t_colID] - ave_rownnz_per_tile_[tileID];
             std_rownnz_per_tile_[tileID] += diff * diff;
         }
     }
@@ -840,12 +858,6 @@ template void AnalyzeTile_Group<long long, double>(const double*, const long lon
 template <typename IndexType, typename ValueType>
 bool MTX<IndexType, ValueType>::CalculateTilesExtraFeatures(const char* mat_path)
 {
-    // 使用 BSR 做分块的信息统计， 但并不严格的是 2048 * 2048 块了
-    //  应该用 BSR来统计更好， 04. March. 2024
-    BSR_Matrix<IndexType, ValueType> bsr;
-    IndexType tileDim_row = BestDimForBSR(num_rows, t_num_blocks);
-    IndexType tileDim_col = BestDimForBSR(num_cols, t_num_blocks);
-
     CSR_Matrix<IndexType, ValueType> csr;
     csr = read_csr_matrix<IndexType, ValueType>(mat_path);
 
@@ -875,11 +887,14 @@ bool MTX<IndexType, ValueType>::CalculateTilesExtraFeatures(const char* mat_path
 #ifdef BSR_ANA
     bsr = csr_to_bsr<IndexType, ValueType>(csr, tileDim_row, tileDim_col);
     std::cout << "- Finish BSR convertion -" << std::endl;
-#endif // BSR_ANA
-    delete_csr_matrix(csr);
+
+    // 使用 BSR 做分块的信息统计， 但并不严格的是 2048 * 2048 块了
+    //  应该用 BSR来统计更好， 04. March. 2024
+    BSR_Matrix<IndexType, ValueType> bsr;
+    IndexType tileDim_row = BestDimForBSR(num_rows, t_num_blocks);
+    IndexType tileDim_col = BestDimForBSR(num_cols, t_num_blocks);
 
     // tile的size 必须要比 Group 大，统计Grx_uniq才有意义
-#ifdef BSR_ANA
     bool flag_GrX_uniqRB = (bsr.blockDim_r >= GrX);
     bool flag_GrX_uniqCB = (bsr.blockDim_c >= GrX);
     IndexType GrxRB_perT = 0, GrxCB_perT = 0;
@@ -986,6 +1001,7 @@ bool MTX<IndexType, ValueType>::CalculateTilesExtraFeatures(const char* mat_path
     }
     delete_bsr_matrix(bsr);
 #endif // BSR_ANA
+    delete_csr_matrix(csr);
     return true;
 }
 template bool MTX<int, float>::CalculateTilesExtraFeatures(const char* mat_path);
@@ -1093,18 +1109,41 @@ bool MTX<IndexType, ValueType>::FeaturesWrite(const char* file_path)
         fprintf(save_features,"%lf\n", distance_per_row_);
     }
     fclose(save_features);
-
+    
     // 写特征矩阵到文件， 新建目录和文件
     std::string NnzSuffix = ".nnz";
     std::string MaxSuffix = ".max";              // 文件后缀
+    std::string AveSuffix = ".ave";
     std::string StdSuffix = ".std"; 
     std::string rootDir = "./features";           // 根目录
      // 使用 std::filesystem 创建目录
     std::filesystem::path dirPath = std::filesystem::path{rootDir} / matrixName;
     std::filesystem::create_directories(dirPath); // 创建目录，包括所有必要的父目录
+    
+    // 存 AVE_nnz per row in tiles
+    // 构造文件名和路径
+    std::filesystem::path AvefilePath = dirPath / (matrixName + AveSuffix);
 
+    // 创建并写入文件
+    std::ofstream Avefile(AvefilePath);
+    if (Avefile.is_open()) {
+        for (size_t i = 0; i < t_num_blocks * t_num_blocks; i++)
+        {
+            Avefile << ave_rownnz_per_tile_[i] << std::endl;
+        }
+        
+        Avefile.close();
+        std::cout << "File " << AvefilePath << " has been created successfully." << std::endl;
+    } else {
+        std::cerr << "Failed to open file for writing." << std::endl;
+        return EXIT_FAILURE;
+    }
+
+
+    // 存 MAX nnz per row in tiles
     // 构造文件名和路径
     std::filesystem::path MaxfilePath = dirPath / (matrixName + MaxSuffix);
+
     // 创建并写入文件
     std::ofstream Maxfile(MaxfilePath);
     if (Maxfile.is_open()) {
@@ -1121,6 +1160,42 @@ bool MTX<IndexType, ValueType>::FeaturesWrite(const char* file_path)
         return EXIT_FAILURE;
     }
 
+    // 存 nnz number in tiles
+    // 构造文件名和路径
+    std::filesystem::path nnzfilePath = dirPath / (matrixName + NnzSuffix);
+    // 创建并写入文件
+    std::ofstream nnzfile(nnzfilePath);
+    if (nnzfile.is_open()) {
+        for (size_t i = 0; i < t_num_blocks * t_num_blocks; i++)
+        {
+            nnzfile << nnz_by_Tiles_[i] << std::endl;
+        }
+        
+        nnzfile.close();
+        std::cout << "File " << nnzfilePath << " has been created successfully." << std::endl;
+    } else {
+        std::cerr << "Failed to open file for writing." << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    // 存 std nnz per row in tiles
+    // 构造文件名和路径
+    std::filesystem::path StdfilePath = dirPath / (matrixName + StdSuffix);
+    // 创建并写入文件
+    std::ofstream stdfile(StdfilePath);
+    if (stdfile.is_open()) {
+        for (size_t i = 0; i < t_num_blocks * t_num_blocks; i++)
+        {
+            stdfile << std_rownnz_per_tile_[i] << std::endl;
+        }
+        
+        stdfile.close();
+        std::cout << "File " << StdfilePath << " has been created successfully." << std::endl;
+    } else {
+        std::cerr << "Failed to open file for writing." << std::endl;
+        return EXIT_FAILURE;
+    }
+    
     return EXIT_SUCCESS;
 
 }

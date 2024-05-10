@@ -253,6 +253,9 @@ class MTX{
         std::vector<IndexType> nnz_by_RB_;     // 保存每个行块的 nnz 数目
         std::vector<IndexType> nnz_by_CB_;     // 保存每个列块的 nnz 数目
 
+        std::vector<std::vector<IndexType>> Rows_cnt;
+        std::vector<std::vector<IndexType>> Cols_cnt;
+
         std::vector<IndexType> max_rownnz_per_tile_;
         std::vector<ValueType> ave_rownnz_per_tile_;
         std::vector<ValueType> std_rownnz_per_tile_;
