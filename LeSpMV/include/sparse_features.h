@@ -260,6 +260,14 @@ class MTX{
         std::vector<ValueType> ave_rownnz_per_tile_;
         std::vector<ValueType> std_rownnz_per_tile_;
 
+
+        std::vector<IndexType> max_rownnz_per_RB_;
+        std::vector<IndexType> max_colnnz_per_CB_;
+        std::vector<ValueType> ave_rownnz_per_RB_;
+        std::vector<ValueType> ave_colnnz_per_CB_;
+        std::vector<ValueType> std_rownnz_per_RB_;
+        std::vector<ValueType> std_colnnz_per_CB_;
+
         // min and max nnz for each 
         IndexType t_min_nnz_all_tiles_ = 100000000;
         IndexType t_max_nnz_all_tiles_ = 0;

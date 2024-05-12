@@ -194,9 +194,9 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
         uniq_CB.resize(t_num_blocks * t_num_blocks, 0);// 记录每个tiles的非零列数
     }
 
-    // Rows_flag[rowidx][t_col_idx] 用于统计 rowidx 在 t_col_idx 的 Tile 中的行非零元数目
+    // Rows_cnt[rowidx][t_col_idx] 用于统计 rowidx 在 t_col_idx 的 Tile 中的行非零元数目
     Rows_cnt.resize(num_rows, std::vector<IndexType>(t_num_blocks, 0));
-    // Cols_flag[colidx][t_row_idx] 表示第 colidx 列是否已经被统计到行块 ID 为 Cols_flag 的 tiles中了, false表示统计过了.
+    // Cols_cnt[colidx][t_row_idx] 用于统计 colidx 在 t_row_idx 的 Tile 中的列非零元数目
     Cols_cnt.resize(num_cols, std::vector<IndexType>(t_num_blocks, 0));
 
     // Rows_flag[rowidx][t_col_idx] 表示第 rowidx 行是否已经被统计到列块 ID 为 t_col_idx 的 tiles中了, false表示统计过了.
@@ -347,7 +347,7 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
             value_abs = std::abs(value);
             diaoffset = col_idx - row_idx;
 
-            if(value){ // value 非零才记录
+            // if(value){ // value 非零才记录
                 nnz_by_row_[row_idx]++;
                 nnz_by_col_[col_idx]++;
                 // 记录对角距离的分布频率
@@ -466,7 +466,7 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
                     if(max_each_col_[col_idx] < log10(value_abs)) { max_each_col_[col_idx] = log10(value_abs); }
                     if(value_abs > 0.0 && min_each_col_[col_idx] > log10(value_abs)) { min_each_col_[col_idx] = log10(value_abs); }
                 }
-            }
+            // }  // value != 0
         }
     }else{
         std::cout << "Unsupported data type" << std::endl;
@@ -515,6 +515,73 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
             std_rownnz_per_tile_[i] = (ValueType) std_rownnz_per_tile_[i] / t_num_RB;
         std_rownnz_per_tile_[i] = std::sqrt(std_rownnz_per_tile_[i]);
     }
+
+    // 计算 RB 特征
+    ave_rownnz_per_RB_.resize(t_num_blocks, 0);
+    ave_colnnz_per_CB_.resize(t_num_blocks, 0);
+
+    for (size_t i = 0; i < t_num_blocks; i++){
+        if (i < t_mod_RB) // 前 t_mod_RB 行块多一行
+            ave_rownnz_per_RB_[i] = (ValueType) nnz_by_RB_[i] / (t_num_RB + 1);
+        else
+            ave_rownnz_per_RB_[i] = (ValueType) nnz_by_RB_[i] / t_num_RB;
+
+        if (i < t_mod_CB) // 前 t_mod_RB 行块多一行
+            ave_colnnz_per_CB_[i] = (ValueType) nnz_by_CB_[i] / (t_num_CB + 1);
+        else
+            ave_colnnz_per_CB_[i] = (ValueType) nnz_by_CB_[i] / t_num_CB;
+    }
+
+    max_rownnz_per_RB_.resize(t_num_blocks, 0);
+    max_colnnz_per_CB_.resize(t_num_blocks, 0);
+    std_rownnz_per_RB_.resize(t_num_blocks, 0);
+    std_colnnz_per_CB_.resize(t_num_blocks, 0);
+    for (size_t i = 0; i < t_num_blocks; i++)
+    {
+        size_t rows_start = (i < t_mod_RB)? (i*(t_num_RB+1)):(RB_threshold + (i-t_mod_RB)*t_num_RB);
+        size_t rows_end   = (i < t_mod_RB)? (rows_start+ t_num_RB+1):(rows_start + t_num_RB);
+        for (size_t rowID = rows_start; rowID < rows_end; rowID++)
+        {
+            IndexType rows_i_sum = 0;
+            for (size_t cb_id = 0; cb_id < t_num_blocks; cb_id++)
+            {
+                rows_i_sum += Rows_cnt[rowID][cb_id];
+            }
+            max_rownnz_per_RB_[i] = std::max(max_rownnz_per_RB_[i], rows_i_sum);
+            ValueType diff = rows_i_sum - ave_rownnz_per_RB_[i];
+            std_rownnz_per_RB_[i] += diff*diff;
+        }
+        
+        size_t cols_start = (i < t_mod_CB)? (i*(t_num_CB+1)):(CB_threshold + (i-t_mod_CB)*t_num_CB);
+        size_t cols_end   = (i < t_mod_CB)? (cols_start+ t_num_CB+1):(cols_start + t_num_CB);
+        for (size_t colID = cols_start; colID < cols_end; colID++)
+        {
+            IndexType cols_j_sum = 0;
+            for (size_t rb_id = 0; rb_id < t_num_blocks; rb_id++)
+            {
+                cols_j_sum += Cols_cnt[colID][rb_id];
+            }
+            max_colnnz_per_CB_[i] = std::max(max_colnnz_per_CB_[i], cols_j_sum);
+            ValueType diff = cols_j_sum - ave_colnnz_per_CB_[i];
+            std_colnnz_per_CB_[i] += diff*diff;
+        }
+    }
+
+    for (size_t i = 0; i < t_num_blocks; i++){
+
+        if (i < t_mod_RB) // 前 t_mod_RB 行块多一行
+            std_rownnz_per_RB_[i] = (ValueType) std_rownnz_per_RB_[i] / (t_num_RB + 1);
+        else
+            std_rownnz_per_RB_[i] = (ValueType) std_rownnz_per_RB_[i] / t_num_RB;
+        std_rownnz_per_RB_[i] = std::sqrt(std_rownnz_per_RB_[i]);
+
+        if (i < t_mod_CB) // 前 t_mod_RB 行块多一行
+            std_colnnz_per_CB_[i] = (ValueType) std_colnnz_per_CB_[i] / (t_num_CB + 1);
+        else
+            std_colnnz_per_CB_[i] = (ValueType) std_colnnz_per_CB_[i] / t_num_CB;
+        std_colnnz_per_CB_[i] = std::sqrt(std_colnnz_per_CB_[i]); 
+    }
+    
 
     fclose(mtx_file);
     return true;
@@ -1029,6 +1096,25 @@ template bool MTX<int, double>::PrintImage(std::string& outputpath);
 template bool MTX<long long, float>::PrintImage(std::string& outputpath);
 template bool MTX<long long, double>::PrintImage(std::string& outputpath);
 
+template <typename IndexType>
+int inline WriteImage(std::string filePath, std::vector<IndexType> data, size_t length){
+    std::ofstream OutputFile(filePath);
+    if (OutputFile.is_open()) {
+        for (size_t i = 0; i < length; i++)
+        {
+            OutputFile << data[i] << std::endl;
+        }
+        
+        OutputFile.close();
+        std::cout << "File " << filePath << " has been created successfully." << std::endl;
+    } else {
+        std::cerr << "Failed to open file for writing." << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
+}
+
 template <typename IndexType, typename ValueType>
 bool MTX<IndexType, ValueType>::FeaturesWrite(const char* file_path)
 {
@@ -1196,6 +1282,39 @@ bool MTX<IndexType, ValueType>::FeaturesWrite(const char* file_path)
         return EXIT_FAILURE;
     }
     
+    // RB and CB 1-D image
+    std::string RB_nnzSuffix = ".RBnnz";
+    std::string RB_maxSuffix = ".RBmax";
+    std::string RB_aveSuffix = ".RBave";
+    std::string RB_stdSuffix = ".RBstd";
+
+    // 构造文件名和路径
+    std::filesystem::path RBmaxfilePath = dirPath / (matrixName + RB_maxSuffix);
+    std::filesystem::path RBnnzfilePath = dirPath / (matrixName + RB_nnzSuffix);
+    std::filesystem::path RBavefilePath = dirPath / (matrixName + RB_aveSuffix);
+    std::filesystem::path RBstdfilePath = dirPath / (matrixName + RB_stdSuffix);
+    // 创建并写入文件
+    WriteImage(RBmaxfilePath, max_rownnz_per_RB_, t_num_blocks);
+    WriteImage(RBnnzfilePath, nnz_by_RB_        , t_num_blocks);
+    WriteImage(RBavefilePath, ave_rownnz_per_RB_, t_num_blocks);
+    WriteImage(RBstdfilePath, std_rownnz_per_RB_, t_num_blocks);
+
+    std::string CB_nnzSuffix = ".CBnnz";
+    std::string CB_maxSuffix = ".CBmax";
+    std::string CB_aveSuffix = ".CBave";
+    std::string CB_stdSuffix = ".CBstd";
+
+    // 构造文件名和路径
+    std::filesystem::path CBmaxfilePath = dirPath / (matrixName + CB_maxSuffix);
+    std::filesystem::path CBnnzfilePath = dirPath / (matrixName + CB_nnzSuffix);
+    std::filesystem::path CBavefilePath = dirPath / (matrixName + CB_aveSuffix);
+    std::filesystem::path CBstdfilePath = dirPath / (matrixName + CB_stdSuffix);
+    // 创建并写入文件
+    WriteImage(CBmaxfilePath, max_colnnz_per_CB_, t_num_blocks);
+    WriteImage(CBnnzfilePath, nnz_by_CB_        , t_num_blocks);
+    WriteImage(CBavefilePath, ave_colnnz_per_CB_, t_num_blocks);
+    WriteImage(CBstdfilePath, std_colnnz_per_CB_, t_num_blocks);
+
     return EXIT_SUCCESS;
 
 }
