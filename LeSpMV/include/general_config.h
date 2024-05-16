@@ -6,7 +6,7 @@
 
 // experimental setting
 #define MAT_TILE_SIZE 256   // split matrix into 2048*2048 tiles
-#define MAX_DIAG_NUM 102400 
+#define MAX_DIAG_NUM 10240
 #define MAX_ITER 1000
 #define MIN_ITER 20 
 
@@ -15,7 +15,7 @@
 
 // hyperpramaters for SpMV algorithms
 #define SELL_SIGMA 512   // 512 (2^9), 4096 (2^12) , and 16384 (2^14)
-#define CHUNK_SIZE 4     // 4 or 8  vactor widths
+#define CHUNK_SIZE 8     // 4 or 8  vactor widths
 #define NTRATIO (0.6)
 
 //  general setting in Liu weifeng's library

@@ -69,12 +69,23 @@ def read_labels(data_list_path, label_array_path, label_file_suffix):
     label_array.append(int(label))
   return np.array(label_array)
 
-
+# data_list 保存的是数据集中的 matrix name
+# image_data 存储为 128 *128 = 16384 行
+# feat_data  存储为 18 行，每行: 特征名字 <空格> 特征值 
+# label_data 存储为 1  行，每行: 预条件名 <空格> 对应算法label号
 def get_train_data(data_list, image_data, feat_data, label_data, label_file_suffix):
+  # 读取
   image_array = read_images(data_list, image_data)    # data list name, image data path
   feat_array = read_features(data_list, feat_data)
   label_array = read_labels(data_list, label_data, label_file_suffix)
+  # 对特征数据进行标准化处理。标准化是机器学习预处理中常用的方法，
+  # 目的是将特征数据规范到一个标准的范围内，通常是一个均值为0，标准差为1的分布。
+  # 这有助于模型更好地学习和收敛。
   feat_array = st.fit_transform(feat_array)
+  # 这一行创建了一个 TensorFlow 数据集。from_tensor_slices 方法可以将给定的元组（或者是其他形式的组合数据）
+  # 转换为一个 tf.data.Dataset 对象，其中每个元素对应于元组中相应位置的切片。
+  # .shuffle(10000)：这一方法将数据集的条目进行随机打乱，以避免模型在训练过程中对数据顺序产生依赖。这里的 10000 表示随机缓冲区的大小。
+  # .batch(32)：这一方法将数据集中的元素分成大小为32的批次。这是训练神经网络时的标准做法，因为一次处理整个数据集通常是不可行的，而且批量处理可以帮助优化梯度下降过程。
   train_data = tf.data.Dataset.from_tensor_slices((image_array, feat_array, label_array)).shuffle(10000).batch(32)
   return image_array,feat_array,label_array,train_data
 

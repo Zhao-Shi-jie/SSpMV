@@ -44,7 +44,7 @@ class NewWide(Model):
 """
 Self defined deep model: should be CNN : Convolutional Neural Network
 Block count is related to non-zero elements on the matrix, 
-and normalization restricts their number to within a reasonable range (0 ~255).
+and normalization restricts their number to within a reasonable range (0~255).
 """
 class DeepModel(Model):
   def __init__(self):
@@ -83,6 +83,10 @@ class NewWideAndDeepConcat(Model):
     x = self.dense(x)         # concat size: x0 + x1  --> output size: the number of algorithms 
     return x
 
+# model_path : path to saving model
+# image_array: image input
+# feat_array : features input
+# label_array: label for prediction
 def train_new_model_concat(model_path,image_array,feat_array,label_array):
   combined_model = NewWideAndDeepConcat()
   Optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
@@ -118,7 +122,7 @@ def evaluate_new_wide_deep_concat_model(model_path, image_array_test, feat_array
 
 
 def train_and_get_res():
-  training_data_list = "/data1/xionghantao/data/JPDC/data_list/train_list_0.txt"
+  training_data_list = "/data1/xionghantao/data/JPDC/data_list/train_list_0.txt"  # 保存的是 dataset matrix name
   test_list = "/data1/xionghantao/data/JPDC/data_list/train_list_0.txt"
 
   image_array, feat_array, label_array, train_data = get_train_data(training_data_list, image_data, feat_data, label_data, label_file_suffix)

@@ -1122,6 +1122,8 @@ bool MTX<IndexType, ValueType>::FeaturesWrite(const char* file_path)
 
     // f_write << matrixID_ << matrixName ;
     
+    /*  旧版特征 write， 全部写到一个文件里， 没有标注什么特征*/
+    /*
     FILE *save_features = fopen(file_path, "a");
     if ( save_features == nullptr)
     {
@@ -1195,13 +1197,17 @@ bool MTX<IndexType, ValueType>::FeaturesWrite(const char* file_path)
         fprintf(save_features,"%lf\n", distance_per_row_);
     }
     fclose(save_features);
-    
+    */
+
+    /* 三类 Image 特征， 分别是 Tiles, Row Block 和 Col Block*/
     // 写特征矩阵到文件， 新建目录和文件
     std::string NnzSuffix = ".nnz";
     std::string MaxSuffix = ".max";              // 文件后缀
     std::string AveSuffix = ".ave";
     std::string StdSuffix = ".std"; 
-    std::string rootDir = "./features";           // 根目录
+    // std::string rootDir = "./features";           // 根目录
+    std::string rootDir = "/data/lsl/MModel-Data";
+
      // 使用 std::filesystem 创建目录
     std::filesystem::path dirPath = std::filesystem::path{rootDir} / matrixName;
     std::filesystem::create_directories(dirPath); // 创建目录，包括所有必要的父目录
@@ -1315,8 +1321,76 @@ bool MTX<IndexType, ValueType>::FeaturesWrite(const char* file_path)
     WriteImage(CBavefilePath, ave_colnnz_per_CB_, t_num_blocks);
     WriteImage(CBstdfilePath, std_colnnz_per_CB_, t_num_blocks);
 
-    return EXIT_SUCCESS;
+    /* 按照 [特征名 <空格> 特征值] 的格式写到 name.features 中*/
+    std::string FeaSuffix = ".features";
+    std::filesystem::path FeaturefilePath = dirPath / (matrixName + FeaSuffix);
 
+    // 创建并写入文件
+    std::ofstream Featurefile(FeaturefilePath);
+    if (Featurefile.is_open()) {
+        Featurefile << "[" << matrixID_ << "]: " << matrixName << std::endl;
+        Featurefile << "num_rows "  << num_rows << std::endl;
+        Featurefile << "num_cols "  << num_cols << std::endl;
+        Featurefile << "num_nnz "   << num_nnzs << std::endl;
+        Featurefile << "nnz_ratio " << nnz_ratio_ << std::endl;
+        // Featurefile << "num_diags " << complete_ndiags << std::endl;
+        Featurefile << "nnz_on_maindiag_ratio " << diag_close_ratio_ << std::endl;
+        Featurefile << "nnz_row_distance_ratio " << distance_per_row_ / num_cols << std::endl; // 越接近0表示非零元间贴的越近
+
+        // rows features
+        Featurefile << "nz_row_ratio " << nz_row_ratio_ << std::endl;
+        Featurefile << "max_nnz_each_row " << max_nnz_each_row_ << std::endl;
+        Featurefile << "ave_nnz_each_row " << ave_nnz_each_row_ << std::endl;
+        Featurefile << "standard_dev_row " << standard_dev_row_ << std::endl;
+        Featurefile << "P-ratio_row " << P_ratio_row_ << std::endl;
+        Featurefile << "Gini_coeff_row " << Gini_row_ << std::endl;
+        
+        // cols features
+        Featurefile << "nz_col_ratio " << nz_col_ratio_ << std::endl;
+        Featurefile << "max_nnz_each_col " << max_nnz_each_col_ << std::endl;
+        Featurefile << "ave_nnz_each_col " << ave_nnz_each_col_ << std::endl;
+        Featurefile << "standard_dev_col " << standard_dev_col_ << std::endl;
+        Featurefile << "P-ratio_col " << P_ratio_col_ << std::endl;
+        Featurefile << "Gini_coeff_col " << Gini_col_ << std::endl;
+        
+        // tiles features
+        Featurefile << "nz_tiles_ratio " << t_nz_ratio_tiles_ << std::endl;
+        Featurefile << "max_nnz_each_tiles " << t_max_nnz_all_tiles_ << std::endl;
+        Featurefile << "ave_nnz_each_tiles " << t_ave_nnz_all_tiles << std::endl;
+        Featurefile << "standard_dev_tiles " << t_standard_dev_all_tiles << std::endl;
+        Featurefile << "P-ratio_tiles " << t_P_ratio_all_tiles_ << std::endl;
+        Featurefile << "Gini_coeff_tiles " << t_Gini_all_tiles_ << std::endl;
+
+        // row blocks features
+        Featurefile << "nz_ratio_RB " << t_nz_ratio_RB_ << std::endl;
+        Featurefile << "max_nnz_each_RB " << t_max_nnz_each_RB_ << std::endl;
+        Featurefile << "ave_nnz_each_RB " << t_ave_nnz_RB << std::endl;
+        Featurefile << "standard_dev_RB " << t_standard_dev_RB << std::endl;
+        Featurefile << "P-ratio_RB " << t_P_ratio_RB_ << std::endl;
+        Featurefile << "Gini_coeff_RB " << t_Gini_RB_ << std::endl;
+
+        // col blocks features
+        Featurefile << "nz_ratio_CB " << t_nz_ratio_CB_ << std::endl;
+        Featurefile << "max_nnz_each_CB " << t_max_nnz_each_CB_ << std::endl;
+        Featurefile << "ave_nnz_each_CB " << t_ave_nnz_CB << std::endl;
+        Featurefile << "standard_dev_CB " << t_standard_dev_CB << std::endl;
+        Featurefile << "P-ratio_CB " << t_P_ratio_CB_ << std::endl;
+        Featurefile << "Gini_coeff_CB " << t_Gini_CB_ << std::endl;
+
+        Featurefile << "uniq_R " << uniqR << std::endl;
+        Featurefile << "uniq_C " << uniqC << std::endl;
+
+        Featurefile << "potReuseR " << potReuseR << std::endl;
+        Featurefile << "potReuseC " << potReuseC << std::endl;
+        
+        Featurefile.close();
+        std::cout << "File " << FeaturefilePath << " has been created successfully." << std::endl;
+    } else {
+        std::cerr << "Failed to open file for writing." << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
 }
 
 template bool MTX<int, float>::FeaturesWrite(const char* file_path);
