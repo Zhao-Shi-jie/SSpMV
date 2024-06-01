@@ -3,6 +3,8 @@ import os
 sys.path.append("..")
 from utils.data_setting import *
 
+label_format_suffix = ".format_label"
+label_prob_suffix = ".prob_label"
 
 def get_acc(test_list, label_data, res_path, metric_path):
   file_list = []
@@ -33,7 +35,38 @@ def get_acc(test_list, label_data, res_path, metric_path):
   f = open(metric_path, "a+")
   f.write("Acc:" + str(acc) + "\n")
   f.close()
-  
+
+def get_acc_new(test_list, base_path, label_suffix, res_path, metric_path):
+  file_list = []
+  with open(test_list, "r") as f:
+    lines = f.readlines()
+    for line in lines:
+      file_list.append(line.strip())
+      
+  label_array = []
+  for mtx_name in file_list:
+    # label_path = os.path.join(base_path, file_ + label_suffix)
+    label_path = os.path.join(base_path, f"{mtx_name}/{mtx_name}{label_suffix}")
+    with open(label_path, "r") as f_read:
+      label = f_read.readline().strip().split(" ")[1]
+    label_array.append(int(label))
+    
+  cnt_equal = 0
+  cnt_not = 0
+  # compare with predictive label
+  with open(res_path, "r") as f:
+    lines = f.readlines()
+    for i in range(len(lines)):
+      if label_array[i] == int(lines[i].strip()):
+        cnt_equal = cnt_equal + 1
+      else:
+        cnt_not = cnt_not + 1
+  #print(cnt_equal)
+  #print(cnt_not)
+  acc = cnt_equal / (cnt_not + cnt_equal)
+  f = open(metric_path, "a+")
+  f.write("Acc:" + str(acc) + "\n")
+  f.close()
 
 
 def get_precision(test_list, label_data, res_path, label_num, metric_path):
@@ -109,7 +142,80 @@ def get_precision(test_list, label_data, res_path, label_num, metric_path):
   f.write("macro_f1:" + str(Macro_f1) + "\n")
 
   f.close()
+
+def get_precision_new(test_list, base_path, label_suffix, res_path, label_num, metric_path):
+  file_list = []
+  with open(test_list, "r") as f:
+    lines = f.readlines()
+    for line in lines:
+      file_list.append(line.strip())
+      
+  label_array = []
+  for mtx_name in file_list:
+    label_path = os.path.join(base_path, f"{mtx_name}/{mtx_name}{label_suffix}")
+    with open(label_path, "r") as f_read:
+      label = f_read.readline().strip().split(" ")[1]
+    label_array.append(int(label))
+  
+  predict_label_array = []
+  with open(res_path, "r") as f:
+    lines = f.readlines()
+    for i in range(len(lines)):
+      predict_label_array.append(int(lines[i].strip()))
+  
+  sum_p = 0.0
+  sum_r = 0.0
+  sum_f1 = 0.0
+  for label in range(label_num):
+    TP = 0
+    FN = 0
+    FP = 0
+    TN = 0
+
+    precision = 0.0
+    recall = 0.0
+    F1 = 0.0
+
+    for i in range(len(label_array)):
+      if label_array[i] == label and predict_label_array[i] == label:
+        TP = TP + 1
+      if label_array[i] == label and predict_label_array[i] != label:
+        FN = FN + 1
+      if label_array[i] != label and predict_label_array[i] == label:
+        FP = FP + 1
+      if label_array[i] != label and predict_label_array[i] != label:
+        TN = TN + 1
     
+    if TP + FP == 0:
+      precision = 0.0
+    else:
+      precision = TP / (TP + FP)
+  
+    if TP + FN == 0:
+      recall = 0.0
+    else:
+      recall = TP / (TP + FN)
+    
+    if (precision + recall)  < 0.000000000001:
+      F1 = 0.0
+    else:
+      F1 = (2 * precision * recall) / (precision + recall)
+   
+    sum_p = sum_p + precision
+    sum_r = sum_r + recall
+    sum_f1 = sum_f1 + F1
+
+  Macro_p = sum_p / label_num
+  Macro_r = sum_r / label_num
+  Macro_f1 = sum_f1 / label_num
+  
+  f = open(metric_path, "a+")
+  f.write("macro_precision:" + str(Macro_p) + "\n")
+  f.write("macro_recall:" + str(Macro_r) + "\n")
+  f.write("macro_f1:" + str(Macro_f1) + "\n")
+
+  f.close()
+  
 def aver_metric(metrics_dir="/home/xionghantao/codes/works/JPDC_special_issue/data/predictive_result_wide_deep/"):
   fold_num = 10
   Accs = []

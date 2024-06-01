@@ -2,8 +2,38 @@ import os
 import pandas as pd
 
 lable_file = "Best_Result.xlsx"
-root_dir = "/data/lsl/MModel-Data"
 label_suffix = ".format_label"
+
+Prob_file = "Probability_Vectors_new.xlsx"
+Prob_suffix  = ".prob_label"
+
+root_dir = "/data/lsl/MModel-Data"
+
+def write_prob_to_file(data_list):
+    df = pd.read_excel(data_list)
+    
+    # 遍历每一行数据
+    for index, row in df.iterrows():
+        # 文件夹路径
+        name_str = str(row['Name'])
+        # format_str = str(row['Best'])
+        
+        dir_path = os.path.join(root_dir, name_str)
+        
+        # 如果文件夹不存在，创建新文件夹
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+        
+        # 文件路径
+        file_path = os.path.join(dir_path, f"{name_str}{Prob_suffix}")
+        
+        # 写入文件
+        with open(file_path, 'w') as file:
+            # 从'Best'字段开始，接着是'CSR'到'BSR'的值
+            data_to_write = [row['Best']] + [row[col] for col in ['COO', 'CSR', 'DIA', 'ELL', 'S-ELL', 'S-ELL-sigma', 'S-ELL-R', 'CSR5', 'BSR']]
+            file.write(' '.join(map(str, data_to_write)) + '\n')
+        
+        print("Writing prob", row['Name'] ,"successfully")
 
 def write_label_to_file(data_list):
     df = pd.read_excel(data_list)
@@ -43,4 +73,5 @@ def get_value_based_on_format(format):
     return format_to_value.get(format, 'UnknownFormat')
 
 if __name__ == "__main__":
-    write_label_to_file(lable_file)
+    # write_label_to_file(lable_file)
+    write_prob_to_file(Prob_file)

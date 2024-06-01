@@ -8,7 +8,7 @@ st = StandardScaler()
 image_dim    = 256
 feat_file_suffix = ".features"
 label_format_suffix = ".format_label"
-label_detailed_suffix = ".detailed_label"
+label_prob_suffix = ".prob_label"
 RB_suffix = ('.RBave', '.RBmax', '.RBstd')
 CB_suffix = ('.CBave', '.CBmax', '.CBstd')
 
@@ -127,6 +127,28 @@ def read_labels(data_list_path, base_path, label_file_suffix):
     label_array.append(int(label))
   return np.array(label_array)
 
+def read_labels_prob(data_list_path, base_path, label_file_suffix):
+  file_list = []
+  with open(data_list_path, "r") as f:
+    lines = f.readlines()
+    for line in lines:
+      file_list.append(line.strip())
+      
+  label_array = []
+  for mtx_name in file_list:
+    # label_path = os.path.join(base_path, file_ + label_file_suffix)
+    label_path = os.path.join(base_path, f"{mtx_name}/{mtx_name}{label_file_suffix}")
+    with open(label_path, "r") as f_read:
+      # 读取标签文件的第一行
+      line = f_read.readline().strip()
+      # 分割字符串获取所有概率值，忽略第一个字符串（格式名称）
+      probabilities = line.split()[1:]  # 从第二个元素开始是概率值
+      # 将字符串概率转换为浮点数
+      label = [float(prob) for prob in probabilities]
+      label_array.append(label)
+
+  return np.array(label_array)
+
 # data_list 保存的是数据集中的 matrix name
 # image_data 存储为 128 *128 = 16384 行
 # feat_data  存储为 18 行，每行: 特征名字 <空格> 特征值 
@@ -151,6 +173,24 @@ def get_train_data(data_list, label_file_suffix=label_format_suffix, root_dir=ba
 
   return image_array, Row_Block_array, Col_Block_array, feat_array, label_array
 
+# 读取的是 概率向量标签
+def get_train_data_new(data_list, label_file_suffix=label_prob_suffix, root_dir=base_path):
+  # 读取
+  image_array = read_images(data_list, root_dir)    # data list name, image data path
+  
+  Row_Block_array = read_1D_images(data_list, root_dir, RB_suffix)
+  Col_Block_array = read_1D_images(data_list, root_dir, CB_suffix)
+  
+  feat_array = read_features(data_list, root_dir)
+  label_array = read_labels_prob(data_list, root_dir, label_file_suffix)
+  
+  # 对特征数据进行标准化处理。标准化是机器学习预处理中常用的方法，
+  # 目的是将特征数据规范到一个标准的范围内，通常是一个均值为0，标准差为1的分布。
+  # 这有助于模型更好地学习和收敛。
+  feat_array = st.fit_transform(feat_array)
+
+  return image_array, Row_Block_array, Col_Block_array, feat_array, label_array
+
 
 def get_test_data(data_list, label_file_suffix=label_format_suffix, root_dir=base_path):
   image_array_test = read_images(data_list, root_dir)
@@ -161,6 +201,19 @@ def get_test_data(data_list, label_file_suffix=label_format_suffix, root_dir=bas
   label_array_test = read_labels(data_list, root_dir, label_file_suffix)
   feat_array_test = st.fit_transform(feat_array_test)
   
-  test_data = tf.data.Dataset.from_tensor_slices((image_array_test, Row_Block_array_test, Col_Block_array_test, feat_array_test, label_array_test))
+  test_data = tf.data.Dataset.from_tensor_slices((feat_array_test, image_array_test, Row_Block_array_test, Col_Block_array_test,  label_array_test))
+  
+  return image_array_test, Row_Block_array_test, Col_Block_array_test, feat_array_test, label_array_test, test_data
+
+def get_test_data_new(data_list, label_file_suffix=label_prob_suffix, root_dir=base_path):
+  image_array_test = read_images(data_list, root_dir)
+  Row_Block_array_test = read_1D_images(data_list, root_dir, RB_suffix)
+  Col_Block_array_test = read_1D_images(data_list, root_dir, CB_suffix)
+  
+  feat_array_test = read_features(data_list, root_dir)
+  label_array_test = read_labels_prob(data_list, root_dir, label_file_suffix)
+  feat_array_test = st.fit_transform(feat_array_test)
+  
+  test_data = tf.data.Dataset.from_tensor_slices((feat_array_test, image_array_test, Row_Block_array_test, Col_Block_array_test,  label_array_test))
   
   return image_array_test, Row_Block_array_test, Col_Block_array_test, feat_array_test, label_array_test, test_data

@@ -7,11 +7,15 @@ from tensorflow.keras import Model
 from tensorflow.keras.layers import Dropout, Dense, Conv1D, Conv2D, MaxPooling1D, MaxPooling2D, Flatten, BatchNormalization, Concatenate
 
 import numpy as np
+sys.path.append("..")
 
 from utils.load_MMdata import get_train_data
 from utils.load_MMdata import get_test_data
 
 from utils.SSpMV_setting import *
+
+from compute_metrics import get_acc_new
+from compute_metrics import get_precision_new
 
 """
 Self defined wide model: should be FFNN : Feed-Forward Neural Network
@@ -79,9 +83,11 @@ class Conv1DModel(Model):
     x = self.dense(x)
     return x
 
+@tf.keras.utils.register_keras_serializable()
 class SpMV_Adapter(Model):
-  def __init__(self):
-    super(SpMV_Adapter, self).__init__()
+  def __init__(self, num_of_labels, *args, **kwargs):
+    super(SpMV_Adapter, self).__init__(*args, **kwargs)
+    self.num_of_labels = num_of_labels
     self.wide = WideModel()
     self.deep = DeepModel()
     self.conv1d_rb = Conv1DModel()
@@ -90,7 +96,7 @@ class SpMV_Adapter(Model):
     # self.dense1 = Dense(512, activation='relu')
     # self.dropout = Dropout(0.5)
     # self.dense2 = Dense(256, activation='relu')
-    self.final_dense = Dense(num_of_labels)
+    self.final_dense = Dense(self.num_of_labels)
 
   def call(self, inputs):
     x0 = self.wide(inputs[0])
@@ -103,9 +109,15 @@ class SpMV_Adapter(Model):
     # x = self.dense2(x)
     x = self.final_dense(x)
     return x
+  
+  def get_config(self):
+    # 需要包括所有初始化参数
+    config = super(SpMV_Adapter, self).get_config()
+    config.update({'num_of_labels': self.num_of_labels})
+    return config
 
 def train_MM_model(model_path, image_array, RB_array, CB_array, feat_array, label_array):
-  model = SpMV_Adapter()
+  model = SpMV_Adapter(number_of_labels)
   Optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
   model.compile(optimizer=Optimizer,
                 loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
@@ -113,15 +125,11 @@ def train_MM_model(model_path, image_array, RB_array, CB_array, feat_array, labe
   if len(image_array.shape) == 3:
     image_array = np.expand_dims(image_array, -1)
   
-  # 使用 tf.squeeze 移除大小为1的维度
-  RB_1D = tf.squeeze(RB_array, axis=2)  # 结果形状将为 (batch_size, 256, 3)
-  CB_1D = tf.squeeze(CB_array, axis=2)
-#   print("RB_1D shape   : ",RB_1D.shape)
-#   print("RB_1D shape   : ",RB_1D.shape)
+  model.fit([feat_array, image_array, RB_array, CB_array], label_array, batch_size=64, epochs=512)
   
-  model.fit([feat_array, image_array, RB_1D, CB_1D], label_array, batch_size=64, epochs=32)
-  # tf.keras.saving.save_model(model,model_path)
-  tf.keras.models.save_model(model, model_path)
+  # tf.keras.models.save_model(model, model_path)
+  model.save(model_path)  # 推荐使用这种方式
+
 
 
 def train_and_get_res():
@@ -131,13 +139,65 @@ def train_and_get_res():
   print("Image  shape   : ", image_array.shape)
   print("RB_arr shape   : ", RB_array.shape)
   print("CB_arr shape   : ", CB_array.shape)
-  print("Features array : ", feat_array)
-  print("Label    array : ", label_array)
+  print("Features shape : ", feat_array.shape)
+  print("Label    shape : ", label_array.shape)
   
   # 保存模型的目录
   model_path = "/data/lsl/SSpMV/models/SpMV_Adapter.keras"
   
   train_MM_model(model_path, image_array, RB_array, CB_array, feat_array, label_array)
 
+def evaluate_MM_Adapter(model_path, image_array_test, Row_Block_array_test, Col_Block_array_test, feat_array_test, label_array_test, test_data, eva_path, res_path):
+  
+  loaded_model = tf.keras.models.load_model(model_path)
+  
+  test_loss, test_acc = loaded_model.evaluate([feat_array_test, image_array_test, Row_Block_array_test, Col_Block_array_test],  label_array_test, verbose=2)
+  
+  f_eva = open(eva_path, "w")
+  f_eva.write("Evaluating Acc:" + str(test_acc) + "\n")
+  f_eva.close()
+
+  f_predict = open(res_path, "w")
+  for file_ in test_data:
+    start = time.time()
+
+    # predictions = loaded_model((tf.expand_dims(file_[1],0), tf.expand_dims(tf.expand_dims(file_[0],0), -1)))
+    #  file_ = [feat, img, RB, CB, label]
+    # predictions = loaded_model(file_[0], file_[1], file_[2], file_[3])
+    # 预处理输入数据：确保数据维度正确
+    feat = tf.expand_dims(file_[0], 0)  # 假设feat需要扩展批量维度
+    img = tf.expand_dims(file_[1], 0)   # 批次维度
+    RB = tf.expand_dims(file_[2], 0)  # 同理
+    CB = tf.expand_dims(file_[3], 0)  # 同理
+    
+    predictions = loaded_model([feat, img, RB, CB])
+    predictions = tf.nn.softmax(predictions)
+    idx = tf.math.argmax(predictions[0])
+
+    end = time.time()
+    f_predict.write(str(int(idx)) + "\n")
+  f_predict.close()
+
+def test_model():
+  test_data_list = "test_list.txt"
+  image_array_test, Row_Block_array_test, Col_Block_array_test, feat_array_test, label_array_test, test_data = get_test_data(test_data_list)
+  
+  eva_path = "/data/lsl/SSpMV/models/prediction_result/MM_Adapter/evaluate_acc.txt"
+  res_path = "/data/lsl/SSpMV/models/prediction_result/MM_Adapter/predict_result.txt"
+  
+  # 保存模型的目录
+  model_path = "/data/lsl/SSpMV/models/SpMV_Adapter.keras"
+  
+  evaluate_MM_Adapter(model_path, image_array_test, Row_Block_array_test, Col_Block_array_test, feat_array_test, label_array_test, test_data, eva_path, res_path)
+  
+  metric_path = "/data/lsl/SSpMV/models/prediction_result/MM_Adapter/metrics.res"
+  base_path = "/data/lsl/MModel-Data"
+  label_format_suffix = ".format_label"
+  
+  get_acc_new(test_data_list, base_path, label_format_suffix, res_path, metric_path)
+  get_precision_new(test_data_list, base_path, label_format_suffix, res_path, number_of_labels, metric_path)
+  
+
 if __name__ == "__main__":
-  train_and_get_res()
+  # train_and_get_res()
+  test_model()

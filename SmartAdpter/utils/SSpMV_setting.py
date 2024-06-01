@@ -1,7 +1,9 @@
-num_of_labels = 19
+features_dim = 40
+number_of_labels = 9
+num_of_detailed_labels = 19
 
 label_file_suffix = ".format_label"
-label_file_suffix = ".detailed_label"
+detailed_file_suffix = ".detailed_label"
 
 feat_data ="/data/lsl/feature"
 label_data = "/data/lsl/label"

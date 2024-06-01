@@ -117,7 +117,7 @@ void run_ell_kernels(int argc, char **argv)
     // 0: 串行， 1：omp并行， 2：omp load balanced
     // Our : {St,(==)StCont, Dyn, guided} x {omp, lb}
     for (int sche_mode = 0 ; sche_mode < 4; ++sche_mode){
-    for(int methods = 1; methods <= 2; ++methods){
+    for(int methods = 2; methods <= 2; ++methods){
         msec_per_iteration = test_ell_matrix_kernels(csr, methods, ld_test, sche_mode);
         fflush(stdout);
         sec_per_iteration = msec_per_iteration / 1000.0;

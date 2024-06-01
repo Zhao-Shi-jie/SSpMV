@@ -179,10 +179,12 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
     symm_pair_.reserve(nnz_mtx_);
 
     //  判断矩阵是否足够大分 tile 读取 tile特征
-    bool tile_flag = (num_rows >= t_num_blocks) && (num_cols >= t_num_blocks);
+    // bool tile_flag = (num_rows >= t_num_blocks) && (num_cols >= t_num_blocks);
+    bool tile_flag = true; // 假设不论矩阵大小，都必须完成划分
     
     //  可以存 tile features
-    if (tile_flag){
+    if (tile_flag)
+    {
         // 为避免空块，只能向下取整； 多出的元素均匀分给 前t_mod_RB 行，和 前 t_mod_CB 列 
         t_num_RB = num_rows / t_num_blocks; t_mod_RB = num_rows % t_num_blocks;
         t_num_CB = num_cols / t_num_blocks; t_mod_CB = num_cols % t_num_blocks;
@@ -487,16 +489,20 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
     for (size_t i = 0; i < t_num_blocks * t_num_blocks; i++){
         if (i < t_mod_RB * t_num_blocks) // 前 t_mod_RB 行块多一行
             ave_rownnz_per_tile_[i] = (ValueType) nnz_by_Tiles_[i] / (t_num_RB + 1);
-        else
-            ave_rownnz_per_tile_[i] = (ValueType) nnz_by_Tiles_[i] / t_num_RB;
+        else{
+            if(t_num_RB)  // 防止除以0
+                ave_rownnz_per_tile_[i] = (ValueType) nnz_by_Tiles_[i] / t_num_RB;
+        }
     }
     
     for (size_t row_idx = 0; row_idx < num_rows; row_idx++)
     {
         if (row_idx < RB_threshold)
             t_rowidx = row_idx / (t_num_RB + 1);
-        else
-            t_rowidx = t_mod_RB + (row_idx - RB_threshold)/t_num_RB; // 之前就是这里写错越界了
+        else{
+            if(t_num_RB)  // 防止除以0
+                t_rowidx = t_mod_RB + (row_idx - RB_threshold)/t_num_RB; // 之前就是这里写错越界了
+        }
 
         for (size_t t_colID = 0; t_colID < t_num_blocks; t_colID++)
         {
@@ -511,8 +517,10 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
     for (size_t i = 0; i < t_num_blocks * t_num_blocks; i++){
         if (i < t_mod_RB * t_num_blocks) // 前 t_mod_RB 行块多一行
             std_rownnz_per_tile_[i] = (ValueType) std_rownnz_per_tile_[i] / (t_num_RB + 1);
-        else
-            std_rownnz_per_tile_[i] = (ValueType) std_rownnz_per_tile_[i] / t_num_RB;
+        else{
+            if(t_num_RB)  // 防止除以0
+                std_rownnz_per_tile_[i] = (ValueType) std_rownnz_per_tile_[i] / t_num_RB;
+        }
         std_rownnz_per_tile_[i] = std::sqrt(std_rownnz_per_tile_[i]);
     }
 
@@ -523,13 +531,17 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
     for (size_t i = 0; i < t_num_blocks; i++){
         if (i < t_mod_RB) // 前 t_mod_RB 行块多一行
             ave_rownnz_per_RB_[i] = (ValueType) nnz_by_RB_[i] / (t_num_RB + 1);
-        else
-            ave_rownnz_per_RB_[i] = (ValueType) nnz_by_RB_[i] / t_num_RB;
+        else{
+            if(t_num_RB)
+                ave_rownnz_per_RB_[i] = (ValueType) nnz_by_RB_[i] / t_num_RB;
+        }
 
         if (i < t_mod_CB) // 前 t_mod_RB 行块多一行
             ave_colnnz_per_CB_[i] = (ValueType) nnz_by_CB_[i] / (t_num_CB + 1);
-        else
-            ave_colnnz_per_CB_[i] = (ValueType) nnz_by_CB_[i] / t_num_CB;
+        else{
+            if(t_num_CB)
+                ave_colnnz_per_CB_[i] = (ValueType) nnz_by_CB_[i] / t_num_CB;
+        }
     }
 
     max_rownnz_per_RB_.resize(t_num_blocks, 0);
@@ -571,14 +583,18 @@ bool MTX<IndexType, ValueType>::MtxLoad(const char* mat_path)
 
         if (i < t_mod_RB) // 前 t_mod_RB 行块多一行
             std_rownnz_per_RB_[i] = (ValueType) std_rownnz_per_RB_[i] / (t_num_RB + 1);
-        else
-            std_rownnz_per_RB_[i] = (ValueType) std_rownnz_per_RB_[i] / t_num_RB;
+        else{
+            if(t_num_RB)
+                std_rownnz_per_RB_[i] = (ValueType) std_rownnz_per_RB_[i] / t_num_RB;
+        }
         std_rownnz_per_RB_[i] = std::sqrt(std_rownnz_per_RB_[i]);
 
         if (i < t_mod_CB) // 前 t_mod_RB 行块多一行
             std_colnnz_per_CB_[i] = (ValueType) std_colnnz_per_CB_[i] / (t_num_CB + 1);
-        else
-            std_colnnz_per_CB_[i] = (ValueType) std_colnnz_per_CB_[i] / t_num_CB;
+        else{
+            if(t_num_CB)
+                std_colnnz_per_CB_[i] = (ValueType) std_colnnz_per_CB_[i] / t_num_CB;
+        }
         std_colnnz_per_CB_[i] = std::sqrt(std_colnnz_per_CB_[i]); 
     }
     
@@ -751,7 +767,7 @@ bool MTX<IndexType, ValueType>::CalculateFeatures()
         is_symmetric_ = false;
 
 
-    if ((num_rows >= t_num_blocks) && (num_cols >= t_num_blocks) )
+    // if ((num_rows >= t_num_blocks) && (num_cols >= t_num_blocks) )
     {
         CalculateTilesFeatures();
     }
@@ -796,11 +812,11 @@ bool MTX<IndexType, ValueType>::CalculateTilesFeatures()
     }
     t_nz_ratio_RB_ /= (ValueType) t_num_blocks;
     t_var_nnz_RB   /= (ValueType) t_num_blocks;
-    t_standard_dev_RB = std::sqrt(t_var_nnz_RB);
+    t_standard_dev_RB = std::sqrt(std::max(t_var_nnz_RB, (ValueType) 0));
 
     t_nz_ratio_CB_ /= (ValueType) t_num_blocks;
     t_var_nnz_CB   /= (ValueType) t_num_blocks;
-    t_standard_dev_CB = std::sqrt(t_var_nnz_CB);
+    t_standard_dev_CB = std::sqrt(std::max(t_var_nnz_CB, (ValueType) 0));
 
     // Count Tile features
     for (size_t i = 0; i < t_num_blocks*t_num_blocks; i++)
@@ -816,7 +832,7 @@ bool MTX<IndexType, ValueType>::CalculateTilesFeatures()
     }
     t_nz_ratio_tiles_   /= ((ValueType) t_num_blocks*t_num_blocks);
     t_var_nnz_all_tiles /= ((ValueType) t_num_blocks*t_num_blocks);
-    t_standard_dev_all_tiles = std::sqrt(t_var_nnz_all_tiles);
+    t_standard_dev_all_tiles = std::sqrt(std::max(t_var_nnz_all_tiles, (ValueType) 0));
     // calculate Tiles' P-ratio and Gini index
     P_ratioAndGini(nnz_by_Tiles_, num_nnzs, t_P_ratio_all_tiles_, t_Gini_all_tiles_);
 

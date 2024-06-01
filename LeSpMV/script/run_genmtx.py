@@ -187,10 +187,66 @@ def Run_SELL_cs_intKernel(excel_path):
             print(f"An error occurred while executing {command}")
             print(e)
 
+def Run_SELL_intKernel(excel_path):
+    # 读dataset list 并生成数据组：
+    mtx_info = Read_GenDataset(excel_path)
+    
+    # 定义测试命令中不变的参数
+    index = 0
+    precision = 64
+    
+    for matID, mtx_path in mtx_info:
+        # 构建并运行命令
+        command = f"./benchmark_spmv_sell {mtx_path} --matID={matID} --Index={index} --precision={precision}"
+        # 不再需要 --sche是因为 benchmark_spmv_dia 中自动跑四次不同的调度模式
+        print(f"Executing: {command}")
+        
+        # 执行命令
+        try:
+            result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            # 打印命令执行结果
+            print(f"Command finished with return code {result.returncode}")
+            if result.stdout:
+                print(f"Output: {result.stdout.decode('utf-8')}")
+            if result.stderr:
+                print(f"Errors: {result.stderr.decode('utf-8')}")
+        except subprocess.CalledProcessError as e:
+            print(f"An error occurred while executing {command}")
+            print(e)
+
+def Run_SELL_cR_intKernel(excel_path):
+    # 读dataset list 并生成数据组：
+    mtx_info = Read_GenDataset(excel_path)
+    
+    # 定义测试命令中不变的参数
+    index = 0
+    precision = 64
+    
+    for matID, mtx_path in mtx_info:
+        # 构建并运行命令
+        command = f"./benchmark_spmv_sell_c_R {mtx_path} --matID={matID} --Index={index} --precision={precision}"
+        # 不再需要 --sche是因为 benchmark_spmv_dia 中自动跑四次不同的调度模式
+        print(f"Executing: {command}")
+        
+        # 执行命令
+        try:
+            result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            # 打印命令执行结果
+            print(f"Command finished with return code {result.returncode}")
+            if result.stdout:
+                print(f"Output: {result.stdout.decode('utf-8')}")
+            if result.stderr:
+                print(f"Errors: {result.stderr.decode('utf-8')}")
+        except subprocess.CalledProcessError as e:
+            print(f"An error occurred while executing {command}")
+            print(e)
+
 if __name__ == "__main__":
     # Run_COO_intKernel("./Gen_Matrix.xlsx")
     # Run_CSR_intKernel("./Gen_Matrix.xlsx")
     # Run_CSR5_intKernel("./Gen_Matrix.xlsx")
     # Run_DIA_intKernel("./Gen_Matrix.xlsx")
     # Run_ELL_intKernel("./Gen_Matrix.xlsx")
-    Run_SELL_cs_intKernel("./Gen_Matrix.xlsx")
+    # Run_SELL_cs_intKernel("./Gen_Matrix.xlsx")
+    Run_SELL_intKernel("./Gen_Matrix.xlsx")
+    # Run_SELL_cR_intKernel("./Gen_Matrix.xlsx")
