@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-
+# 9 labels of different formats
 label_file = "Suite_Best_Result.xlsx"
 Gen_label_file = "Gen_Best_Result.xlsx"
 label_suffix = ".format_label"

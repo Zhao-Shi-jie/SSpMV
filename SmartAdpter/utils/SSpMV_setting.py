@@ -1,5 +1,5 @@
 features_dim = 40
-number_of_labels = 9
+number_of_labels = [9, 21]
 num_of_detailed_labels = 19
 
 label_file_suffix = ".format_label"

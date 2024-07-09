@@ -88,14 +88,14 @@ class SpMV_Adapter(Model):
   def __init__(self, num_of_labels, *args, **kwargs):
     super(SpMV_Adapter, self).__init__(*args, **kwargs)
     self.num_of_labels = num_of_labels
-    self.wide = WideModel()
-    self.deep = DeepModel()
-    self.conv1d_rb = Conv1DModel()
-    self.conv1d_cb = Conv1DModel()
+    self.wide = WideModel()         #for expert-desined features
+    self.deep = DeepModel()         #for multi-modal Distribution modality features
+    self.conv1d_rb = Conv1DModel()  #for multi-modal vectoritzaion modality features
+    self.conv1d_cb = Conv1DModel()  #for multi-modal locality modality features
     self.concatenate = Concatenate()
-    # self.dense1 = Dense(512, activation='relu')
-    # self.dropout = Dropout(0.5)
-    # self.dense2 = Dense(256, activation='relu')
+    self.dense1 = Dense(512, activation='relu')
+    self.dropout = Dropout(0.5)
+    self.dense2 = Dense(256, activation='relu')
     self.final_dense = Dense(self.num_of_labels)
 
   def call(self, inputs):
@@ -104,9 +104,10 @@ class SpMV_Adapter(Model):
     x2 = self.conv1d_rb(inputs[2])
     x3 = self.conv1d_cb(inputs[3])
     x =  self.concatenate([x0, x1, x2, x3])
-    # x = self.dense1(x)
-    # x = self.dropout(x)
-    # x = self.dense2(x)
+    x = self.dense1(x)
+    x = self.dropout(x)
+    x = self.dense2(x)
+    x = self.dropout(x)
     x = self.final_dense(x)
     return x
   
@@ -116,8 +117,8 @@ class SpMV_Adapter(Model):
     config.update({'num_of_labels': self.num_of_labels})
     return config
 
-def train_MM_model(model_path, image_array, RB_array, CB_array, feat_array, label_array):
-  model = SpMV_Adapter(number_of_labels)
+def train_MM_model(model_path, image_array, RB_array, CB_array, feat_array, label_array, label_nums):
+  model = SpMV_Adapter(label_nums)
   Optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
   model.compile(optimizer=Optimizer,
                 loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
@@ -130,11 +131,9 @@ def train_MM_model(model_path, image_array, RB_array, CB_array, feat_array, labe
   # tf.keras.models.save_model(model, model_path)
   model.save(model_path)  # 推荐使用这种方式
 
-
-
-def train_and_get_res(training_data_list):
+def train_and_get_res(training_data_list, label_suffix, label_nums):
   # training_data_list = "train_list.txt"  # 保存的是 dataset matrix name
-  image_array, RB_array, CB_array, feat_array, label_array = get_train_data(training_data_list)
+  image_array, RB_array, CB_array, feat_array, label_array = get_train_data(training_data_list, label_suffix)
   
   print("Image  shape   : ", image_array.shape)
   print("RB_arr shape   : ", RB_array.shape)
@@ -145,13 +144,13 @@ def train_and_get_res(training_data_list):
   # 保存模型的目录
   model_path = "/data/lsl/SSpMV/models/SpMV_Adapter.keras"
   
-  train_MM_model(model_path, image_array, RB_array, CB_array, feat_array, label_array)
+  train_MM_model(model_path, image_array, RB_array, CB_array, feat_array, label_array, label_nums)
 
 def evaluate_MM_Adapter(model_path, image_array_test, Row_Block_array_test, Col_Block_array_test, feat_array_test, label_array_test, test_data, eva_path, res_path):
   
   loaded_model = tf.keras.models.load_model(model_path)
   
-  test_loss, test_acc = loaded_model.evaluate([feat_array_test, image_array_test, Row_Block_array_test, Col_Block_array_test],  label_array_test, verbose=2)
+  test_loss, test_acc = loaded_model.evaluate([feat_array_test, image_array_test, Row_Block_array_test, Col_Block_array_test], label_array_test, verbose=2)
   
   f_eva = open(eva_path, "w")
   f_eva.write("Evaluating Acc:" + str(test_acc) + "\n")
@@ -178,9 +177,9 @@ def evaluate_MM_Adapter(model_path, image_array_test, Row_Block_array_test, Col_
     f_predict.write(str(int(idx)) + "\n")
   f_predict.close()
 
-def test_model(test_data_list):
+def test_model(test_data_list, label_suffix, label_nums):
   # test_data_list = "test_list.txt"
-  image_array_test, Row_Block_array_test, Col_Block_array_test, feat_array_test, label_array_test, test_data = get_test_data(test_data_list)
+  image_array_test, Row_Block_array_test, Col_Block_array_test, feat_array_test, label_array_test, test_data = get_test_data(test_data_list, label_suffix)
   
   eva_path = "/data/lsl/SSpMV/models/prediction_result/MM_Adapter/evaluate_acc.txt"
   res_path = "/data/lsl/SSpMV/models/prediction_result/MM_Adapter/predict_result.txt"
@@ -192,16 +191,19 @@ def test_model(test_data_list):
   
   metric_path = "/data/lsl/SSpMV/models/prediction_result/MM_Adapter/metrics.res"
   base_path = "/data/lsl/MModel-Data"
-  label_format_suffix = ".format_label"
+  # label_format_suffix = ".format_label"
   
-  get_acc_new(test_data_list, base_path, label_format_suffix, res_path, metric_path)
-  get_precision_new(test_data_list, base_path, label_format_suffix, res_path, number_of_labels, metric_path)
+  get_acc_new(test_data_list, base_path, label_suffix, res_path, metric_path)
+  get_precision_new(test_data_list, base_path, label_suffix, res_path, label_nums, metric_path)
   
 
 if __name__ == "__main__":
   training_data_list = "train_list.txt"  # 保存的是 dataset matrix name
   test_data_list = "test_list.txt"
   
+  settings_idx = 1
+  label_class = [".format_label", ".det_format_label"]
+  print ("Running Model with the setting: [{}]".format(settings_idx))
   
-  # train_and_get_res(training_data_list)
-  test_model(test_data_list)
+  train_and_get_res(training_data_list, label_suffix=label_class[settings_idx], label_nums=number_of_labels[settings_idx])
+  # test_model(test_data_list, label_suffix=label_class[settings_idx], label_nums=number_of_labels[settings_idx])
