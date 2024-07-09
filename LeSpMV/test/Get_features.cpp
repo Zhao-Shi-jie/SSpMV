@@ -68,12 +68,14 @@ int main(int argc, char** argv) {
         return EXIT_SUCCESS;
     }
 
-    int precision = 64;
+    // int precision = 64;
+    int precision = 32;
     char * precision_str = get_argval(argc, argv, "precision");
     if(precision_str != NULL)
         precision = atoi(precision_str);
     
-    int Index = 1;
+    // int Index = 1;
+    int Index = 0;
     char * Index_str = get_argval(argc, argv, "Index");
     if(Index_str != NULL)
         Index = atoi(Index_str);

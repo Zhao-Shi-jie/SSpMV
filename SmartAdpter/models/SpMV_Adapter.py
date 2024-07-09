@@ -132,8 +132,8 @@ def train_MM_model(model_path, image_array, RB_array, CB_array, feat_array, labe
 
 
 
-def train_and_get_res():
-  training_data_list = "train_list.txt"  # 保存的是 dataset matrix name
+def train_and_get_res(training_data_list):
+  # training_data_list = "train_list.txt"  # 保存的是 dataset matrix name
   image_array, RB_array, CB_array, feat_array, label_array = get_train_data(training_data_list)
   
   print("Image  shape   : ", image_array.shape)
@@ -178,8 +178,8 @@ def evaluate_MM_Adapter(model_path, image_array_test, Row_Block_array_test, Col_
     f_predict.write(str(int(idx)) + "\n")
   f_predict.close()
 
-def test_model():
-  test_data_list = "test_list.txt"
+def test_model(test_data_list):
+  # test_data_list = "test_list.txt"
   image_array_test, Row_Block_array_test, Col_Block_array_test, feat_array_test, label_array_test, test_data = get_test_data(test_data_list)
   
   eva_path = "/data/lsl/SSpMV/models/prediction_result/MM_Adapter/evaluate_acc.txt"
@@ -199,5 +199,9 @@ def test_model():
   
 
 if __name__ == "__main__":
-  # train_and_get_res()
-  test_model()
+  training_data_list = "train_list.txt"  # 保存的是 dataset matrix name
+  test_data_list = "test_list.txt"
+  
+  
+  # train_and_get_res(training_data_list)
+  test_model(test_data_list)

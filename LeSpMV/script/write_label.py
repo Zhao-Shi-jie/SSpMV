@@ -1,10 +1,12 @@
 import os
 import pandas as pd
 
-lable_file = "Best_Result.xlsx"
+label_file = "Suite_Best_Result.xlsx"
+Gen_label_file = "Gen_Best_Result.xlsx"
 label_suffix = ".format_label"
 
-Prob_file = "Probability_Vectors_new.xlsx"
+Prob_file = "Suite_Probability_Vectors.xlsx"
+Gen_Prob_file = "Gen_Probability_Vectors.xlsx"
 Prob_suffix  = ".prob_label"
 
 root_dir = "/data/lsl/MModel-Data"
@@ -56,7 +58,7 @@ def write_label_to_file(data_list):
         with open(file_path, 'w') as file:
             value = get_value_based_on_format(format_str)  # 需要定义这个函数来根据Format获取value
             file.write(f"{format_str} {value}\n")
-        print("Writing", row['Name'] ,"successfully")
+        print("Writing label", row['Name'] ,"successfully")
 
 def get_value_based_on_format(format):
     format_to_value ={
@@ -73,5 +75,7 @@ def get_value_based_on_format(format):
     return format_to_value.get(format, 'UnknownFormat')
 
 if __name__ == "__main__":
-    # write_label_to_file(lable_file)
-    write_prob_to_file(Prob_file)
+    # write_label_to_file(label_file)
+    # write_prob_to_file(Prob_file)
+    write_label_to_file(Gen_label_file)
+    write_prob_to_file(Gen_Prob_file)

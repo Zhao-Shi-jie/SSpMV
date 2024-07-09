@@ -14,6 +14,18 @@ def Read_TestDataset(excel_path):
 
     return mtx_info
 
+def Read_GenDataset(excel_path):
+    # 读取Excel文件
+    df = pd.read_excel(excel_path)
+
+    # 选择'Id'和'Name'列
+    mtx_list = df[['Id', 'Matrix']].values.tolist()
+
+    # 生成（ID, Name）元组列表和对应的文件路径
+    mtx_info = [(mtx_id, path) for mtx_id, path in mtx_list]
+
+    return mtx_info
+
 def Run_Features(excel_path):
     
     # 读dataset list 并生成数据组：
@@ -38,5 +50,30 @@ def Run_Features(excel_path):
             print(f"An error occurred while executing {command}")
             print(e)
 
+def Run_GenFeatures(excel_path):
+    
+    # 读dataset list 并生成数据组：
+    mtx_info = Read_GenDataset(excel_path)
+    
+    for matID, mtx_path in mtx_info:
+        # 构建并运行命令
+        command = f"./Get_features {mtx_path} --matID={matID}"
+        # 不再需要 --sche是因为 benchmark_spmv_dia 中自动跑四次不同的调度模式
+        print(f"Executing: {command}")
+        
+        # 执行命令
+        try:
+            result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            # 打印命令执行结果
+            print(f"Command finished with return code {result.returncode}")
+            if result.stdout:
+                print(f"Output: {result.stdout.decode('utf-8')}")
+            if result.stderr:
+                print(f"Errors: {result.stderr.decode('utf-8')}")
+        except subprocess.CalledProcessError as e:
+            print(f"An error occurred while executing {command}")
+            print(e)
+
 if __name__ == "__main__":
-    Run_Features("./SuiteSparse_Matrix.xlsx")
+    # Run_Features("./SuiteSparse_Matrix.xlsx")
+    Run_GenFeatures("./Gen_Matrix.xlsx")
