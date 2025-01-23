@@ -1,0 +1,1 @@
+MatNet Evaluating Acc:0.7352380752563477

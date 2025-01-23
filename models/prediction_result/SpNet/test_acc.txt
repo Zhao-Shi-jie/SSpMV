@@ -1,0 +1,1 @@
+SpNet Evaluating Acc:0.005752636585384607
