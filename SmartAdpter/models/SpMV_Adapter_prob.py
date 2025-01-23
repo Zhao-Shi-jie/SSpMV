@@ -93,9 +93,9 @@ class SpMV_Adapter(Model):
     self.conv1d_rb = Conv1DModel()
     self.conv1d_cb = Conv1DModel()
     self.concatenate = Concatenate()
-    # self.dense1 = Dense(512, activation='relu')
-    # self.dropout = Dropout(0.5)
-    # self.dense2 = Dense(256, activation='relu')
+    self.dense1 = Dense(512, activation='relu')
+    self.dropout = Dropout(0.5)
+    self.dense2 = Dense(256, activation='relu')
     self.final_dense = Dense(self.num_of_labels, activation='softmax')  # 输出每个类别的概率
 
   def call(self, inputs):
@@ -104,9 +104,10 @@ class SpMV_Adapter(Model):
     x2 = self.conv1d_rb(inputs[2])
     x3 = self.conv1d_cb(inputs[3])
     x =  self.concatenate([x0, x1, x2, x3])
-    # x = self.dense1(x)
-    # x = self.dropout(x)
-    # x = self.dense2(x)
+    x = self.dense1(x)
+    x = self.dropout(x)
+    x = self.dense2(x)
+    x = self.dropout(x)
     x = self.final_dense(x)
     return x
   
@@ -116,8 +117,8 @@ class SpMV_Adapter(Model):
     config.update({'num_of_labels': self.num_of_labels})
     return config
 
-def train_MM_model(model_path, image_array, RB_array, CB_array, feat_array, label_array):
-  model = SpMV_Adapter(number_of_labels)
+def train_MM_model(model_path, image_array, RB_array, CB_array, feat_array, label_array, label_nums):
+  model = SpMV_Adapter(label_nums)
   Optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
   model.compile(optimizer=Optimizer,
                 loss='categorical_crossentropy',
@@ -128,22 +129,22 @@ def train_MM_model(model_path, image_array, RB_array, CB_array, feat_array, labe
   model.fit([feat_array, image_array, RB_array, CB_array], label_array, batch_size=64, epochs=512)
   # tf.keras.models.save_model(model, model_path)
   model.save(model_path)  # 推荐使用这种方式
+  print ("Finish MM-Adapter(prob) Model Saving")
 
 
-def train_and_get_res():
-    training_data_list = "train_list.txt"  # 保存的是 dataset matrix name
-    image_array, RB_array, CB_array, feat_array, label_array = get_train_data_new(training_data_list)
-    
-    print("Image  shape   : ", image_array.shape)
-    print("RB_arr shape   : ", RB_array.shape)
-    print("CB_arr shape   : ", CB_array.shape)
-    print("Features shape : ", feat_array.shape)
-    print("Label    shape : ", label_array.shape)
-    
-    # 保存模型的目录
-    model_path = "/data/lsl/SSpMV/models/SpMV_Adapter_prob.keras"
-    
-    train_MM_model(model_path, image_array, RB_array, CB_array, feat_array, label_array)
+def train_and_get_res(training_data_list, label_suffix, label_nums):
+  image_array, RB_array, CB_array, feat_array, label_array = get_train_data_new(training_data_list, label_suffix)
+  
+  print("Image  shape   : ", image_array.shape)
+  print("RB_arr shape   : ", RB_array.shape)
+  print("CB_arr shape   : ", CB_array.shape)
+  print("Features shape : ", feat_array.shape)
+  print("Label    shape : ", label_array.shape)
+  
+  # 保存模型的目录
+  model_path = "/data/lsl/SSpMV/models/SpMV_Adapter_prob.keras"
+  
+  train_MM_model(model_path, image_array, RB_array, CB_array, feat_array, label_array, label_nums)
 
 def evaluate_MM_Adapter(model_path, image_array_test, Row_Block_array_test, Col_Block_array_test, feat_array_test, label_array_test, test_data, eva_path, res_path):
   
@@ -179,9 +180,9 @@ def evaluate_MM_Adapter(model_path, image_array_test, Row_Block_array_test, Col_
     
   f_predict.close()
 
-def test_model():
-  test_data_list = "test_list.txt"
-  image_array_test, Row_Block_array_test, Col_Block_array_test, feat_array_test, label_array_test, test_data = get_test_data_new(test_data_list)
+def test_model(test_data_list, label_suffix, label_nums):
+  
+  image_array_test, Row_Block_array_test, Col_Block_array_test, feat_array_test, label_array_test, test_data = get_test_data_new(test_data_list, label_suffix)
   
   eva_path = "/data/lsl/SSpMV/models/prediction_result/MM_Adapter_pb/evaluate_acc.txt"
   res_path = "/data/lsl/SSpMV/models/prediction_result/MM_Adapter_pb/predict_result.txt"
@@ -196,8 +197,15 @@ def test_model():
   label_format_suffix = ".format_label"
   
   get_acc_new(test_data_list, base_path, label_format_suffix, res_path, metric_path)
-  get_precision_new(test_data_list, base_path, label_format_suffix, res_path, number_of_labels, metric_path)
+  get_precision_new(test_data_list, base_path, label_format_suffix, res_path, label_nums, metric_path)
 
 if __name__ == "__main__":
-    # train_and_get_res()
-    test_model()
+  training_data_list = "train_list.txt"  # 保存的是 dataset matrix name
+  test_data_list = "test_list.txt"
+  
+  settings_idx = 0
+  label_class = [".prob_label", ".det_prob_label"]
+  print ("Running Prob Model with the setting: [{}]".format(settings_idx))
+  
+  # train_and_get_res(training_data_list, label_suffix=label_class[settings_idx], label_nums=number_of_labels[settings_idx])
+  test_model(test_data_list, label_suffix=label_class[settings_idx], label_nums=number_of_labels[settings_idx])

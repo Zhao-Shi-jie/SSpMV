@@ -80,6 +80,44 @@ def read_1D_images(data_list, base_path, channel_suffixes=('.ave', '.max', '.std
   image_array = np.array(image_list)
   return image_array
 
+def read_img_density(data_list, base_path, channel_suffixes=('.nnz',)):
+  file_list = []
+  with open(data_list, "r") as f:
+    lines = f.readlines()
+    for line in lines:
+      file_list.append(line.strip())
+  # 初始化图像数组列表
+  image_list = []
+  # 遍历数据列表中的每个文件名
+  for mtx_name in file_list:
+    # 构建每个通道的完整路径
+    channel_images = []
+    for suffix in channel_suffixes:
+        image_path = os.path.join(base_path, f"{mtx_name}/{mtx_name}{suffix}")
+        # Check if the file exists before loading
+        if not os.path.exists(image_path):
+            print(f"File not found: {image_path}")
+            continue
+        
+        # Print the file path for debugging
+        # print(f"Reading image from: {image_path}")
+    
+        # 读取图像数据，假设数据以文本形式保存，每行一个数值
+        img_data = np.loadtxt(image_path)
+        # 将一维数组重塑为二维图像形状 (256x256)
+        img_data = img_data.reshape((image_dim, image_dim))
+        channel_images.append(img_data)
+    # 检查所有通道图像的形状是否一致，以确保能够正确堆叠
+    if all(img.shape == channel_images[0].shape for img in channel_images):
+        # 沿着最后一个轴将三个通道的数据堆叠起来
+        multi_channel_image = np.stack(channel_images, axis=-1)
+        image_list.append(multi_channel_image)
+    else:
+        print(f"Error: Image channels for {mtx_name} have mismatched dimensions.")
+  # 将图像列表转换为一个numpy数组
+  image_array = np.array(image_list)
+  return image_array
+
 def read_features(data_list_path, base_path):
   file_list = []
   with open(data_list_path, "r") as f:
@@ -157,9 +195,6 @@ def get_train_data(data_list, label_file_suffix=label_format_suffix, root_dir=ba
   # 读取
   image_array = read_images(data_list, root_dir)    # data list name, image data path
   
-  # RB_suffix = ('.RBave', '.RBmax', '.RBstd')
-  # CB_suffix = ('.CBave', '.CBmax', '.CBstd')
-  
   Row_Block_array = read_1D_images(data_list, root_dir, RB_suffix)
   Col_Block_array = read_1D_images(data_list, root_dir, CB_suffix)
   
@@ -172,6 +207,16 @@ def get_train_data(data_list, label_file_suffix=label_format_suffix, root_dir=ba
   feat_array = st.fit_transform(feat_array)
 
   return image_array, Row_Block_array, Col_Block_array, feat_array, label_array
+
+# 没有多模态， 只考虑读取一个density representation
+def get_train_density(data_list, label_file_suffix=label_format_suffix, root_dir=base_path):
+  image_density = read_img_density(data_list, root_dir)
+  feat_array = read_features(data_list, root_dir)
+  label_array = read_labels_prob(data_list, root_dir, label_file_suffix)
+  
+  feat_array = st.fit_transform(feat_array)
+  
+  return image_density, feat_array, label_array
 
 # 读取的是 概率向量标签
 def get_train_data_new(data_list, label_file_suffix=label_prob_suffix, root_dir=base_path):
@@ -204,6 +249,17 @@ def get_test_data(data_list, label_file_suffix=label_format_suffix, root_dir=bas
   test_data = tf.data.Dataset.from_tensor_slices((feat_array_test, image_array_test, Row_Block_array_test, Col_Block_array_test,  label_array_test))
   
   return image_array_test, Row_Block_array_test, Col_Block_array_test, feat_array_test, label_array_test, test_data
+
+def get_test_Density(data_list, label_file_suffix=label_format_suffix, root_dir=base_path):
+  image_array_test = read_img_density(data_list, root_dir)
+  
+  feat_array_test = read_features(data_list, root_dir)
+  label_array_test = read_labels(data_list, root_dir, label_file_suffix)
+  feat_array_test = st.fit_transform(feat_array_test)
+  
+  test_data = tf.data.Dataset.from_tensor_slices((feat_array_test, image_array_test, label_array_test))
+  
+  return image_array_test, feat_array_test, label_array_test, test_data
 
 def get_test_data_new(data_list, label_file_suffix=label_prob_suffix, root_dir=base_path):
   image_array_test = read_images(data_list, root_dir)

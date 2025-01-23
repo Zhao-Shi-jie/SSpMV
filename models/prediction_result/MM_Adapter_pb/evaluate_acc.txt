@@ -1,1 +1,1 @@
-Evaluating Acc:0.3477477431297302
+Evaluating Acc:0.3243243098258972

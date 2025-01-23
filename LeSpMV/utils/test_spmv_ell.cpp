@@ -22,14 +22,22 @@
  * @return int 
  */
 template <typename IndexType, typename ValueType>
-double test_ell_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag, LeadingDimension ld, int schedule_mod)
+double test_ell_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag, LeadingDimension ld, int schedule_mod,  double &convert_time)
 {
     double msec_per_iteration;
     std::cout << "=====  Testing ELL Kernels  =====" << std::endl;
 
     ELL_Matrix<IndexType,ValueType> ell;
+
+    // formats convert overhead
+    timer t;
+
     ell = csr_to_ell(csr_ref, ld);
     
+    double msec_convert = (double) t.milliseconds_elapsed();
+    // double sec_convert = msec_convert / 1000.0;
+    convert_time = msec_convert;
+
     // 测试这个routine 要我们测的 kernel_tag
     ell.kernel_flag = kernel_tag;
 
@@ -93,10 +101,10 @@ double test_ell_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, i
     return msec_per_iteration;
 }
 
-template double test_ell_matrix_kernels<int,float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag, LeadingDimension ld, int schedule_mod);
+template double test_ell_matrix_kernels<int,float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag, LeadingDimension ld, int schedule_mod, double &convert_time);
 
-template double test_ell_matrix_kernels<int,double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag, LeadingDimension ld, int schedule_mod);
+template double test_ell_matrix_kernels<int,double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag, LeadingDimension ld, int schedule_mod, double &convert_time);
 
-template double test_ell_matrix_kernels<long long,float>(const CSR_Matrix<long long,float> &csr_ref, int kernel_tag, LeadingDimension ld, int schedule_mod);
+template double test_ell_matrix_kernels<long long,float>(const CSR_Matrix<long long,float> &csr_ref, int kernel_tag, LeadingDimension ld, int schedule_mod, double &convert_time);
 
-template double test_ell_matrix_kernels<long long,double>(const CSR_Matrix<long long,double> &csr_ref, int kernel_tag, LeadingDimension ld, int schedule_mod);
+template double test_ell_matrix_kernels<long long,double>(const CSR_Matrix<long long,double> &csr_ref, int kernel_tag, LeadingDimension ld, int schedule_mod, double &convert_time);

@@ -91,18 +91,17 @@ void run_ell_kernels(int argc, char **argv)
     else
         std::cout << " , ELL matrix store in *ColMajor*" << std::endl;
 
-    // 一次把四个sche_mode都跑完
-    // int sche_mode = 0;
-    // char * schedule_str = get_argval(argc, argv, "sche");
-    // if(schedule_str != NULL)
-    // {
-    //     sche_mode = atoi(schedule_str);
-    //     if (sche_mode!=0 && sche_mode!=1 && sche_mode!=2 && sche_mode!=3)
-    //     {
-    //         std::cout << "sche must be [0,1,2,3]. '--help see more details'" << std::endl;
-    //         return ;
-    //     }
-    // }
+    int sche_mode = 0;
+    char * schedule_str = get_argval(argc, argv, "sche");
+    if(schedule_str != NULL)
+    {
+        sche_mode = atoi(schedule_str);
+        if (sche_mode!=0 && sche_mode!=1 && sche_mode!=2 && sche_mode!=3)
+        {
+            std::cout << "sche must be [0,1,2,3]. '--help see more details'" << std::endl;
+            return ;
+        }
+    }
 
     // 保存测试性能结果
     FILE *save_perf = fopen(MAT_PERFORMANCE, "a");
@@ -114,18 +113,19 @@ void run_ell_kernels(int argc, char **argv)
     
     double msec_per_iteration;
     double sec_per_iteration;
+    double format_convert = 0.0;
     // 0: 串行， 1：omp并行， 2：omp load balanced
     // Our : {St,(==)StCont, Dyn, guided} x {omp, lb}
-    for (int sche_mode = 0 ; sche_mode < 4; ++sche_mode){
+    // for (int sche_mode = 0 ; sche_mode < 4; ++sche_mode){
     for(int methods = 2; methods <= 2; ++methods){
-        msec_per_iteration = test_ell_matrix_kernels(csr, methods, ld_test, sche_mode);
+        msec_per_iteration = test_ell_matrix_kernels(csr, methods, ld_test, sche_mode, format_convert);
         fflush(stdout);
         sec_per_iteration = msec_per_iteration / 1000.0;
         double GFLOPs = (sec_per_iteration == 0) ? 0 : (2.0 * (double) csr.num_nnzs / sec_per_iteration) / 1e9;
         // 输出格式： 【Mat Format Method Schedule Time Performance】
-        fprintf(save_perf, "%d %s ELL %d %d %8.4f %5.4f \n", matID, matrixName.c_str(), methods, sche_mode, msec_per_iteration, GFLOPs);
+        fprintf(save_perf, "%d %s ELL %d %d %8.4f %5.4f %5.4f \n", matID, matrixName.c_str(), methods, sche_mode, msec_per_iteration, GFLOPs, format_convert);
     }
-    }
+    // }
     fclose(save_perf);
     delete_csr_matrix(csr);
 }

@@ -1,4 +1,4 @@
-# Smart Adapter for SpMV
+# Sparsity-aware Multimodal-Adapter module for SSpMV
 
 
 **Baseline.py**:  This is a model proposed by paper ["Prediction of Optimal Solvers for Sparse Linear Systems Using Deep Learning"](https://epubs.siam.org/doi/abs/10.1137/1.9781611977141.2), it's using the fully-connected neural network with handcrafted features.

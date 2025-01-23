@@ -26,6 +26,9 @@ class MTX{
         IndexType getTileSize(){
             return t_num_blocks;
         }
+        std::string getMatName(){
+            return matrixName;
+        }
         bool MtxLoad(const char* mat_path);
         bool FeaturesWrite(const char* file_path);
         bool ConvertToCSR(CSR_Matrix<IndexType, ValueType> &csr);

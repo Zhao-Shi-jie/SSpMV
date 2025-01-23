@@ -1,5 +1,5 @@
-# Smart SpMV (SSpMV)
-**Smart SpMV** is a library for SpMV implemented by different sparse matrix format.
+# Sparsity-aware SpMV (SSpMV)
+**Sparsity-aware SpMV** is a library for SpMV implemented by different sparse matrix format.
 It can adaptively select the optimal performance format and algorithm to compute SpMV operation.
 Right now, the most of kernel code can deploy to different CPU platforms (have tested successfully on both Intel and ArmV8).
 The parallelism of these SpMV algorithms are achieved by OpenMP, the SIMD optimizations rely on `#pragma omp simd` and Intel compiler's option (see *CMakeLists.txt*).

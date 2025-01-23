@@ -69,17 +69,20 @@ void run_coo_kernels(int argc, char **argv)
         coo.values[i] = 1.0 - 2.0 * (rand() / (RAND_MAX + 1.0)); 
     }  */
     fflush(stdout);
-    // timer run_time_struct;
-    // double coo_gflops= 0.0;
-
-    // int coo_kernel_tag = 1; // 测试omp的simple kernel
-
-    // int coo_kernel_tag = 2; // 测试omp的alphasparse
-
-    // test_coo_matrix_kernels(coo, coo_kernel_tag);
-    // fflush(stdout);
-    // 保存测试性能结果
     
+    int sche_mode = 0;
+    char * schedule_str = get_argval(argc, argv, "sche");
+    if(schedule_str != NULL)
+    {
+        sche_mode = atoi(schedule_str);
+        if (sche_mode!=0 && sche_mode!=1 && sche_mode!=2 && sche_mode!=3)
+        {
+            std::cout << "sche must be [0,1,2,3]. '--help see more details'" << std::endl;
+            return ;
+        }
+    }
+
+    // 保存测试性能结果
     FILE *save_perf = fopen(MAT_PERFORMANCE, "a");
     if ( save_perf == nullptr)
     {
@@ -89,19 +92,19 @@ void run_coo_kernels(int argc, char **argv)
 
     double msec_per_iteration;
     double sec_per_iteration;
-
+    double format_convert = 0.0;
     // 0: 串行， 1：omp simple， 3：alphaspasre COO
     // Our : {St,StCont, Dyn, guided} x {omp}
-    for (int sche_mode = 0 ; sche_mode < 4; ++sche_mode){
+    // for (int sche_mode = 0 ; sche_mode < 4; ++sche_mode){
     for(int methods = 1; methods < 2; ++methods){
-        msec_per_iteration = test_coo_matrix_kernels(csr_ref, methods, sche_mode);
+        msec_per_iteration = test_coo_matrix_kernels(csr_ref, methods, sche_mode, format_convert);
         fflush(stdout);
         sec_per_iteration = msec_per_iteration / 1000.0;
         double GFLOPs = (sec_per_iteration == 0) ? 0 : (2.0 * (double) csr_ref.num_nnzs / sec_per_iteration) / 1e9;
         // 输出格式： 【Mat Format Method Schedule Time Performance】
-        fprintf(save_perf, "%d %s COO %d %d %8.4f %5.4f \n", matID, matrixName.c_str(), methods, sche_mode, msec_per_iteration, GFLOPs);
+        fprintf(save_perf, "%d %s COO %d %d %8.4f %5.4f %5.4f \n", matID, matrixName.c_str(), methods, sche_mode, msec_per_iteration, GFLOPs, format_convert);
     }
-    }
+    // }
 
     fclose(save_perf);
     delete_host_matrix(csr_ref);

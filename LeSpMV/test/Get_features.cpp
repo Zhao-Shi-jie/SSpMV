@@ -42,7 +42,7 @@ void test_features(int argc, char** argv)
         return;
     }
 
-    IndexType matID = 0;
+    int matID = 0;
     char * matID_str = get_argval(argc, argv, "matID");
     if(matID_str != NULL)
     {
@@ -51,15 +51,30 @@ void test_features(int argc, char** argv)
 
     MTX<IndexType, ValueType> mtx(matID);
     mtx.MtxLoad(mm_filename);
-    mtx.CalculateFeatures();
-    mtx.FeaturesPrint();
 
+    timer t;
+    mtx.CalculateFeatures();
+    
     // if (mtx.getRowNum() >= mtx.getTileSize() && mtx.getColNum() >= mtx.getTileSize()){
-        mtx.CalculateTilesExtraFeatures(mm_filename);
-        mtx.ExtraFeaturesPrint();
+    mtx.CalculateTilesExtraFeatures(mm_filename);
+
+    double msec_fea_overhead = (double) t.milliseconds_elapsed();
+
+    FILE *save_overhead = fopen(MAT_FEATURES, "a");
+    if ( save_overhead == nullptr)
+    {
+        std::cout << "Unable to open perf-saved file: "<< MAT_FEATURES << std::endl;
+        return ;
+    }
+    fprintf(save_overhead, "%d %s %5.4f \n", matID, mtx.getMatName().c_str(), msec_fea_overhead);
+
+    mtx.FeaturesPrint();
+    mtx.ExtraFeaturesPrint();
+
     // }
     
-    mtx.FeaturesWrite(MAT_FEATURES);
+
+    // mtx.FeaturesWrite(MAT_FEATURES);
 }
 
 int main(int argc, char** argv) {

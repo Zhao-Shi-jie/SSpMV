@@ -6,6 +6,10 @@ import tensorflow as tf
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Dropout, Dense, Conv1D, Conv2D, MaxPooling1D, MaxPooling2D, Flatten, BatchNormalization, Concatenate
 
+from tensorflow.keras.callbacks import CSVLogger
+from datetime import datetime
+from sklearn.metrics import classification_report
+
 import numpy as np
 sys.path.append("..")
 
@@ -29,7 +33,7 @@ class WideModel(Model):
     self.bn = BatchNormalization()
     self.dense1 = Dense(512, activation='relu')
     self.dense2 = Dense(1024, activation='relu')
-    self.dense3 = Dense(32)            # should be the number of algorithms
+    self.dense3 = Dense(32)
 
   def call(self, x):
     x = self.bn(x)
@@ -94,7 +98,7 @@ class SpMV_Adapter(Model):
     self.conv1d_cb = Conv1DModel()  #for multi-modal locality modality features
     self.concatenate = Concatenate()
     self.dense1 = Dense(512, activation='relu')
-    self.dropout = Dropout(0.5)
+    self.dropout = Dropout(0.2)
     self.dense2 = Dense(256, activation='relu')
     self.final_dense = Dense(self.num_of_labels)
 
@@ -117,23 +121,43 @@ class SpMV_Adapter(Model):
     config.update({'num_of_labels': self.num_of_labels})
     return config
 
-def train_MM_model(model_path, image_array, RB_array, CB_array, feat_array, label_array, label_nums):
+def train_MM_model(model_path, 
+                   image_array, RB_array, CB_array, 
+                   feat_array, label_array, 
+                   val_image_array, val_RB_array, val_CB_array, val_feat_array, val_label_array,
+                   label_nums):
   model = SpMV_Adapter(label_nums)
   Optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
   model.compile(optimizer=Optimizer,
                 loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                 metrics=['accuracy'])
+  
   if len(image_array.shape) == 3:
     image_array = np.expand_dims(image_array, -1)
+  if len(val_image_array.shape) == 3:
+        val_image_array = np.expand_dims(val_image_array, -1)
   
-  model.fit([feat_array, image_array, RB_array, CB_array], label_array, batch_size=64, epochs=512)
+  # 获取当前时间并格式化为字符串
+  ttime = datetime.now().strftime("%Y%m%d_%H%M%S")
+  logger_name = "MMAdapter_" + ttime +'.csv'
+  csv_logger = CSVLogger(logger_name, append=True, separator=' ')
+  
+  model.fit([feat_array, image_array, RB_array, CB_array], 
+            label_array, 
+            batch_size=64, 
+            epochs=512,
+            validation_data=([val_feat_array, val_image_array, val_RB_array, val_CB_array], val_label_array),
+            callbacks=[csv_logger])
   
   # tf.keras.models.save_model(model, model_path)
   model.save(model_path)  # 推荐使用这种方式
+  print ("Finish MM-Adapter Model Saving")
 
-def train_and_get_res(training_data_list, label_suffix, label_nums):
+def train_and_get_res(training_data_list, val_data_list, label_suffix, label_nums):
   # training_data_list = "train_list.txt"  # 保存的是 dataset matrix name
   image_array, RB_array, CB_array, feat_array, label_array = get_train_data(training_data_list, label_suffix)
+  
+  val_image_array, val_RB_array, val_CB_array, val_feat_array, val_label_array = get_train_data(val_data_list, label_suffix)
   
   print("Image  shape   : ", image_array.shape)
   print("RB_arr shape   : ", RB_array.shape)
@@ -144,10 +168,13 @@ def train_and_get_res(training_data_list, label_suffix, label_nums):
   # 保存模型的目录
   model_path = "/data/lsl/SSpMV/models/SpMV_Adapter.keras"
   
-  train_MM_model(model_path, image_array, RB_array, CB_array, feat_array, label_array, label_nums)
+  train_MM_model(model_path, 
+                 image_array, RB_array, CB_array, feat_array, label_array, 
+                 val_image_array, val_RB_array, val_CB_array, val_feat_array, val_label_array,
+                 label_nums)
 
 def evaluate_MM_Adapter(model_path, image_array_test, Row_Block_array_test, Col_Block_array_test, feat_array_test, label_array_test, test_data, eva_path, res_path):
-  
+
   loaded_model = tf.keras.models.load_model(model_path)
   
   test_loss, test_acc = loaded_model.evaluate([feat_array_test, image_array_test, Row_Block_array_test, Col_Block_array_test], label_array_test, verbose=2)
@@ -156,13 +183,12 @@ def evaluate_MM_Adapter(model_path, image_array_test, Row_Block_array_test, Col_
   f_eva.write("Evaluating Acc:" + str(test_acc) + "\n")
   f_eva.close()
 
+  # 在评估过程中，收集所有预测和真实标签
+  all_predictions = []
+  all_true_labels = []
+  
   f_predict = open(res_path, "w")
   for file_ in test_data:
-    start = time.time()
-
-    # predictions = loaded_model((tf.expand_dims(file_[1],0), tf.expand_dims(tf.expand_dims(file_[0],0), -1)))
-    #  file_ = [feat, img, RB, CB, label]
-    # predictions = loaded_model(file_[0], file_[1], file_[2], file_[3])
     # 预处理输入数据：确保数据维度正确
     feat = tf.expand_dims(file_[0], 0)  # 假设feat需要扩展批量维度
     img = tf.expand_dims(file_[1], 0)   # 批次维度
@@ -171,17 +197,35 @@ def evaluate_MM_Adapter(model_path, image_array_test, Row_Block_array_test, Col_
     
     predictions = loaded_model([feat, img, RB, CB])
     predictions = tf.nn.softmax(predictions)
-    idx = tf.math.argmax(predictions[0])
+    # idx = tf.math.argmax(predictions[0])
+    idx = tf.math.argmax(predictions[0]).numpy()
 
-    end = time.time()
-    f_predict.write(str(int(idx)) + "\n")
+    all_predictions.append(idx)
+    all_true_labels.append(file_[4])
+  
+    # f_predict.write(str(int(idx)) + "\n")
+  
+  # 将所有预测和真实标签转换为 NumPy 数组
+  all_predictions = np.array(all_predictions)
+  all_true_labels = np.array(all_true_labels)
+  # 计算精确度、召回率和F1得分
+  report = classification_report(all_true_labels, all_predictions, output_dict=True)
+  # 写入评估结果到文件
+  with open(eva_path, "w") as f_eva:
+    f_eva.write("Classification Report:\n")
+    f_eva.write(str(report) + "\n")
+  # 如果还需要记录单个预测
+  with open(res_path, "w") as f_predict:
+    for idx in all_predictions:
+      f_predict.write(str(idx) + "\n")
+      
   f_predict.close()
 
 def test_model(test_data_list, label_suffix, label_nums):
   # test_data_list = "test_list.txt"
   image_array_test, Row_Block_array_test, Col_Block_array_test, feat_array_test, label_array_test, test_data = get_test_data(test_data_list, label_suffix)
   
-  eva_path = "/data/lsl/SSpMV/models/prediction_result/MM_Adapter/evaluate_acc.txt"
+  eva_path = "/data/lsl/SSpMV/models/prediction_result/MM_Adapter/test_acc.txt"
   res_path = "/data/lsl/SSpMV/models/prediction_result/MM_Adapter/predict_result.txt"
   
   # 保存模型的目录
@@ -198,12 +242,20 @@ def test_model(test_data_list, label_suffix, label_nums):
   
 
 if __name__ == "__main__":
-  training_data_list = "train_list.txt"  # 保存的是 dataset matrix name
-  test_data_list = "test_list.txt"
+  # training_data_list = "train_list.txt"  # 保存的是 Suite dataset matrix name
+  training_data_list = "train_genlist.txt"
+  # training_data_list = "train_all.txt"
   
-  settings_idx = 1
+  # val_data_list = "val_list.txt"
+  val_data_list = "val_genlist.txt"
+  
+  test_data_list = "test_list.txt" # 保存的是 Suite dataset matrix name
+  # test_data_list = "test_genlist.txt"
+  # test_data_list = "test_all.txt"
+  
+  settings_idx = 0
   label_class = [".format_label", ".det_format_label"]
   print ("Running Model with the setting: [{}]".format(settings_idx))
   
-  train_and_get_res(training_data_list, label_suffix=label_class[settings_idx], label_nums=number_of_labels[settings_idx])
-  # test_model(test_data_list, label_suffix=label_class[settings_idx], label_nums=number_of_labels[settings_idx])
+  train_and_get_res(training_data_list, val_data_list, label_suffix=label_class[settings_idx], label_nums=number_of_labels[settings_idx])
+  test_model(test_data_list, label_suffix=label_class[settings_idx], label_nums=number_of_labels[settings_idx])

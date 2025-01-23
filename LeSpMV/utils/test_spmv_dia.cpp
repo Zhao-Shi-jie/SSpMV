@@ -13,7 +13,7 @@
 #include<iostream>
 
 template <typename IndexType, typename ValueType>
-double test_dia_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag, int schedule_mod)
+double test_dia_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag, int schedule_mod, double &convert_time)
 {
     double msec_per_iteration;
     std::cout << "=====  Testing DIA Kernels  =====" << std::endl;
@@ -23,8 +23,15 @@ double test_dia_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, i
     IndexType max_diags = MAX_DIAG_NUM;
     IndexType alignment = (SIMD_WIDTH/8/sizeof(ValueType));
     FILE* save_features = fopen(MAT_FEATURES,"w");
-
+    
+    // formats convert overhead
+    timer t;
+    
     dia = csr_to_dia(csr_ref, max_diags, save_features, alignment);
+    
+    double msec_convert = (double) t.milliseconds_elapsed();
+    // double sec_convert = msec_convert / 1000.0;
+    convert_time = msec_convert;
 
     fclose(save_features);
     // 测试这个routine 要我们测的 kernel_tag
@@ -82,10 +89,10 @@ double test_dia_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, i
     return msec_per_iteration;
 }
 
-template double test_dia_matrix_kernels<int,float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag, int schedule_mod);
+template double test_dia_matrix_kernels<int,float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag, int schedule_mod, double &convert_time);
 
-template double test_dia_matrix_kernels<int,double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag, int schedule_mod);
+template double test_dia_matrix_kernels<int,double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag, int schedule_mod, double &convert_time);
 
-template double test_dia_matrix_kernels<long long,float>(const CSR_Matrix<long long,float> &csr_ref, int kernel_tag, int schedule_mod);
+template double test_dia_matrix_kernels<long long,float>(const CSR_Matrix<long long,float> &csr_ref, int kernel_tag, int schedule_mod, double &convert_time);
 
-template double test_dia_matrix_kernels<long long,double>(const CSR_Matrix<long long,double> &csr_ref, int kernel_tag, int schedule_mod);
+template double test_dia_matrix_kernels<long long,double>(const CSR_Matrix<long long,double> &csr_ref, int kernel_tag, int schedule_mod, double &convert_time);

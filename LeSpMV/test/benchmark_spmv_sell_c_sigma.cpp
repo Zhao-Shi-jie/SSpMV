@@ -68,7 +68,6 @@ void run_sell_c_sigma_kernels(int argc, char **argv)
     fflush(stdout);
 
     // 一次把四个sche_mode都跑完
-    /*
     int sche_mode = SCHE_MODE;
 
     // 此时 0 == 1 都是 StCont 方式，因为按照本身的chunk划分
@@ -82,7 +81,7 @@ void run_sell_c_sigma_kernels(int argc, char **argv)
             return ;
         }
     }
-    */
+    
 
     // 保存测试性能结果
     FILE *save_perf = fopen(MAT_PERFORMANCE, "a");
@@ -96,19 +95,20 @@ void run_sell_c_sigma_kernels(int argc, char **argv)
 
     double msec_per_iteration;
     double sec_per_iteration;
+    double format_convert = 0.0;
     // 0: 串行， 1：omp并行, 2: omp load balanced
     // Paper: {StCont, Dyn} x {c} x {sigma}
     //                        {4,8} x {2^9, 2^12, 2^14}
     // Our : {St,(==)StCont, Dyn, guided} x {c} x {sigma} x {omp}
-    for (int sche_mode = 0 ; sche_mode < 4; ++sche_mode){
-    for(int methods =1; methods <= 2; ++methods){
-        msec_per_iteration = test_sell_c_sigma_matrix_kernels(csr, methods, sche_mode);
+    // for (int sche_mode = 0 ; sche_mode < 4; ++sche_mode){
+    for(int methods = 2; methods <= 2; ++methods){
+        msec_per_iteration = test_sell_c_sigma_matrix_kernels(csr, methods, sche_mode, format_convert);
         fflush(stdout);
         sec_per_iteration = msec_per_iteration / 1000.0;
         double GFLOPs = (sec_per_iteration == 0) ? 0 : (2.0 * (double) csr.num_nnzs / sec_per_iteration) / 1e9;
         // 输出格式： 【Mat Format Method Schedule c sigma Time Performance】
-        fprintf(save_perf, "%d %s S-ELL-sigma %d %d %d %d %8.4f %5.4f \n", matID, matrixName.c_str(), methods, sche_mode, CHUNK_SIZE, SELL_SIGMA, msec_per_iteration, GFLOPs);
-    }
+        fprintf(save_perf, "%d %s S-ELL-sigma %d %d %d %d %8.4f %5.4f %5.4f \n", matID, matrixName.c_str(), methods, sche_mode, CHUNK_SIZE, SELL_SIGMA, msec_per_iteration, GFLOPs, format_convert);
+    // }
     }
     fclose(save_perf);
     delete_csr_matrix(csr);

@@ -12,7 +12,7 @@
 #include<iostream>
 
 template <typename IndexType, typename ValueType>
-double test_bsr_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag, int schedule_mod)
+double test_bsr_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, int kernel_tag, int schedule_mod, double &convert_time)
 {
     double msec_per_iteration;
     std::cout << "=====  Testing BSR Kernels  =====" << std::endl;
@@ -22,8 +22,15 @@ double test_bsr_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, i
     IndexType alignment = (SIMD_WIDTH/8/sizeof(ValueType));
     IndexType bsr_rowdim = BSR_BlockDimRow;
     IndexType bsr_coldim = 1*alignment;
+    // formats convert overhead
+    timer t;
+
     bsr = csr_to_bsr(csr_ref, bsr_rowdim, bsr_coldim);
 
+    double msec_convert = (double) t.milliseconds_elapsed();
+    // double sec_convert = msec_convert / 1000.0;
+    convert_time = msec_convert;
+    
     // 测试这个routine 要我们测的 kernel_tag
     bsr.kernel_flag = kernel_tag;
 
@@ -83,10 +90,10 @@ double test_bsr_matrix_kernels(const CSR_Matrix<IndexType,ValueType> &csr_ref, i
     return msec_per_iteration;
 }
 
-template double test_bsr_matrix_kernels<int,float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag, int sche);
+template double test_bsr_matrix_kernels<int,float>(const CSR_Matrix<int,float> &csr_ref, int kernel_tag, int sche,  double &convert_time);
 
-template double test_bsr_matrix_kernels<int,double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag, int sche);
+template double test_bsr_matrix_kernels<int,double>(const CSR_Matrix<int,double> &csr_ref, int kernel_tag, int sche,  double &convert_time);
 
-template double test_bsr_matrix_kernels<long long,float>(const CSR_Matrix<long long,float> &csr_ref, int kernel_tag, int sche);
+template double test_bsr_matrix_kernels<long long,float>(const CSR_Matrix<long long,float> &csr_ref, int kernel_tag, int sche,  double &convert_time);
 
-template double test_bsr_matrix_kernels<long long,double>(const CSR_Matrix<long long,double> &csr_ref, int kernel_tag, int sche);
+template double test_bsr_matrix_kernels<long long,double>(const CSR_Matrix<long long,double> &csr_ref, int kernel_tag, int sche,  double &convert_time);
