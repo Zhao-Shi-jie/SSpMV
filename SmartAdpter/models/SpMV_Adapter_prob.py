@@ -193,7 +193,8 @@ def test_model(test_data_list, label_suffix, label_nums):
   evaluate_MM_Adapter(model_path, image_array_test, Row_Block_array_test, Col_Block_array_test, feat_array_test, label_array_test, test_data, eva_path, res_path)
   
   metric_path = "/data/lsl/SSpMV/models/prediction_result/MM_Adapter_pb/metrics.res"
-  base_path = "/data/lsl/MModel-Data"
+  # base_path = "/data/lsl/MModel-Data"
+  base_path = "/data2/linshengle_data/MModel-Data"
   label_format_suffix = ".format_label"
   
   get_acc_new(test_data_list, base_path, label_format_suffix, res_path, metric_path)
@@ -201,11 +202,13 @@ def test_model(test_data_list, label_suffix, label_nums):
 
 if __name__ == "__main__":
   training_data_list = "train_list.txt"  # 保存的是 dataset matrix name
+  # training_data_list = "train_genlist.txt"
+  # val_data_list = "val_genlist.txt"
   test_data_list = "test_list.txt"
   
   settings_idx = 0
   label_class = [".prob_label", ".det_prob_label"]
   print ("Running Prob Model with the setting: [{}]".format(settings_idx))
   
-  # train_and_get_res(training_data_list, label_suffix=label_class[settings_idx], label_nums=number_of_labels[settings_idx])
+  train_and_get_res(training_data_list, label_suffix=label_class[settings_idx], label_nums=number_of_labels[settings_idx])
   test_model(test_data_list, label_suffix=label_class[settings_idx], label_nums=number_of_labels[settings_idx])

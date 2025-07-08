@@ -12,7 +12,8 @@ label_prob_suffix = ".prob_label"
 RB_suffix = ('.RBave', '.RBmax', '.RBstd')
 CB_suffix = ('.CBave', '.CBmax', '.CBstd')
 
-base_path = "/data/lsl/MModel-Data"
+# base_path = "/data/lsl/MModel-Data"
+base_path = "/data2/linshengle_data/MModel-Data"
 def read_images(data_list, base_path, channel_suffixes=('.ave', '.max', '.std')):
   file_list = []
   with open(data_list, "r") as f:
