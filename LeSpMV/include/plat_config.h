@@ -1,7 +1,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#define CPU_FREQUENCY 1000.183e6
+#define CPU_FREQUENCY e6
 #define CPU_MAX_FREQUENCY 3200.0000e6
 #define CPU_SOCKET 2
 #define CPU_CORES_PER_SOC 14

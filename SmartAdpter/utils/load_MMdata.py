@@ -3,6 +3,7 @@ import numpy as np
 import tensorflow as tf
 
 from sklearn.preprocessing import StandardScaler
+import pandas as pd
 st = StandardScaler()
 
 image_dim    = 256
@@ -13,7 +14,7 @@ RB_suffix = ('.RBave', '.RBmax', '.RBstd')
 CB_suffix = ('.CBave', '.CBmax', '.CBstd')
 
 # base_path = "/data/lsl/MModel-Data"
-base_path = "/data2/linshengle_data/MModel-Data"
+base_path = "/data/home/zsj/MModel-Data"
 def read_images(data_list, base_path, channel_suffixes=('.ave', '.max', '.std')):
   file_list = []
   with open(data_list, "r") as f:
@@ -172,19 +173,22 @@ def read_labels_prob(data_list_path, base_path, label_file_suffix):
     lines = f.readlines()
     for line in lines:
       file_list.append(line.strip())
-      
+  
+  # 读取CSV文件
+  csv_path = "/data/home/zsj/computeKernel/lcuda-project/SpLibrary/script/collect/SpMV_Probabilities4ELLs_ON_ELLs1027.csv"
+  df = pd.read_csv(csv_path, header=None)
+  
+  # 将第一列（矩阵名字）设置为索引
+  df.set_index(0, inplace=True)
+  
   label_array = []
   for mtx_name in file_list:
-    # label_path = os.path.join(base_path, file_ + label_file_suffix)
-    label_path = os.path.join(base_path, f"{mtx_name}/{mtx_name}{label_file_suffix}")
-    with open(label_path, "r") as f_read:
-      # 读取标签文件的第一行
-      line = f_read.readline().strip()
-      # 分割字符串获取所有概率值，忽略第一个字符串（格式名称）
-      probabilities = line.split()[1:]  # 从第二个元素开始是概率值
-      # 将字符串概率转换为浮点数
-      label = [float(prob) for prob in probabilities]
+  # 从DataFrame中获取该矩阵对应的四个标签值
+    if mtx_name in df.index:
+      label = df.loc[mtx_name, [1, 2, 3, 4]].values.astype(float).tolist()
       label_array.append(label)
+    else:
+      print(f"Warning: Matrix {mtx_name} not found in CSV file")
 
   return np.array(label_array)
 
