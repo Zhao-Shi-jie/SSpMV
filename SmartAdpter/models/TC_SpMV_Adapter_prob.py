@@ -17,6 +17,8 @@ from utils.SSpMV_setting import *
 from compute_metrics import get_acc_new
 from compute_metrics import get_precision_new
 
+base_path = "/data2/zhaosj"
+
 """
 Self defined wide model: should be FFNN : Feed-Forward Neural Network
 The standard FFNN is a multi-layer feedforward network with an input, a hidden, and an output layer. 
@@ -142,7 +144,7 @@ def train_and_get_res(training_data_list, label_suffix, label_nums):
   print("Label    shape : ", label_array.shape)
   
   # 保存模型的目录
-  model_path = "/data/home/zsj/computeKernel/lcuda-project/SpLibrary/script/TC_MM_Adapter_pb/TC_SpMV_Adapter_prob.keras"
+  model_path = os.path.join(base_path, "SSpMV/TC/models/MM_Adapter/TC_SpMV_Adapter_prob.keras")
   
   train_MM_model(model_path, image_array, RB_array, CB_array, feat_array, label_array, label_nums)
 
@@ -183,16 +185,18 @@ def evaluate_MM_Adapter(model_path, image_array_test, Row_Block_array_test, Col_
 def test_model(test_data_list, label_suffix, label_nums):
   
   image_array_test, Row_Block_array_test, Col_Block_array_test, feat_array_test, label_array_test, test_data = get_test_data_new(test_data_list, label_suffix)
-  
-  eva_path = "/data/home/zsj/computeKernel/lcuda-project/SpLibrary/script/TC_MM_Adapter_pb/evaluate_acc.txt"
-  res_path = "/data/home/zsj/computeKernel/lcuda-project/SpLibrary/script/TC_MM_Adapter_pb/predict_result.txt"
-  
-  # 保存模型的目录
-  model_path = "/data/home/zsj/computeKernel/lcuda-project/SpLibrary/script/TC_MM_Adapter_pb/TC_SpMV_Adapter_prob.keras"
+
+  eva_path = os.path.join(base_path, "SSpMV/TC/results/MM_Adapter/test_acc.txt")
+  res_path = os.path.join(base_path, "SSpMV/TC/results/MM_Adapter/predict_result.txt")
+  model_path = os.path.join(base_path, "SSpMV/TC/models/MM_Adapter/TC_SpMV_Adapter_prob.keras")
+  # ensure output directories exist
+  os.makedirs(os.path.dirname(eva_path), exist_ok=True)
+  os.makedirs(os.path.dirname(res_path), exist_ok=True)
+  os.makedirs(os.path.dirname(model_path), exist_ok=True)
   
   evaluate_MM_Adapter(model_path, image_array_test, Row_Block_array_test, Col_Block_array_test, feat_array_test, label_array_test, test_data, eva_path, res_path)
   
-  metric_path = "/data/home/zsj/computeKernel/lcuda-project/SpLibrary/script/TC_MM_Adapter_pb/metrics.res"
+  metric_path = os.path.join(base_path, "SSpMV/TC/results/MM_Adapter/metrics.res")
   # base_path = "/data/lsl/MModel-Data"
   base_path = "/data/home/zsj/computeKernel/lcuda-project/SpLibrary/script/MModel-Data"
   label_format_suffix = ".format_label"
@@ -201,10 +205,10 @@ def test_model(test_data_list, label_suffix, label_nums):
   get_precision_new(test_data_list, base_path, label_format_suffix, res_path, label_nums, metric_path)
 
 if __name__ == "__main__":
-  training_data_list = "/data/home/zsj/computeKernel/lcuda-project/SpLibrary/script/collect/matrices_train.txt"  # 保存的是 dataset matrix name
+  training_data_list = os.path.join(base_path, "lcuda-project/SpLibrary/script/collect/matrices_train.txt")  # 保存的是 dataset matrix name
   # training_data_list = "train_genlist.txt"
   # val_data_list = "val_genlist.txt"
-  test_data_list = "/data/home/zsj/computeKernel/lcuda-project/SpLibrary/script/collect/matrices_test.txt"
+  test_data_list = os.path.join(base_path, "lcuda-project/SpLibrary/script/collect/matrices_test.txt")
   
   settings_idx = 2
   label_class = [".prob_label", ".det_prob_label", "just a pad"]
